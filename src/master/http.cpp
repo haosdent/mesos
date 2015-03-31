@@ -284,7 +284,7 @@ Try<string> getFormValue(
 
 Future<Response> Master::Http::observe(const Request& request)
 {
-  LOG(INFO) << "HTTP request for '" << request.path << "'";
+  VLOG(2) << "HTTP request for '" << request.path << "'";
 
   Try<hashmap<string, string>> decode =
     process::http::query::decode(request.body);
@@ -355,7 +355,7 @@ const string Master::Http::REDIRECT_HELP = HELP(
 
 Future<Response> Master::Http::redirect(const Request& request)
 {
-  LOG(INFO) << "HTTP request for '" << request.path << "'";
+  VLOG(2) << "HTTP request for '" << request.path << "'";
 
   // If there's no leader, redirect to this master's base url.
   MasterInfo info = master->leader.isSome()
@@ -388,7 +388,7 @@ const string Master::Http::SLAVES_HELP = HELP(
 
 
 Future<Response> Master::Http::slaves(const Request& request) {
-  LOG(INFO) << "HTTP request for '" << request.path << "'";
+  VLOG(2) << "HTTP request for '" << request.path << "'";
 
   JSON::Array array;
   foreachvalue (const Slave* slave, master->slaves.registered) {
@@ -404,7 +404,7 @@ Future<Response> Master::Http::slaves(const Request& request) {
 
 Future<Response> Master::Http::state(const Request& request)
 {
-  LOG(INFO) << "HTTP request for '" << request.path << "'";
+  VLOG(2) << "HTTP request for '" << request.path << "'";
 
   JSON::Object object;
   object.values["version"] = MESOS_VERSION;
@@ -542,7 +542,7 @@ Future<Response> Master::Http::state(const Request& request)
 
 Future<Response> Master::Http::roles(const Request& request)
 {
-  LOG(INFO) << "HTTP request for '" << request.path << "'";
+  VLOG(2) << "HTTP request for '" << request.path << "'";
 
   JSON::Object object;
 
@@ -720,7 +720,7 @@ struct TaskComparator
 
 Future<Response> Master::Http::tasks(const Request& request)
 {
-  LOG(INFO) << "HTTP request for '" << request.path << "'";
+  VLOG(2) << "HTTP request for '" << request.path << "'";
 
   // Get list options (limit and offset).
   Result<int> result = numify<int>(request.query.get("limit"));
