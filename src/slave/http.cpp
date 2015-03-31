@@ -246,7 +246,7 @@ Future<Response> Slave::Http::health(const Request& request)
 
 Future<Response> Slave::Http::state(const Request& request)
 {
-  LOG(INFO) << "HTTP request for '" << request.path << "'";
+  VLOG(1) << "HTTP request for '" << request.path << "'";
 
   JSON::Object object;
   object.values["version"] = MESOS_VERSION;
