@@ -31,20 +31,20 @@ public:
   explicit DataDecoder(const network::Socket& _s)
     : s(_s), failure(false), request(NULL)
   {
-    settings.on_message_begin = &DataDecoder::on_message_begin;
+    settings.on_message_begin = &DataDecoder::onMessageBegin;
 
 #if !(HTTP_PARSER_VERSION_MAJOR >= 2)
-    settings.on_path = &DataDecoder::on_path;
-    settings.on_fragment = &DataDecoder::on_fragment;
-    settings.on_query_string = &DataDecoder::on_query_string;
+    settings.on_path = &DataDecoder::onPath;
+    settings.on_fragment = &DataDecoder::onFragment;
+    settings.on_query_string = &DataDecoder::onQueryString;
 #endif
 
-    settings.on_url = &DataDecoder::on_url;
-    settings.on_header_field = &DataDecoder::on_header_field;
-    settings.on_header_value = &DataDecoder::on_header_value;
-    settings.on_headers_complete = &DataDecoder::on_headers_complete;
-    settings.on_body = &DataDecoder::on_body;
-    settings.on_message_complete = &DataDecoder::on_message_complete;
+    settings.on_url = &DataDecoder::onUrl;
+    settings.on_header_field = &DataDecoder::onHeaderField;
+    settings.on_header_value = &DataDecoder::onHeaderValue;
+    settings.on_headers_complete = &DataDecoder::onHeadersComplete;
+    settings.on_body = &DataDecoder::onBody;
+    settings.on_message_complete = &DataDecoder::onMessageComplete;
 
     http_parser_init(&parser, HTTP_REQUEST);
 
@@ -80,7 +80,7 @@ public:
   }
 
 private:
-  static int on_message_begin(http_parser* p)
+  static int onMessageBegin(http_parser* p)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
 
@@ -106,7 +106,7 @@ private:
   }
 
 #if !(HTTP_PARSER_VERSION_MAJOR >= 2)
-  static int on_path(http_parser* p, const char* data, size_t length)
+  static int onPath(http_parser* p, const char* data, size_t length)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
     CHECK_NOTNULL(decoder->request);
@@ -114,7 +114,7 @@ private:
     return 0;
   }
 
-  static int on_query_string(http_parser* p, const char* data, size_t length)
+  static int onQueryString(http_parser* p, const char* data, size_t length)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
     CHECK_NOTNULL(decoder->request);
@@ -122,7 +122,7 @@ private:
     return 0;
   }
 
-  static int on_fragment(http_parser* p, const char* data, size_t length)
+  static int onFragment(http_parser* p, const char* data, size_t length)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
     CHECK_NOTNULL(decoder->request);
@@ -131,7 +131,7 @@ private:
   }
 #endif // !(HTTP_PARSER_VERSION_MAJOR >= 2)
 
-  static int on_url(http_parser* p, const char* data, size_t length)
+  static int onUrl(http_parser* p, const char* data, size_t length)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
     CHECK_NOTNULL(decoder->request);
@@ -167,7 +167,7 @@ private:
     return result;
   }
 
-  static int on_header_field(http_parser* p, const char* data, size_t length)
+  static int onHeaderField(http_parser* p, const char* data, size_t length)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
     CHECK_NOTNULL(decoder->request);
@@ -184,7 +184,7 @@ private:
     return 0;
   }
 
-  static int on_header_value(http_parser* p, const char* data, size_t length)
+  static int onHeaderValue(http_parser* p, const char* data, size_t length)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
     CHECK_NOTNULL(decoder->request);
@@ -193,7 +193,7 @@ private:
     return 0;
   }
 
-  static int on_headers_complete(http_parser* p)
+  static int onHeadersComplete(http_parser* p)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
 
@@ -212,7 +212,7 @@ private:
     return 0;
   }
 
-  static int on_body(http_parser* p, const char* data, size_t length)
+  static int onBody(http_parser* p, const char* data, size_t length)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
     CHECK_NOTNULL(decoder->request);
@@ -220,7 +220,7 @@ private:
     return 0;
   }
 
-  static int on_message_complete(http_parser* p)
+  static int onMessageComplete(http_parser* p)
   {
     DataDecoder* decoder = (DataDecoder*) p->data;
 
@@ -282,20 +282,20 @@ public:
   ResponseDecoder()
     : failure(false), header(HEADER_FIELD), response(NULL)
   {
-    settings.on_message_begin = &ResponseDecoder::on_message_begin;
+    settings.on_message_begin = &ResponseDecoder::onMessageBegin;
 
 #if !(HTTP_PARSER_VERSION_MAJOR >=2)
-    settings.on_path = &ResponseDecoder::on_path;
-    settings.on_fragment = &ResponseDecoder::on_fragment;
-    settings.on_query_string = &ResponseDecoder::on_query_string;
+    settings.on_path = &ResponseDecoder::onPath;
+    settings.on_fragment = &ResponseDecoder::onFragment;
+    settings.on_query_string = &ResponseDecoder::onQueryString;
 #endif
 
-    settings.on_url = &ResponseDecoder::on_url;
-    settings.on_header_field = &ResponseDecoder::on_header_field;
-    settings.on_header_value = &ResponseDecoder::on_header_value;
-    settings.on_headers_complete = &ResponseDecoder::on_headers_complete;
-    settings.on_body = &ResponseDecoder::on_body;
-    settings.on_message_complete = &ResponseDecoder::on_message_complete;
+    settings.on_url = &ResponseDecoder::onUrl;
+    settings.on_header_field = &ResponseDecoder::onHeaderField;
+    settings.on_header_value = &ResponseDecoder::onHeaderValue;
+    settings.on_headers_complete = &ResponseDecoder::onHeadersComplete;
+    settings.on_body = &ResponseDecoder::onBody;
+    settings.on_message_complete = &ResponseDecoder::onMessageComplete;
 
     http_parser_init(&parser, HTTP_RESPONSE);
 
@@ -326,7 +326,7 @@ public:
   }
 
 private:
-  static int on_message_begin(http_parser* p)
+  static int onMessageBegin(http_parser* p)
   {
     ResponseDecoder* decoder = (ResponseDecoder*) p->data;
 
@@ -349,28 +349,28 @@ private:
   }
 
 #if !(HTTP_PARSER_VERSION_MAJOR >= 2)
-  static int on_path(http_parser* p, const char* data, size_t length)
+  static int onPath(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 
-  static int on_query_string(http_parser* p, const char* data, size_t length)
+  static int onQueryString(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 
-  static int on_fragment(http_parser* p, const char* data, size_t length)
+  static int onFragment(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 #endif // !(HTTP_PARSER_VERSION_MAJOR >= 2)
 
-  static int on_url(http_parser* p, const char* data, size_t length)
+  static int onUrl(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 
-  static int on_header_field(http_parser* p, const char* data, size_t length)
+  static int onHeaderField(http_parser* p, const char* data, size_t length)
   {
     ResponseDecoder* decoder = (ResponseDecoder*) p->data;
     CHECK_NOTNULL(decoder->response);
@@ -387,7 +387,7 @@ private:
     return 0;
   }
 
-  static int on_header_value(http_parser* p, const char* data, size_t length)
+  static int onHeaderValue(http_parser* p, const char* data, size_t length)
   {
     ResponseDecoder* decoder = (ResponseDecoder*) p->data;
     CHECK_NOTNULL(decoder->response);
@@ -396,7 +396,7 @@ private:
     return 0;
   }
 
-  static int on_headers_complete(http_parser* p)
+  static int onHeadersComplete(http_parser* p)
   {
     ResponseDecoder* decoder = (ResponseDecoder*) p->data;
 
@@ -410,7 +410,7 @@ private:
     return 0;
   }
 
-  static int on_body(http_parser* p, const char* data, size_t length)
+  static int onBody(http_parser* p, const char* data, size_t length)
   {
     ResponseDecoder* decoder = (ResponseDecoder*) p->data;
     CHECK_NOTNULL(decoder->response);
@@ -418,7 +418,7 @@ private:
     return 0;
   }
 
-  static int on_message_complete(http_parser* p)
+  static int onMessageComplete(http_parser* p)
   {
     ResponseDecoder* decoder = (ResponseDecoder*) p->data;
 
@@ -484,29 +484,29 @@ public:
     : failure(false), header(HEADER_FIELD), response(NULL)
   {
     settings.on_message_begin =
-      &StreamingResponseDecoder::on_message_begin;
+      &StreamingResponseDecoder::onMessageBegin;
 
 #if !(HTTP_PARSER_VERSION_MAJOR >=2)
     settings.on_path =
-      &StreamingResponseDecoder::on_path;
+      &StreamingResponseDecoder::onPath;
     settings.on_fragment =
-      &StreamingResponseDecoder::on_fragment;
+      &StreamingResponseDecoder::onFragment;
     settings.on_query_string =
-      &StreamingResponseDecoder::on_query_string;
+      &StreamingResponseDecoder::onQueryString;
 #endif
 
     settings.on_url =
-      &StreamingResponseDecoder::on_url;
+      &StreamingResponseDecoder::onUrl;
     settings.on_header_field =
-      &StreamingResponseDecoder::on_header_field;
+      &StreamingResponseDecoder::onHeaderField;
     settings.on_header_value =
-      &StreamingResponseDecoder::on_header_value;
+      &StreamingResponseDecoder::onHeaderValue;
     settings.on_headers_complete =
-      &StreamingResponseDecoder::on_headers_complete;
+      &StreamingResponseDecoder::onHeadersComplete;
     settings.on_body =
-      &StreamingResponseDecoder::on_body;
+      &StreamingResponseDecoder::onBody;
     settings.on_message_complete =
-      &StreamingResponseDecoder::on_message_complete;
+      &StreamingResponseDecoder::onMessageComplete;
 
     http_parser_init(&parser, HTTP_RESPONSE);
 
@@ -544,7 +544,7 @@ public:
   }
 
 private:
-  static int on_message_begin(http_parser* p)
+  static int onMessageBegin(http_parser* p)
   {
     StreamingResponseDecoder* decoder = (StreamingResponseDecoder*) p->data;
 
@@ -565,28 +565,28 @@ private:
   }
 
 #if !(HTTP_PARSER_VERSION_MAJOR >= 2)
-  static int on_path(http_parser* p, const char* data, size_t length)
+  static int onPath(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 
-  static int on_query_string(http_parser* p, const char* data, size_t length)
+  static int onQueryString(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 
-  static int on_fragment(http_parser* p, const char* data, size_t length)
+  static int onFragment(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 #endif // !(HTTP_PARSER_VERSION_MAJOR >= 2)
 
-  static int on_url(http_parser* p, const char* data, size_t length)
+  static int onUrl(http_parser* p, const char* data, size_t length)
   {
     return 0;
   }
 
-  static int on_header_field(http_parser* p, const char* data, size_t length)
+  static int onHeaderField(http_parser* p, const char* data, size_t length)
   {
     StreamingResponseDecoder* decoder = (StreamingResponseDecoder*) p->data;
 
@@ -604,7 +604,7 @@ private:
     return 0;
   }
 
-  static int on_header_value(http_parser* p, const char* data, size_t length)
+  static int onHeaderValue(http_parser* p, const char* data, size_t length)
   {
     StreamingResponseDecoder* decoder = (StreamingResponseDecoder*) p->data;
 
@@ -615,7 +615,7 @@ private:
     return 0;
   }
 
-  static int on_headers_complete(http_parser* p)
+  static int onHeadersComplete(http_parser* p)
   {
     StreamingResponseDecoder* decoder = (StreamingResponseDecoder*) p->data;
 
@@ -656,7 +656,7 @@ private:
     return 0;
   }
 
-  static int on_body(http_parser* p, const char* data, size_t length)
+  static int onBody(http_parser* p, const char* data, size_t length)
   {
     StreamingResponseDecoder* decoder = (StreamingResponseDecoder*) p->data;
 
@@ -668,7 +668,7 @@ private:
     return 0;
   }
 
-  static int on_message_complete(http_parser* p)
+  static int onMessageComplete(http_parser* p)
   {
     StreamingResponseDecoder* decoder = (StreamingResponseDecoder*) p->data;
 
