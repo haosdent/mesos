@@ -39,7 +39,7 @@ void polled(struct ev_loop* loop, ev_io* watcher, int revents)
 
   ev_io_stop(loop, poll->watcher.io.get());
 
-  // Stop the async watcher (also clears if pending so 'discard_poll'
+  // Stop the async watcher (also clears if pending so 'discardPoll'
   // will not get invoked and we can delete 'poll' here).
   ev_async_stop(loop, poll->watcher.async.get());
 
@@ -51,7 +51,7 @@ void polled(struct ev_loop* loop, ev_io* watcher, int revents)
 
 // Event loop callback when future associated with polling file
 // descriptor has been discarded.
-void discard_poll(struct ev_loop* loop, ev_async* watcher, int revents)
+void discardPoll(struct ev_loop* loop, ev_async* watcher, int revents)
 {
   Poll* poll = (Poll*) watcher->data;
 
@@ -95,7 +95,7 @@ Future<short> poll(int fd, short events)
   Future<short> future = poll->promise.future();
 
   // Initialize and start the async watcher.
-  ev_async_init(poll->watcher.async.get(), discard_poll);
+  ev_async_init(poll->watcher.async.get(), discardPoll);
   ev_async_start(loop, poll->watcher.async.get());
 
   // Make sure we stop polling if a discard occurs on our future.
@@ -103,7 +103,7 @@ Future<short> poll(int fd, short events)
   // does a discard even after the polling has already completed, but
   // in this case while we will interrupt the event loop since the
   // async watcher has already been stopped we won't cause
-  // 'discard_poll' to get invoked.
+  // 'discardPoll' to get invoked.
   future.onDiscard(lambda::bind(&_poll, poll->watcher.async));
 
   // Initialize and start the I/O watcher.
@@ -122,7 +122,7 @@ Future<short> poll(int fd, short events)
 
   // TODO(benh): Check if the file descriptor is non-blocking?
 
-  return run_in_event_loop<short>(lambda::bind(&internal::poll, fd, events));
+  return runInEventLoop<short>(lambda::bind(&internal::poll, fd, events));
 }
 
 } // namespace io {

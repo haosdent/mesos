@@ -19,8 +19,8 @@ namespace process {
 extern struct ev_loop* loop;
 
 // Asynchronous watcher for interrupting loop to specifically deal
-// with IO watchers and functions (via run_in_event_loop).
-extern ev_async async_watcher;
+// with IO watchers and functions (via runInEventLoop).
+extern ev_async asyncWatcher;
 
 // Queue of I/O watchers to be asynchronously added to the event loop
 // (protected by 'watchers' below).
@@ -37,15 +37,15 @@ extern std::queue<lambda::function<void(void)>>* functions;
 // _in_event_loop_ to __in_event_loop__ is used in order to take
 // advantage of the ThreadLocal operators without needing the extra
 // dereference as well as lazily construct the actual bool.
-extern ThreadLocal<bool>* _in_event_loop_;
+extern ThreadLocal<bool>* _inEventLoop_;
 
-#define __in_event_loop__ *(*_in_event_loop_ == NULL ?               \
-  *_in_event_loop_ = new bool(false) : *_in_event_loop_)
+#define __inEventLoop__ *(*_inEventLoop_ == NULL ?               \
+  *_inEventLoop_ = new bool(false) : *_inEventLoop_)
 
 
 // Wrapper around function we want to run in the event loop.
 template <typename T>
-void _run_in_event_loop(
+void _runInEventLoop(
     const lambda::function<Future<T>(void)>& f,
     const Owned<Promise<T>>& promise)
 {
@@ -60,10 +60,10 @@ void _run_in_event_loop(
 
 // Helper for running a function in the event loop.
 template <typename T>
-Future<T> run_in_event_loop(const lambda::function<Future<T>(void)>& f)
+Future<T> runInEventLoop(const lambda::function<Future<T>(void)>& f)
 {
   // If this is already the event loop then just run the function.
-  if (__in_event_loop__) {
+  if (__inEventLoop__) {
     return f();
   }
 
@@ -73,11 +73,11 @@ Future<T> run_in_event_loop(const lambda::function<Future<T>(void)>& f)
 
   // Enqueue the function.
   synchronized (watchers) {
-    functions->push(lambda::bind(&_run_in_event_loop<T>, f, promise));
+    functions->push(lambda::bind(&_runInEventLoop<T>, f, promise));
   }
 
   // Interrupt the loop.
-  ev_async_send(loop, &async_watcher);
+  ev_async_send(loop, &asyncWatcher);
 
   return future;
 }

@@ -408,10 +408,10 @@ static Socket* __s__ = NULL;
 static Address __address__;
 
 // Active SocketManager (eventually will probably be thread-local).
-static SocketManager* socket_manager = NULL;
+static SocketManager* socketManager = NULL;
 
 // Active ProcessManager (eventually will probably be thread-local).
-static ProcessManager* process_manager = NULL;
+static ProcessManager* processManager = NULL;
 
 // Scheduling gate that threads wait at when there is nothing to run.
 static Gate* gate = new Gate();
@@ -440,10 +440,10 @@ ThreadLocal<Executor>* _executor_ = new ThreadLocal<Executor>();
 
 // NOTE: Clock::* implementations are in clock.cpp except for
 // Clock::settle which currently has a dependency on
-// 'process_manager'.
+// 'processManager'.
 void Clock::settle()
 {
-  process_manager->settle();
+  processManager->settle();
 }
 
 
@@ -465,10 +465,10 @@ static void transport(Message* message, ProcessBase* sender = NULL)
 {
   if (message->to.address == __address__) {
     // Local message.
-    process_manager->deliver(message->to, new MessageEvent(message), sender);
+    processManager->deliver(message->to, new MessageEvent(message), sender);
   } else {
     // Remote message.
-    socket_manager->send(message);
+    socketManager->send(message);
   }
 }
 
@@ -553,7 +553,7 @@ void decode_recv(
       VLOG(1) << "Decode failure: " << length.failure();
     }
 
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete[] data;
     delete decoder;
     delete socket;
@@ -561,7 +561,7 @@ void decode_recv(
   }
 
   if (length.get() == 0) {
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete[] data;
     delete decoder;
     delete socket;
@@ -572,11 +572,11 @@ void decode_recv(
 
   if (!requests.empty()) {
     foreach (Request* request, requests) {
-      process_manager->handle(decoder->socket(), request);
+      processManager->handle(decoder->socket(), request);
     }
   } else if (requests.empty() && decoder->failed()) {
     VLOG(1) << "Decoder error while receiving";
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete[] data;
     delete decoder;
     delete socket;
@@ -593,10 +593,10 @@ void decode_recv(
 void* schedule(void* arg)
 {
   do {
-    ProcessBase* process = process_manager->dequeue();
+    ProcessBase* process = processManager->dequeue();
     if (process == NULL) {
       Gate::state_t old = gate->approach();
-      process = process_manager->dequeue();
+      process = processManager->dequeue();
       if (process == NULL) {
         gate->arrive(old); // Wait at gate if idle.
         continue;
@@ -604,7 +604,7 @@ void* schedule(void* arg)
         gate->leave();
       }
     }
-    process_manager->resume(process);
+    processManager->resume(process);
   } while (true);
 }
 
@@ -616,7 +616,7 @@ void timedout(const list<Timer>& timers)
   // was received (and happens-before kicks in).
   if (Clock::paused()) {
     foreach (const Timer& timer, timers) {
-      if (ProcessReference process = process_manager->use(timer.creator())) {
+      if (ProcessReference process = processManager->use(timer.creator())) {
         Clock::update(process, timer.timeout().time());
       }
     }
@@ -649,11 +649,11 @@ void timedout(const list<Timer>& timers)
 
 namespace internal {
 
-void on_accept(const Future<Socket>& socket)
+void onAccept(const Future<Socket>& socket)
 {
   if (socket.isReady()) {
     // Inform the socket manager for proper bookkeeping.
-    socket_manager->accepted(socket.get());
+    socketManager->accepted(socket.get());
 
     const size_t size = 80 * 1024;
     char* data = new char[size];
@@ -672,7 +672,7 @@ void on_accept(const Future<Socket>& socket)
   }
 
   __s__->accept()
-    .onAny(lambda::bind(&on_accept, lambda::_1));
+    .onAny(lambda::bind(&onAccept, lambda::_1));
 }
 
 } // namespace internal {
@@ -730,8 +730,8 @@ void initialize(const string& delegate)
 #endif // __sun__
 
   // Create a new ProcessManager and SocketManager.
-  process_manager = new ProcessManager(delegate);
-  socket_manager = new SocketManager();
+  processManager = new ProcessManager(delegate);
+  socketManager = new SocketManager();
 
   // Setup processing threads.
   // We create no fewer than 8 threads because some tests require
@@ -853,7 +853,7 @@ void initialize(const string& delegate)
   initializing = false;
 
   __s__->accept()
-    .onAny(lambda::bind(&internal::on_accept, lambda::_1));
+    .onAny(lambda::bind(&internal::onAccept, lambda::_1));
 
   // TODO(benh): Make sure creating the garbage collector, logging
   // process, and profiler always succeeds and use supervisors to make
@@ -905,7 +905,7 @@ void initialize(const string& delegate)
 
   // Add a route for getting process information.
   lambda::function<Future<Response>(const Request&)> __processes__ =
-    lambda::bind(&ProcessManager::__processes__, process_manager, lambda::_1);
+    lambda::bind(&ProcessManager::__processes__, processManager, lambda::_1);
 
   new Route("/__processes__", None(), __processes__);
 
@@ -916,10 +916,10 @@ void initialize(const string& delegate)
 
 void finalize()
 {
-  delete process_manager;
+  delete processManager;
 
   // TODO(benh): Finialize/shutdown Clock so that it doesn't attempt
-  // to dereference 'process_manager' in the 'timedout' callback.
+  // to dereference 'processManager' in the 'timedout' callback.
 }
 
 
@@ -1013,7 +1013,7 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
   if (!future.isReady()) {
     // TODO(benh): Consider handling other "states" of future
     // (discarded, failed, etc) with different HTTP statuses.
-    socket_manager->send(ServiceUnavailable(), request, socket);
+    socketManager->send(ServiceUnavailable(), request, socket);
     return true; // All done, can process next response.
   }
 
@@ -1030,21 +1030,21 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
     if (fd < 0) {
       if (errno == ENOENT || errno == ENOTDIR) {
           VLOG(1) << "Returning '404 Not Found' for path '" << path << "'";
-          socket_manager->send(NotFound(), request, socket);
+          socketManager->send(NotFound(), request, socket);
       } else {
         const char* error = strerror(errno);
         VLOG(1) << "Failed to send file at '" << path << "': " << error;
-        socket_manager->send(InternalServerError(), request, socket);
+        socketManager->send(InternalServerError(), request, socket);
       }
     } else {
       struct stat s; // Need 'struct' because of function named 'stat'.
       if (fstat(fd, &s) != 0) {
         const char* error = strerror(errno);
         VLOG(1) << "Failed to send file at '" << path << "': " << error;
-        socket_manager->send(InternalServerError(), request, socket);
+        socketManager->send(InternalServerError(), request, socket);
       } else if (S_ISDIR(s.st_mode)) {
         VLOG(1) << "Returning '404 Not Found' for directory '" << path << "'";
-        socket_manager->send(NotFound(), request, socket);
+        socketManager->send(NotFound(), request, socket);
       } else {
         // While the user is expected to properly set a 'Content-Type'
         // header, we fill in (or overwrite) 'Content-Length' header.
@@ -1053,7 +1053,7 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
         response.headers["Content-Length"] = out.str();
 
         if (s.st_size == 0) {
-          socket_manager->send(response, request, socket);
+          socketManager->send(response, request, socket);
           return true; // All done, can process next request.
         }
 
@@ -1061,12 +1061,12 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
 
         // TODO(benh): Consider a way to have the socket manager turn
         // on TCP_CORK for both sends and then turn it off.
-        socket_manager->send(
+        socketManager->send(
             new HttpResponseEncoder(socket, response, request),
             true);
 
         // Note the file descriptor gets closed by FileEncoder.
-        socket_manager->send(
+        socketManager->send(
             new FileEncoder(socket, fd, s.st_size),
             request.keepAlive);
       }
@@ -1082,7 +1082,7 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
 
     VLOG(3) << "Starting \"chunked\" streaming";
 
-    socket_manager->send(
+    socketManager->send(
         new HttpResponseEncoder(socket, response, request),
         true);
 
@@ -1096,7 +1096,7 @@ bool HttpProxy::process(const Future<Response>& future, const Request& request)
 
     return false; // Streaming, don't process next response (yet)!
   } else {
-    socket_manager->send(response, request, socket);
+    socketManager->send(response, request, socket);
   }
 
   return true; // All done, can process next response.
@@ -1131,18 +1131,18 @@ void HttpProxy::stream(
     }
 
     // Always persist the connection when streaming is not finished.
-    socket_manager->send(
+    socketManager->send(
         new DataEncoder(socket, out.str()),
         finished ? request.keepAlive : true);
   } else if (chunk.isFailed()) {
     VLOG(1) << "Failed to read from stream: " << chunk.failure();
     // TODO(bmahler): Have to close connection if headers were sent!
-    socket_manager->send(InternalServerError(), request, socket);
+    socketManager->send(InternalServerError(), request, socket);
     finished = true;
   } else {
     VLOG(1) << "Failed to read from stream: discarded";
     // TODO(bmahler): Have to close connection if headers were sent!
-    socket_manager->send(InternalServerError(), request, socket);
+    socketManager->send(InternalServerError(), request, socket);
     finished = true;
   }
 
@@ -1173,28 +1173,28 @@ void SocketManager::accepted(const Socket& socket)
 
 namespace internal {
 
-void ignore_recv_data(
+void ignoreRecvData(
     const Future<size_t>& length,
     Socket* socket,
     char* data,
     size_t size)
 {
   if (length.isDiscarded() || length.isFailed()) {
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete[] data;
     delete socket;
     return;
   }
 
   if (length.get() == 0) {
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete[] data;
     delete socket;
     return;
   }
 
   socket->recv(data, size)
-    .onAny(lambda::bind(&ignore_recv_data, lambda::_1, socket, data, size));
+    .onAny(lambda::bind(&ignoreRecvData, lambda::_1, socket, data, size));
 }
 
 
@@ -1202,13 +1202,13 @@ void ignore_recv_data(
 void send(Encoder* encoder, Socket* socket);
 
 
-void link_connect(const Future<Nothing>& future, Socket* socket)
+void linkConnect(const Future<Nothing>& future, Socket* socket)
 {
   if (future.isDiscarded() || future.isFailed()) {
     if (future.isFailed()) {
       VLOG(1) << "Failed to link, connect: " << future.failure();
     }
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete socket;
     return;
   }
@@ -1218,7 +1218,7 @@ void link_connect(const Future<Nothing>& future, Socket* socket)
 
   socket->recv(data, size)
     .onAny(lambda::bind(
-        &ignore_recv_data,
+        &ignoreRecvData,
         lambda::_1,
         socket,
         data,
@@ -1235,7 +1235,7 @@ void link_connect(const Future<Nothing>& future, Socket* socket)
   // SocketManager::next() the 'outgoing' queue will get removed and
   // any subsequent call to SocketManager::send() will take care of
   // setting it back up and sending.
-  Encoder* encoder = socket_manager->next(*socket);
+  Encoder* encoder = socketManager->next(*socket);
 
   if (encoder != NULL) {
     send(encoder, new Socket(*socket));
@@ -1299,7 +1299,7 @@ void SocketManager::link(ProcessBase* process, const UPID& to)
     CHECK_SOME(socket);
     Socket(socket.get()).connect(to.address) // Copy to drop const.
       .onAny(lambda::bind(
-          &internal::link_connect,
+          &internal::linkConnect,
           lambda::_1,
           new Socket(socket.get())));
   }
@@ -1386,7 +1386,7 @@ void _send(
     size_t size)
 {
   if (length.isDiscarded() || length.isFailed()) {
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete socket;
     delete encoder;
   } else {
@@ -1398,7 +1398,7 @@ void _send(
       delete encoder;
 
       // Check for more stuff to send on socket.
-      Encoder* next = socket_manager->next(*socket);
+      Encoder* next = socketManager->next(*socket);
       if (next != NULL) {
         send(next, socket);
       } else {
@@ -1467,7 +1467,7 @@ void SocketManager::send(
 
 namespace internal {
 
-void send_connect(
+void sendConnect(
     const Future<Nothing>& future,
     Socket* socket,
     Message* message)
@@ -1477,7 +1477,7 @@ void send_connect(
       VLOG(1) << "Failed to send '" << message->name << "' to '"
               << message->to.address << "', connect: " << future.failure();
     }
-    socket_manager->close(*socket);
+    socketManager->close(*socket);
     delete socket;
     delete message;
     return;
@@ -1493,7 +1493,7 @@ void send_connect(
 
   socket->recv(data, size)
     .onAny(lambda::bind(
-        &ignore_recv_data,
+        &ignoreRecvData,
         lambda::_1,
         new Socket(*socket),
         data,
@@ -1566,7 +1566,7 @@ void SocketManager::send(Message* message)
     CHECK_SOME(socket);
     Socket(socket.get()).connect(address) // Copy to drop const.
       .onAny(lambda::bind(
-          &internal::send_connect,
+          &internal::sendConnect,
           lambda::_1,
           new Socket(socket.get()),
           message));
@@ -1898,7 +1898,7 @@ bool ProcessManager::handle(
       bool accepted = deliver(message->to, new MessageEvent(message));
 
       // Get the HttpProxy pid for this socket.
-      PID<HttpProxy> proxy = socket_manager->proxy(socket);
+      PID<HttpProxy> proxy = socketManager->proxy(socket);
 
       // Only send back an HTTP response if this isn't from libprocess
       // (which we determine by looking at the User-Agent). This is
@@ -1937,7 +1937,7 @@ bool ProcessManager::handle(
     VLOG(1) << "Returning '400 Bad Request' for '" << request->path << "'";
 
     // Get the HttpProxy pid for this socket.
-    PID<HttpProxy> proxy = socket_manager->proxy(socket);
+    PID<HttpProxy> proxy = socketManager->proxy(socket);
 
     // Enqueue the response with the HttpProxy so that it respects the
     // order of requests to account for HTTP/1.1 pipelining.
@@ -1954,7 +1954,7 @@ bool ProcessManager::handle(
             << "' (ignoring requests with relative paths)";
 
     // Get the HttpProxy pid for this socket.
-    PID<HttpProxy> proxy = socket_manager->proxy(socket);
+    PID<HttpProxy> proxy = socketManager->proxy(socket);
 
     // Enqueue the response with the HttpProxy so that it respects the
     // order of requests to account for HTTP/1.1 pipelining.
@@ -2000,7 +2000,7 @@ bool ProcessManager::handle(
   VLOG(1) << "Returning '404 Not Found' for '" << request->path << "'";
 
   // Get the HttpProxy pid for this socket.
-  PID<HttpProxy> proxy = socket_manager->proxy(socket);
+  PID<HttpProxy> proxy = socketManager->proxy(socket);
 
   // Enqueue the response with the HttpProxy so that it respects the
   // order of requests to account for HTTP/1.1 pipelining.
@@ -2277,7 +2277,7 @@ void ProcessManager::cleanup(ProcessBase* process)
     // don't want that exited event to fire and actually delete the
     // process until after we have used the process in
     // SocketManager::exited).
-    socket_manager->exited(process);
+    socketManager->exited(process);
 
     // ***************************************************************
     // At this point we can no longer dereference the process since it
@@ -2300,13 +2300,13 @@ void ProcessManager::link(ProcessBase* process, const UPID& to)
 {
   // Check if the pid is local.
   if (to.address != __address__) {
-    socket_manager->link(process, to);
+    socketManager->link(process, to);
   } else {
     // Since the pid is local we want to get a reference to it's
     // underlying process so that while we are invoking the link
     // manager we don't miss sending a possible ExitedEvent.
     if (ProcessReference _ = use(to)) {
-      socket_manager->link(process, to);
+      socketManager->link(process, to);
     } else {
       // Since the pid isn't valid it's process must have already died
       // (or hasn't been spawned yet) so send a process exit message.
@@ -2395,7 +2395,7 @@ bool ProcessManager::wait(const UPID& pid)
   if (process != NULL) {
     VLOG(2) << "Donating thread to " << process->pid << " while waiting";
     ProcessBase* donator = __process__;
-    process_manager->resume(process);
+    processManager->resume(process);
     __process__ = donator;
   }
 
@@ -2507,7 +2507,7 @@ Future<Response> ProcessManager::__processes__(const Request&)
   JSON::Array array;
 
   synchronized (processes) {
-    foreachvalue (ProcessBase* process, process_manager->processes) {
+    foreachvalue (ProcessBase* process, processManager->processes) {
       JSON::Object object;
       object.values["id"] = process->pid.id;
 
@@ -2630,7 +2630,7 @@ void ProcessBase::enqueue(Event* event, bool inject)
 
       if (state == BLOCKED) {
         state = READY;
-        process_manager->enqueue(this);
+        processManager->enqueue(this);
       }
 
       CHECK(state == BOTTOM ||
@@ -2718,7 +2718,7 @@ void ProcessBase::visit(const HttpEvent& event)
     Future<Response>* future = new Future<Response>(promise->future());
 
     // Get the HttpProxy pid for this socket.
-    PID<HttpProxy> proxy = socket_manager->proxy(event.socket);
+    PID<HttpProxy> proxy = socketManager->proxy(event.socket);
 
     // Let the HttpProxy know about this request (via the future).
     dispatch(proxy, &HttpProxy::handle, future, *event.request);
@@ -2752,7 +2752,7 @@ void ProcessBase::visit(const HttpEvent& event)
     // just let the browser guess (or do it's own default).
 
     // Get the HttpProxy pid for this socket.
-    PID<HttpProxy> proxy = socket_manager->proxy(event.socket);
+    PID<HttpProxy> proxy = socketManager->proxy(event.socket);
 
     // Enqueue the response with the HttpProxy so that it respects the
     // order of requests to account for HTTP/1.1 pipelining.
@@ -2761,7 +2761,7 @@ void ProcessBase::visit(const HttpEvent& event)
     VLOG(1) << "Returning '404 Not Found' for '" << event.request->path << "'";
 
     // Get the HttpProxy pid for this socket.
-    PID<HttpProxy> proxy = socket_manager->proxy(event.socket);
+    PID<HttpProxy> proxy = socketManager->proxy(event.socket);
 
     // Enqueue the response with the HttpProxy so that it respects the
     // order of requests to account for HTTP/1.1 pipelining.
@@ -2788,7 +2788,7 @@ UPID ProcessBase::link(const UPID& to)
     return to;
   }
 
-  process_manager->link(this, to);
+  processManager->link(this, to);
 
   return to;
 }
@@ -2819,7 +2819,7 @@ UPID spawn(ProcessBase* process, bool manage)
       Clock::update(process, Clock::now(__process__));
     }
 
-    return process_manager->spawn(process, manage);
+    return processManager->spawn(process, manage);
   } else {
     return UPID();
   }
@@ -2828,7 +2828,7 @@ UPID spawn(ProcessBase* process, bool manage)
 
 void terminate(const UPID& pid, bool inject)
 {
-  process_manager->terminate(pid, inject, __process__);
+  processManager->terminate(pid, inject, __process__);
 }
 
 
@@ -2886,7 +2886,7 @@ bool wait(const UPID& pid, const Duration& duration)
   }
 
   if (duration == Seconds(-1)) {
-    return process_manager->wait(pid);
+    return processManager->wait(pid);
   }
 
   bool waited = false;
@@ -2946,7 +2946,7 @@ bool exited(const UPID& from, const UPID& to)
   process::initialize();
 
   ExitedEvent* event = new ExitedEvent(from);
-  return process_manager->deliver(to, event, __process__);
+  return processManager->deliver(to, event, __process__);
 }
 
 } // namespace inject {
@@ -2962,7 +2962,7 @@ void dispatch(
   process::initialize();
 
   DispatchEvent* event = new DispatchEvent(pid, f, functionType);
-  process_manager->deliver(pid, event, __process__);
+  processManager->deliver(pid, event, __process__);
 }
 
 } // namespace internal {
