@@ -19,9 +19,9 @@ matrix:
 #      env: BUILD_TYPE=Release
 language: cpp
 before_install:
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - sudo apt-get update -qq
-  - sudo apt-get install -y libapr1-dev libsvn-dev libsasl2-dev
-  - if [ "$CXX" == "clang++" ]; then export CXXFLAGS="-std=c++0x -stdlib=libc++"; fi
+  - sudo apt-get install -y libapr1-dev libsvn-dev libsasl2-dev libstdc++-4.8-dev gcc-4.8
 before_script:
   - ./bootstrap
   - mkdir build
