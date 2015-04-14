@@ -24,9 +24,7 @@ before_script:
   - ./bootstrap
   - mkdir build
   - cd build
-  - export MAKE_THREAD_NUM=$(grep -c ^processor /proc/cpuinfo)
 script:
   - if [ "$BUILD_TYPE" = "Debug" ]; then ../configure --enable-debug; fi
   - if [ "$BUILD_TYPE" = "Release" ]; then ../configure; fi
-  - make -j$MAKE_THREAD_NUM
-  - cd 3rdparty && make -j$MAKE_THREAD_NUM check
+  - make -j8 check
