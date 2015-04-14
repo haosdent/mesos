@@ -26,4 +26,4 @@ before_script:
 script:
   - if [ "$BUILD_TYPE" = "Debug" ]; then ../configure --enable-debug; fi
   - if [ "$BUILD_TYPE" = "Release" ]; then ../configure; fi
-  - make -j2 check
+  - make check
