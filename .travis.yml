@@ -14,16 +14,13 @@ matrix:
     - os: linux
       env: BUILD_TYPE=Release
       compiler: gcc
-#    - os: osx
-#      env: BUILD_TYPE=Debug
-#    - os: osx
-#      env: BUILD_TYPE=Release
 language: cpp
 before_install:
   - lscpu
-  - add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  #- add-apt-repository ppa:ubuntu-toolchain-r/test -y
   - apt-get update -qq
-  - apt-get install -y libapr1-dev libsvn-dev libsasl2-dev libstdc++-4.8-dev gcc-4.8
+  #- apt-get install -y libapr1-dev libsvn-dev libsasl2-dev libstdc++-4.8-dev gcc-4.8
+  - apt-get install -y libapr1-dev libsvn-dev libsasl2-dev
 before_script:
   - ./bootstrap
   - mkdir build
