@@ -30,9 +30,3 @@ script:
   - if [ "$BUILD_TYPE" = "Release" ]; then ../configure; fi
   - make
   - make check
-notifications:
-  irc:
-    channels:
-      - "chat.freenode.net#mesos"
-    template:
-      - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
