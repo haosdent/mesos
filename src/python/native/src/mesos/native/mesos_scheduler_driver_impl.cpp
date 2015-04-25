@@ -492,6 +492,9 @@ PyObject* MesosSchedulerDriverImpl_launchTasks(MesosSchedulerDriverImpl* self,
     tasks.push_back(task);
   }
 
+  if (filtersObj == Py_None) {
+    filtersObj = NULL;
+  }
   if (filtersObj != NULL) {
     if (!readPythonProtobuf(filtersObj, &filters)) {
       PyErr_Format(PyExc_Exception,
@@ -594,6 +597,9 @@ PyObject* MesosSchedulerDriverImpl_acceptOffers(MesosSchedulerDriverImpl* self,
     operations.push_back(operation);
   }
 
+  if (filtersObj == Py_None) {
+    filtersObj = NULL;
+  }
   if (filtersObj != NULL) {
     if (!readPythonProtobuf(filtersObj, &filters)) {
       PyErr_Format(PyExc_Exception,
@@ -629,6 +635,9 @@ PyObject* MesosSchedulerDriverImpl_declineOffer(MesosSchedulerDriverImpl* self,
     return NULL;
   }
 
+  if (filtersObj == Py_None) {
+    filtersObj = NULL;
+  }
   if (filtersObj != NULL) {
     if (!readPythonProtobuf(filtersObj, &filters)) {
       PyErr_Format(PyExc_Exception,
