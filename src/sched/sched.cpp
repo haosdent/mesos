@@ -1202,6 +1202,39 @@ protected:
     send(master.get(), message);
   }
 
+  void shutdownExecutor(const ExecutorID& executorId,
+                        const SlaveID& slaveId)
+  {
+    if (!connected) {
+     VLOG(1) << "Ignoring shutdown executor as master is disconnected";
+     return;
+    }
+
+    VLOG(2) << "Asked to shutdown executor to slave "
+            << slaveId;
+
+    if (savedSlavePids.count(slaveId) > 0) {
+      UPID slave = savedSlavePids[slaveId];
+      CHECK(slave != UPID());
+
+      ShutdownExecutorMessage message;
+      message.mutable_framework_id()->MergeFrom(framework.id());
+      message.mutable_executor_id()->MergeFrom(executorId);
+      message.mutable_slave_id()->MergeFrom(slaveId);
+      send(slave, message);
+    } else {
+      VLOG(1) << "Cannot send directly to slave " << slaveId
+              << "; sending through master";
+
+      ShutdownExecutorMessage message;
+      message.mutable_framework_id()->MergeFrom(framework.id());
+      message.mutable_executor_id()->MergeFrom(executorId);
+      message.mutable_slave_id()->MergeFrom(slaveId);
+      CHECK_SOME(master);
+      send(master.get(), message);
+    }
+  }
+
 private:
   friend class mesos::MesosSchedulerDriver;
 
@@ -1835,6 +1868,25 @@ Status MesosSchedulerDriver::requestResources(
   CHECK(process != NULL);
 
   dispatch(process, &SchedulerProcess::requestResources, requests);
+
+  return status;
+}
+
+
+Status MesosSchedulerDriver::shutdownExecutor(
+  const ExecutorID& executorId,
+  const SlaveID& slaveId)
+{
+  Lock lock(&mutex);
+
+  if (status != DRIVER_RUNNING) {
+    return status;
+  }
+
+  CHECK(process != NULL);
+
+  dispatch(process, &SchedulerProcess::shutdownExecutor,
+           executorId, slaveId);
 
   return status;
 }

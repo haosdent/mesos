@@ -294,6 +294,11 @@ public:
   // currently known.
   virtual Status reconcileTasks(
       const std::vector<TaskStatus>& statuses) = 0;
+
+  // Shutdown executor on special slave.
+  virtual Status shutdownExecutor(
+      const ExecutorID& executorId,
+      const SlaveID& slaveId) = 0;
 };
 
 
@@ -428,6 +433,10 @@ public:
 
   virtual Status reconcileTasks(
       const std::vector<TaskStatus>& statuses);
+
+  virtual Status shutdownExecutor(
+      const ExecutorID& executorId,
+      const SlaveID& slaveId);
 
 protected:
   // Used to detect (i.e., choose) the master.

@@ -722,6 +722,12 @@ void Master::initialize()
       &Master::authenticate,
       &AuthenticateMessage::pid);
 
+  install<ShutdownExecutorMessage>(
+      &Master::shutdownExecutor,
+      &ShutdownExecutorMessage::slave_id,
+      &ShutdownExecutorMessage::framework_id,
+      &ShutdownExecutorMessage::executor_id);
+
   // Setup HTTP routes.
   Http http = Http(this);
 
@@ -3594,26 +3600,74 @@ void Master::exitedExecutor(
 }
 
 
+void Master::shutdownExecutor(
+    const UPID& from,
+    const SlaveID& slaveId,
+    const FrameworkID& frameworkId,
+    const ExecutorID& executorId)
+{
+  ++metrics->messages_shutdown_executor;
+
+  Framework* framework = getFramework(frameworkId);
+
+  if (framework == NULL) {
+    LOG(WARNING)
+      << "Ignoring shutdown message for executor " << executorId
+      << " of framework " << frameworkId
+      << " because the framework cannot be found";
+    metrics->invalid_shutdown_executor_messages++;
+    return;
+  }
+
+  if (from != framework->pid) {
+    LOG(WARNING)
+      << "Ignoring shutdown message for executor " << executorId
+      << " of framework " << *framework
+      << " because it is not expected from " << from;
+    metrics->invalid_shutdown_executor_messages++;
+    return;
+  }
+
+  Slave* slave = getSlave(slaveId);
+  if (slave == NULL) {
+    LOG(WARNING) << "Cannot send shutdown executor message for framework "
+                 << *framework << " to slave " << slaveId
+                 << " because slave is not registered";
+    metrics->invalid_shutdown_executor_messages++;
+    return;
+  }
+
+  if (!slave->connected) {
+    LOG(WARNING) << "Cannot send shutdown executor message for framework "
+                 << *framework << " to slave " << *slave
+                 << " because slave is disconnected";
+    metrics->invalid_shutdown_executor_messages++;
+    return;
+  }
+
+  LOG(INFO) << "Sending framework message for framework "
+            << *framework << " to slave " << *slave;
+
+  ShutdownExecutorMessage message;
+  message.mutable_slave_id()->MergeFrom(slaveId);
+  message.mutable_framework_id()->MergeFrom(frameworkId);
+  message.mutable_executor_id()->MergeFrom(executorId);
+  send(slave->pid, message);
+
+  metrics->valid_shutdown_executor_messages++;
+}
+
+
 void Master::shutdown(
     Framework* framework,
     const scheduler::Call::Shutdown& shutdown)
 {
   CHECK_NOTNULL(framework);
 
-  if (!slaves.registered.contains(shutdown.slave_id())) {
-    LOG(WARNING) << "Unable to shutdown executor '" << shutdown.executor_id()
-                 << "' of framework " << framework->id()
-                 << " of unknown slave " << shutdown.slave_id();
-    return;
-  }
-
-  Slave* slave = slaves.registered[shutdown.slave_id()];
-  CHECK_NOTNULL(slave);
-
-  ShutdownExecutorMessage message;
-  message.mutable_executor_id()->CopyFrom(shutdown.executor_id());
-  message.mutable_framework_id()->CopyFrom(framework->id());
-  send(slave->pid, message);
+  shutdownExecutor(framework->pid,
+                   shutdown.slave_id(),
+                   framework->id(),
+                   shutdown.executor_id());
 }
 
 

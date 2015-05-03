@@ -200,6 +200,12 @@ public:
       const ExecutorID& executorId,
       int32_t status);
 
+  void shutdownExecutor(
+      const process::UPID& from,
+      const SlaveID& slaveId,
+      const FrameworkID& frameworkId,
+      const ExecutorID& executorId);
+
   void shutdownSlave(
       const SlaveID& slaveId,
       const std::string& message);
