@@ -2170,11 +2170,19 @@ void Slave::registerExecutor(
         state == RUNNING || state == TERMINATING)
     << state;
 
+  ShutdownExecutorMessage shutdownExecutorMessage;
+  shutdownExecutorMessage
+    .mutable_slave_id()->MergeFrom(info.id());
+  shutdownExecutorMessage
+    .mutable_framework_id()->MergeFrom(frameworkId);
+  shutdownExecutorMessage
+    .mutable_executor_id()->MergeFrom(executorId);
+
   if (state == RECOVERING) {
     LOG(WARNING) << "Shutting down executor '" << executorId
                  << "' of framework " << frameworkId
                  << " because the slave is still recovering";
-    reply(ShutdownExecutorMessage());
+    reply(shutdownExecutorMessage);
     return;
   }
 
@@ -2182,7 +2190,7 @@ void Slave::registerExecutor(
     LOG(WARNING) << "Shutting down executor '" << executorId
                  << "' of framework " << frameworkId
                  << " because the slave is terminating";
-    reply(ShutdownExecutorMessage());
+    reply(shutdownExecutorMessage);
     return;
   }
 
@@ -2192,7 +2200,7 @@ void Slave::registerExecutor(
                  << "' as the framework " << frameworkId
                  << " does not exist";
 
-    reply(ShutdownExecutorMessage());
+    reply(shutdownExecutorMessage);
     return;
   }
 
@@ -2205,7 +2213,7 @@ void Slave::registerExecutor(
                  << "' as the framework " << frameworkId
                  << " is terminating";
 
-    reply(ShutdownExecutorMessage());
+    reply(shutdownExecutorMessage);
     return;
   }
 
@@ -2215,7 +2223,7 @@ void Slave::registerExecutor(
   if (executor == NULL) {
     LOG(WARNING) << "Unexpected executor '" << executorId
                  << "' registering for framework " << frameworkId;
-    reply(ShutdownExecutorMessage());
+    reply(shutdownExecutorMessage);
     return;
   }
 
@@ -2228,7 +2236,7 @@ void Slave::registerExecutor(
       LOG(WARNING) << "Shutting down executor '" << executorId
                    << "' of framework " << frameworkId
                    << " because it is in unexpected state " << executor->state;
-      reply(ShutdownExecutorMessage());
+      reply(shutdownExecutorMessage);
       break;
     case Executor::REGISTERING: {
       executor->state = Executor::RUNNING;
@@ -2320,11 +2328,19 @@ void Slave::reregisterExecutor(
         state == RUNNING || state == TERMINATING)
     << state;
 
+  ShutdownExecutorMessage shutdownExecutorMessage;
+  shutdownExecutorMessage
+    .mutable_slave_id()->MergeFrom(info.id());
+  shutdownExecutorMessage
+    .mutable_framework_id()->MergeFrom(frameworkId);
+  shutdownExecutorMessage
+    .mutable_executor_id()->MergeFrom(executorId);
+
   if (state != RECOVERING) {
     LOG(WARNING) << "Shutting down executor '" << executorId
                  << "' of framework " << frameworkId
                  << " because the slave is not in recovery mode";
-    reply(ShutdownExecutorMessage());
+    reply(shutdownExecutorMessage);
     return;
   }
 
@@ -2345,7 +2361,7 @@ void Slave::reregisterExecutor(
                  << "' as the framework " << frameworkId
                  << " is terminating";
 
-    reply(ShutdownExecutorMessage());
+    reply(shutdownExecutorMessage);
     return;
   }
 
@@ -2361,7 +2377,7 @@ void Slave::reregisterExecutor(
       LOG(WARNING) << "Shutting down executor '" << executorId
                    << "' of framework " << frameworkId
                    << " because it is in unexpected state " << executor->state;
-      reply(ShutdownExecutorMessage());
+      reply(shutdownExecutorMessage);
       break;
     case Executor::REGISTERING: {
       executor->state = Executor::RUNNING;
@@ -3570,7 +3586,14 @@ void Slave::_shutdownExecutor(Framework* framework, Executor* executor)
 
   // If the executor hasn't yet registered, this message
   // will be dropped to the floor!
-  send(executor->pid, ShutdownExecutorMessage());
+  ShutdownExecutorMessage shutdownExecutorMessage;
+  shutdownExecutorMessage
+    .mutable_slave_id()->MergeFrom(info.id());
+  shutdownExecutorMessage
+    .mutable_framework_id()->MergeFrom(frameworkId);
+  shutdownExecutorMessage
+    .mutable_executor_id()->MergeFrom(executorId);
+  send(executor->pid, shutdownExecutorMessage);
 
   // Prepare for sending a kill if the executor doesn't comply.
   delay(flags.executor_shutdown_grace_period,

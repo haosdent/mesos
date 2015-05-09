@@ -317,7 +317,14 @@ TYPED_TEST(SlaveRecoveryTest, RecoverSlaveState)
 
   // Shut down the executor manually so that it doesn't hang around
   // after the test finishes.
-  process::post(libprocessPid, ShutdownExecutorMessage());
+  ShutdownExecutorMessage shutdownExecutorMessage;
+  shutdownExecutorMessage
+    .mutable_slave_id()->MergeFrom(slaveId);
+  shutdownExecutorMessage
+    .mutable_framework_id()->MergeFrom(frameworkId);
+  shutdownExecutorMessage
+    .mutable_executor_id()->MergeFrom(executorId);
+  process::post(libprocessPid, shutdownExecutorMessage);
 
   driver.stop();
   driver.join();
@@ -691,7 +698,14 @@ TYPED_TEST(SlaveRecoveryTest, RecoverTerminatedExecutor)
     .WillOnce(FutureArg<1>(&status));
 
   // Now shut down the executor, when the slave is down.
-  process::post(executorPid, ShutdownExecutorMessage());
+  ShutdownExecutorMessage shutdownExecutorMessage;
+  shutdownExecutorMessage
+    .mutable_slave_id()->MergeFrom(slaveId);
+  shutdownExecutorMessage
+    .mutable_framework_id()->MergeFrom(frameworkId);
+  shutdownExecutorMessage
+    .mutable_executor_id()->MergeFrom(executorId);
+  process::post(executorPid, shutdownExecutorMessage);
 
   Future<Nothing> _recover = FUTURE_DISPATCH(_, &Slave::_recover);
 
@@ -1453,7 +1467,14 @@ TYPED_TEST(SlaveRecoveryTest, Reboot)
   Future<Option<int> > executorStatus = process::reap(pid.get());
 
   // Shut down the executor manually and wait until it's been reaped.
-  process::post(executorPid, ShutdownExecutorMessage());
+  ShutdownExecutorMessage shutdownExecutorMessage;
+  shutdownExecutorMessage
+    .mutable_slave_id()->MergeFrom(slaveId);
+  shutdownExecutorMessage
+    .mutable_framework_id()->MergeFrom(frameworkId);
+  shutdownExecutorMessage
+    .mutable_executor_id()->MergeFrom(executorId);
+  process::post(executorPid, shutdownExecutorMessage);
 
   AWAIT_READY(executorStatus);
 
@@ -1716,7 +1737,14 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlave)
 
   // We shut down the executor here so that a shutting down slave
   // does not spend too much time waiting for the executor to exit.
-  process::post(executorPid, ShutdownExecutorMessage());
+  ShutdownExecutorMessage shutdownExecutorMessage;
+  shutdownExecutorMessage
+    .mutable_slave_id()->MergeFrom(slaveId);
+  shutdownExecutorMessage
+    .mutable_framework_id()->MergeFrom(frameworkId);
+  shutdownExecutorMessage
+    .mutable_executor_id()->MergeFrom(executorId);
+  process::post(executorPid, shutdownExecutorMessage);
 
   Clock::pause();
 
