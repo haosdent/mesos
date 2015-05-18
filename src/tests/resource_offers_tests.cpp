@@ -249,7 +249,8 @@ TEST_F(ResourceOffersTest, ResourcesGetReofferedAfterTaskInfoError)
   AWAIT_READY(status);
   EXPECT_EQ(task.task_id(), status.get().task_id());
   EXPECT_EQ(TASK_ERROR, status.get().state());
-  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason(0));
   EXPECT_TRUE(status.get().has_message());
   EXPECT_TRUE(strings::startsWith(
         status.get().message(), "Task uses invalid resources"));

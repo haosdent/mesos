@@ -1365,7 +1365,8 @@ TEST_F(MasterTest, LaunchAcrossSlavesTest)
 
   AWAIT_READY(status);
   EXPECT_EQ(TASK_LOST, status.get().state());
-  EXPECT_EQ(TaskStatus::REASON_INVALID_OFFERS, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_INVALID_OFFERS, status.get().reason(0));
 
   // The resources of the invalid offers should be recovered.
   AWAIT_READY(recoverResources);
@@ -1457,7 +1458,8 @@ TEST_F(MasterTest, LaunchDuplicateOfferTest)
 
   AWAIT_READY(status);
   EXPECT_EQ(TASK_LOST, status.get().state());
-  EXPECT_EQ(TaskStatus::REASON_INVALID_OFFERS, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_INVALID_OFFERS, status.get().reason(0));
 
   // The resources of the invalid offers should be recovered.
   AWAIT_READY(recoverResources);

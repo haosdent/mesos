@@ -742,7 +742,8 @@ TEST_F(TaskValidationTest, TaskUsesNoResources)
   AWAIT_READY(status);
   EXPECT_EQ(task.task_id(), status.get().task_id());
   EXPECT_EQ(TASK_ERROR, status.get().state());
-  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason(0));
   EXPECT_TRUE(status.get().has_message());
   EXPECT_EQ("Task uses no resources", status.get().message());
 
@@ -802,7 +803,8 @@ TEST_F(TaskValidationTest, TaskUsesMoreResourcesThanOffered)
 
   EXPECT_EQ(task.task_id(), status.get().task_id());
   EXPECT_EQ(TASK_ERROR, status.get().state());
-  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason(0));
   EXPECT_TRUE(status.get().has_message());
   EXPECT_TRUE(strings::contains(
       status.get().message(), "Task uses more resources"));
@@ -883,7 +885,8 @@ TEST_F(TaskValidationTest, DuplicatedTaskID)
 
   AWAIT_READY(status);
   EXPECT_EQ(TASK_ERROR, status.get().state());
-  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason(0));
 
   EXPECT_TRUE(strings::startsWith(
       status.get().message(), "Task has duplicate ID"));
@@ -973,7 +976,8 @@ TEST_F(TaskValidationTest, ExecutorInfoDiffersOnSameSlave)
   AWAIT_READY(status);
   EXPECT_EQ(task2.task_id(), status.get().task_id());
   EXPECT_EQ(TASK_ERROR, status.get().state());
-  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason(0));
   EXPECT_TRUE(status.get().has_message());
   EXPECT_TRUE(strings::contains(
       status.get().message(), "Task has invalid ExecutorInfo"));

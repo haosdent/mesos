@@ -83,7 +83,7 @@ StatusUpdate createStatusUpdate(
   status->set_timestamp(update.timestamp());
 
   if (reason.isSome()) {
-    status->set_reason(reason.get());
+    status->add_reason(reason.get());
   }
 
   if (healthy.isSome()) {

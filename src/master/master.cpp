@@ -4206,7 +4206,7 @@ void Master::reconcile(
           status->set_state(state);
           status->set_source(TaskStatus::SOURCE_MASTER);
           status->set_message("Reconciliation request");
-          status->set_reason(TaskStatus::REASON_RECONCILIATION);
+          status->add_reason(TaskStatus::REASON_RECONCILIATION);
           status->set_timestamp(Clock::now().secs());
         } else {
           // TODO(bmahler): Remove this case in 0.22.0.
@@ -4910,11 +4910,11 @@ void Master::updateTask(Task* task, const StatusUpdate& update)
       default:                                       break;
     }
 
-    if (status.has_reason()) {
+    for (int i = 0, l = status.reason_size(); i < l; ++i) {
       metrics->incrementTasksStates(
           status.state(),
           status.source(),
-          status.reason());
+          status.reason(i));
     }
   }
 }

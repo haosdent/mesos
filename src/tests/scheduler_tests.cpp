@@ -310,8 +310,9 @@ TEST_F(SchedulerTest, ReconcileTask)
   EXPECT_EQ(Event::UPDATE, event.get().type());
   EXPECT_FALSE(event.get().update().status().has_uuid());
   EXPECT_EQ(TASK_RUNNING, event.get().update().status().state());
+  EXPECT_TRUE(event.get().update().status().reason_size() > 0);
   EXPECT_EQ(TaskStatus::REASON_RECONCILIATION,
-            event.get().update().status().reason());
+            event.get().update().status().reason(0));
 
   EXPECT_CALL(exec, shutdown(_))
     .Times(AtMost(1));
@@ -887,7 +888,8 @@ TEST_F(MesosSchedulerDriverTest, ExplicitAcknowledgementsMasterGeneratedUpdate)
   AWAIT_READY(status);
   ASSERT_EQ(TASK_ERROR, status.get().state());
   ASSERT_EQ(TaskStatus::SOURCE_MASTER, status.get().source());
-  ASSERT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason());
+  ASSERT_TRUE(status.get().reason_size() > 0);
+  ASSERT_EQ(TaskStatus::REASON_TASK_INVALID, status.get().reason(0));
 
   // Now send the acknowledgement.
   driver.acknowledgeStatusUpdate(status.get());
@@ -947,7 +949,8 @@ TEST_F(MesosSchedulerDriverTest, ExplicitAcknowledgementsUnsetSlaveID)
   AWAIT_READY(update);
   ASSERT_EQ(TASK_LOST, update.get().state());
   ASSERT_EQ(TaskStatus::SOURCE_MASTER, update.get().source());
-  ASSERT_EQ(TaskStatus::REASON_RECONCILIATION, update.get().reason());
+  ASSERT_TRUE(update.get().reason_size() > 0);
+  ASSERT_EQ(TaskStatus::REASON_RECONCILIATION, update.get().reason(0));
   ASSERT_FALSE(update.get().has_slave_id());
 
   // Now send the acknowledgement.

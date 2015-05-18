@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <mesos/scheduler.hpp>
+#include <mesos/type_utils.hpp>
 
 #include <stout/numify.hpp>
 #include <stout/os.hpp>

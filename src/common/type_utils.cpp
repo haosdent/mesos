@@ -327,6 +327,17 @@ bool operator == (const SlaveInfo& left, const SlaveInfo& right)
 
 bool operator == (const TaskStatus& left, const TaskStatus& right)
 {
+  if (left.reason().size() != right.reason().size()) {
+    return false;
+  }
+
+  // The order of reason is important.
+  for (int i = 0; i < left.reason().size(); i++) {
+    if (left.reason().Get(i) != right.reason().Get(i)) {
+      return false;
+    }
+  }
+
   return left.task_id() == right.task_id() &&
     left.state() == right.state() &&
     left.data() == right.data() &&
@@ -336,7 +347,6 @@ bool operator == (const TaskStatus& left, const TaskStatus& right)
     left.executor_id() == right.executor_id() &&
     left.healthy() == right.healthy() &&
     left.source() == right.source() &&
-    left.reason() == right.reason() &&
     left.uuid() == right.uuid();
 }
 

@@ -304,7 +304,8 @@ TEST_F(SlaveTest, RemoveUnregisteredTerminatedExecutor)
   AWAIT_READY(status);
   EXPECT_EQ(TASK_LOST, status.get().state());
   EXPECT_EQ(TaskStatus::SOURCE_SLAVE, status.get().source());
-  EXPECT_EQ(TaskStatus::REASON_EXECUTOR_TERMINATED, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_EXECUTOR_TERMINATED, status.get().reason(0));
 
   // We use 'gc.schedule' as a signal for the executor being cleaned
   // up by the slave.
@@ -1208,7 +1209,8 @@ TEST_F(SlaveTest, TerminalTaskContainerizerUpdateFails)
   AWAIT_READY(status4);
   EXPECT_EQ(TASK_LOST, status4.get().state());
   EXPECT_EQ(TaskStatus::SOURCE_SLAVE, status4.get().source());
-  EXPECT_EQ(TaskStatus::REASON_EXECUTOR_TERMINATED, status4.get().reason());
+  EXPECT_TRUE(status4.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_EXECUTOR_TERMINATED, status4.get().reason(0));
 
   driver.stop();
   driver.join();
@@ -1319,7 +1321,8 @@ TEST_F(SlaveTest, TaskLaunchContainerizerUpdateFails)
   AWAIT_READY(status);
   EXPECT_EQ(TASK_LOST, status.get().state());
   EXPECT_EQ(TaskStatus::SOURCE_SLAVE, status.get().source());
-  EXPECT_EQ(TaskStatus::REASON_EXECUTOR_TERMINATED, status.get().reason());
+  EXPECT_TRUE(status.get().reason_size() > 0);
+  EXPECT_EQ(TaskStatus::REASON_EXECUTOR_TERMINATED, status.get().reason(0));
 
   driver.stop();
   driver.join();

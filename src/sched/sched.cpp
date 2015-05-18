@@ -923,7 +923,7 @@ protected:
         status->mutable_task_id()->MergeFrom(task.task_id());
         status->set_state(TASK_LOST);
         status->set_source(TaskStatus::SOURCE_MASTER);
-        status->set_reason(TaskStatus::REASON_MASTER_DISCONNECTED);
+        status->add_reason(TaskStatus::REASON_MASTER_DISCONNECTED);
         status->set_message("Master Disconnected");
         update.set_timestamp(Clock::now().secs());
         update.set_uuid(UUID::random().toBytes());
@@ -1005,7 +1005,7 @@ protected:
           status->mutable_task_id()->MergeFrom(task.task_id());
           status->set_state(TASK_LOST);
           status->set_source(TaskStatus::SOURCE_MASTER);
-          status->set_reason(TaskStatus::REASON_MASTER_DISCONNECTED);
+          status->add_reason(TaskStatus::REASON_MASTER_DISCONNECTED);
           status->set_message("Master Disconnected");
           update.set_timestamp(Clock::now().secs());
           update.set_uuid(UUID::random().toBytes());

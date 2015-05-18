@@ -153,7 +153,7 @@ public class TestFramework {
                            " is in unexpected state " +
                            status.getState().getValueDescriptor().getName() +
                            " with reason '" +
-                           status.getReason().getValueDescriptor().getName() + "'" +
+                           status.getReason(0).getValueDescriptor().getName() + "'" +
                            " from source '" +
                            status.getSource().getValueDescriptor().getName() + "'" +
                            " with message '" + status.getMessage() + "'");

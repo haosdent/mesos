@@ -397,6 +397,23 @@ inline std::ostream& operator << (
 }
 
 
+template <typename T>
+inline std::ostream& operator << (
+    std::ostream& stream,
+    const google::protobuf::RepeatedField<T>& messages)
+{
+  stream << "[ ";
+  for (auto it = messages.begin(); it != messages.end(); ++it) {
+    if (it != messages.begin()) {
+      stream << ", ";
+    }
+    stream << *it;
+  }
+  stream << " ]";
+  return stream;
+}
+
+
 inline std::ostream& operator << (
     std::ostream& stream,
     const Modules& modules)

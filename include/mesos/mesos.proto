@@ -798,7 +798,7 @@ message TaskStatus {
   required TaskState state = 2;
   optional string message = 4; // Possible message explaining state.
   optional Source source = 9;
-  optional Reason reason = 10;
+  repeated Reason reason = 10;
   optional bytes data = 3;
   optional SlaveID slave_id = 5;
   optional ExecutorID executor_id = 7; // TODO(benh): Use in master/slave.
