@@ -266,7 +266,7 @@ There are a handful of wrappers that make working with signals easier, including
 
 ## `path::`
 
-The `path` namespace provides the `path::join` function for joining toghether filesystem paths.
+The `path` namespace provides the `path::join` function for joining toghether filesystem paths. And provide thread safe `path::basename` and `path::dirname` as replacements of standard `::basename()` and `::dirname()`.
 
 
 <a href="proc"></a>
