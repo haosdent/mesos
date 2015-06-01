@@ -591,6 +591,31 @@ TEST(HTTP, QueryEncodeDecode)
                  http::query::decode("a%26b%3Dc=d%26e%3Dfg"));
 }
 
+TEST(HTTP, HeaderInsensitiveCase)
+{
+  http::Request request;
+  request.headers["Content-Length"] = "20";
+  EXPECT_EQ("20", request.headers["content-length"]);
+  EXPECT_EQ("20", request.headers["content-Length"]);
+  EXPECT_EQ("20", request.headers["CONTENT-LENGTH"]);
+
+  request.headers["content-length"] = "30";
+  EXPECT_EQ("30", request.headers["content-length"]);
+  EXPECT_EQ("30", request.headers["Content-Length"]);
+  EXPECT_EQ("30", request.headers["CONTENT-LENGTH"]);
+
+  http::Response response;
+  response.headers["Content-Type"] = "application/json";
+  EXPECT_EQ("application/json", response.headers["content-type"]);
+  EXPECT_EQ("application/json", response.headers["content-Type"]);
+  EXPECT_EQ("application/json", response.headers["CONTENT-TYPE"]);
+
+  response.headers["content-type"] = "text/javascript";
+  EXPECT_EQ("text/javascript", response.headers["content-type"]);
+  EXPECT_EQ("text/javascript", response.headers["Content-Type"]);
+  EXPECT_EQ("text/javascript", response.headers["CONTENT-TYPE"]);
+}
+
 // TODO(evelinad): Add URLTest for IPv6.
 TEST(URLTest, stringification)
 {
