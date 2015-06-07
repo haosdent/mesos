@@ -1264,6 +1264,8 @@ Future<ResourceStatistics> DockerContainerizerProcess::__usage(
     result.set_cpus_limit(cpus.get());
   }
 
+  result.mutable_resources()->CopyFrom(resource);
+
   return result;
 }
 

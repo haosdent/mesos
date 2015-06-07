@@ -575,6 +575,9 @@ message ResourceStatistics {
 
   optional double net_tcp_active_connections = 28;
   optional double net_tcp_time_wait_connections = 29;
+
+  // Resources
+  repeated Resource resources = 35;
 }
 
 

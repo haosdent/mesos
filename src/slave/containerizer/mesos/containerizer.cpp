@@ -948,6 +948,8 @@ Future<ResourceStatistics> _usage(
     if (cpus.isSome()) {
       result.set_cpus_limit(cpus.get());
     }
+
+    result.mutable_resources()->CopyFrom(resources.get());
   }
 
   return result;
