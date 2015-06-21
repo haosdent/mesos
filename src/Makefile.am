@@ -1040,7 +1040,8 @@ EXAMPLES_SOURCE =							\
 	$(srcdir)/examples/java/TestExecutor.java			\
 	$(srcdir)/examples/java/TestFramework.java			\
 	$(srcdir)/examples/java/TestMultipleExecutorsFramework.java	\
-	$(srcdir)/examples/java/TestLog.java
+	$(srcdir)/examples/java/TestLog.java				\
+	$(srcdir)/examples/java/TestPersistentVolumeFramework.java
 EXTRA_DIST += $(EXAMPLES_SOURCE)
 
 
@@ -1577,7 +1578,8 @@ if HAS_JAVA
                        examples/java/test-executor			\
                        examples/java/test-exception-framework		\
                        examples/java/test-multiple-executors-framework	\
-                       examples/java/test-log
+                       examples/java/test-log				\
+                       examples/java/test-persistent-volume-framework
 
   check_SCRIPTS += $(EXAMPLESCRIPTSJAVA)
   mesos_tests_DEPENDENCIES += $(EXAMPLESCRIPTSJAVA)
@@ -1609,6 +1611,7 @@ dist_check_SCRIPTS +=							\
   tests/java_exception_test.sh						\
   tests/java_framework_test.sh						\
   tests/java_log_test.sh						\
+  tests/java_persistent_volume_framework_test.sh			\
   tests/no_executor_framework_test.sh					\
   tests/persistent_volume_framework_test.sh				\
   tests/python_framework_test.sh					\

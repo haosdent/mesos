@@ -40,6 +40,8 @@ TEST_SCRIPT(ExamplesTest, PersistentVolumeFramework,
 TEST_SCRIPT(ExamplesTest, JavaFramework, "java_framework_test.sh")
 TEST_SCRIPT(ExamplesTest, JavaException, "java_exception_test.sh")
 TEST_SCRIPT(ExamplesTest, JavaLog, "java_log_test.sh")
+TEST_SCRIPT(ExamplesTest, JavaPersistentVolumeFramework,
+            "java_persistent_volume_framework_test.sh")
 #endif
 
 
