@@ -437,8 +437,17 @@ Try<string> Environment::mkdtemp()
 
   Try<string> mkdtemp = os::mkdtemp(path);
   if (mkdtemp.isSome()) {
+    // Chmod the temporary directory permissions to 'drwxr-xr-w' and then
+    // other users could access it.
+    Try<Nothing> chmod =
+      os::chmod(mkdtemp.get(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    if (chmod.isError()) {
+      return Error("Failed to chmod temporary directory '" +
+                   mkdtemp.get() + "': " + chmod.error());
+    }
     directories.push_back(mkdtemp.get());
   }
+
   return mkdtemp;
 }
 

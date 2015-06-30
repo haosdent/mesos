@@ -326,6 +326,16 @@ protected:
 #endif // MESOS_HAS_JAVA
 
 
+// This test class is used for running test cases which command user
+// is not equal to current user(root). In this class SetUp method, we
+// launch a prepare task as root to prepare the binaries.
+class MesosSpecialUserTest : public MesosTest
+{
+protected:
+  virtual void SetUp();
+};
+
+
 // Macros to get/create (default) ExecutorInfos and FrameworkInfos.
 #define DEFAULT_EXECUTOR_INFO                                           \
       ({ ExecutorInfo executor;                                         \

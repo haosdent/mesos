@@ -16,6 +16,8 @@
  * limitations under the License.
  */
 
+#include <sys/stat.h>
+
 #include <string>
 #include <vector>
 
@@ -28,9 +30,11 @@
 #include <process/gmock.hpp>
 #include <process/gtest.hpp>
 
+#include <stout/duration.hpp>
 #include <stout/foreach.hpp>
 #include <stout/format.hpp>
 #include <stout/hashset.hpp>
+#include <stout/os.hpp>
 #include <stout/path.hpp>
 #include <stout/strings.hpp>
 
@@ -582,6 +586,207 @@ TEST_F(PersistentVolumeTest, AccessPersistentVolume)
       slaveFlags.work_dir,
       "role1",
       "id1");
+
+  EXPECT_SOME_EQ("abc\n", os::read(path::join(volumePath, "file")));
+
+  driver.stop();
+  driver.join();
+
+  Shutdown();
+}
+
+
+class PersistentVolumeSpecialUserTest : public MesosSpecialUserTest {};
+
+// This test verifies that a persistent volume is correctly chowned to
+// framework user.
+TEST_F(PersistentVolumeSpecialUserTest, ROOT_ChownToFrameworkUser)
+{
+  string testUser = "nobody";
+  FrameworkInfo frameworkInfo = DEFAULT_FRAMEWORK_INFO;
+  frameworkInfo.set_role("role1");
+  frameworkInfo.set_user(testUser);
+
+  master::Flags flags = CreateMasterFlags();
+  flags.roles = "role1";
+  Try<PID<Master>> master = StartMaster(flags);
+  ASSERT_SOME(master);
+
+  slave::Flags slaveFlags = CreateSlaveFlags();
+
+  slaveFlags.resources = "cpus:2;mem:1024;disk(role1):1024";
+
+  Try<PID<Slave>> slave = StartSlave(slaveFlags);
+  ASSERT_SOME(slave);
+
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+      &sched, frameworkInfo, master.get(), DEFAULT_CREDENTIAL);
+
+  Future<FrameworkID> frameworkId;
+  EXPECT_CALL(sched, registered(&driver, _, _))
+    .WillOnce(FutureArg<1>(&frameworkId));
+
+  Future<vector<Offer>> offers;
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return());        // Ignore subsequent offers.
+
+  driver.start();
+
+  AWAIT_READY(frameworkId);
+
+  AWAIT_READY(offers);
+  EXPECT_FALSE(offers.get().empty());
+
+  Offer offer = offers.get()[0];
+
+  Resources volume = createPersistentVolume(
+      Megabytes(64),
+      "role1",
+      "id1",
+      "path1");
+
+  // Create a task which writes a file in the persistent volume.
+  Resources taskResources =
+    Resources::parse("cpus:1;mem:128;disk(role1):32").get() + volume;
+
+  TaskInfo task = createTask(
+      offer.slave_id(),
+      taskResources,
+      "echo abc > path1/file");
+  // task.mutable_command()->set_user(testUser);
+
+  Future<TaskStatus> status1;
+  Future<TaskStatus> status2;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&status1))
+    .WillOnce(FutureArg<1>(&status2));
+
+  driver.acceptOffers(
+      {offer.id()},
+      {CREATE(volume),
+       LAUNCH({task})});
+
+  AWAIT_READY(status1);
+  EXPECT_EQ(task.task_id(), status1.get().task_id());
+  EXPECT_EQ(TASK_RUNNING, status1.get().state());
+
+  AWAIT_READY(status2);
+  EXPECT_EQ(task.task_id(), status2.get().task_id());
+  EXPECT_EQ(TASK_FINISHED, status2.get().state());
+
+  const string& volumePath = slave::paths::getPersistentVolumePath(
+      slaveFlags.work_dir,
+      "role1",
+      "id1");
+  struct stat volumeStat;
+  EXPECT_FALSE(::stat(volumePath.c_str(), &volumeStat) < 0);
+  Result<string> user = os::user(volumeStat.st_uid);
+  // Verify whether the user of persistent volume is 'nobody' or not.
+  // And because command don't have group attribute now, we don't need
+  // to check the group ownership here.
+  EXPECT_EQ(testUser, user.get());
+
+  EXPECT_SOME_EQ("abc\n", os::read(path::join(volumePath, "file")));
+
+  driver.stop();
+  driver.join();
+
+  Shutdown();
+}
+
+
+// This test verifies that a persistent volume is correctly chowned to
+// command user.
+TEST_F(PersistentVolumeSpecialUserTest, ROOT_ChownToCommandUser)
+{
+  string testUser = "nobody";
+  FrameworkInfo frameworkInfo = DEFAULT_FRAMEWORK_INFO;
+  frameworkInfo.set_role("role1");
+  frameworkInfo.set_user("root");
+
+  master::Flags flags = CreateMasterFlags();
+  flags.roles = "role1";
+  Try<PID<Master>> master = StartMaster(flags);
+  ASSERT_SOME(master);
+
+  slave::Flags slaveFlags = CreateSlaveFlags();
+
+  slaveFlags.resources = "cpus:2;mem:1024;disk(role1):1024";
+
+  Try<PID<Slave>> slave = StartSlave(slaveFlags);
+  ASSERT_SOME(slave);
+
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+      &sched, frameworkInfo, master.get(), DEFAULT_CREDENTIAL);
+
+  Future<FrameworkID> frameworkId;
+  EXPECT_CALL(sched, registered(&driver, _, _))
+    .WillOnce(FutureArg<1>(&frameworkId));
+
+  Future<vector<Offer>> offers;
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return());        // Ignore subsequent offers.
+
+  driver.start();
+
+  AWAIT_READY(frameworkId);
+
+  AWAIT_READY(offers);
+  EXPECT_FALSE(offers.get().empty());
+
+  Offer offer = offers.get()[0];
+
+  Resources volume = createPersistentVolume(
+      Megabytes(64),
+      "role1",
+      "id1",
+      "path1");
+
+  // Create a task which writes a file in the persistent volume.
+  Resources taskResources =
+    Resources::parse("cpus:1;mem:128;disk(role1):32").get() + volume;
+
+  TaskInfo task = createTask(
+      offer.slave_id(),
+      taskResources,
+      "echo abc > path1/file");
+  // Set command user to testUser.
+  task.mutable_command()->set_user(testUser);
+
+  Future<TaskStatus> status1;
+  Future<TaskStatus> status2;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&status1))
+    .WillOnce(FutureArg<1>(&status2));
+
+  driver.acceptOffers(
+      {offer.id()},
+      {CREATE(volume),
+       LAUNCH({task})});
+
+  AWAIT_READY(status1);
+  EXPECT_EQ(task.task_id(), status1.get().task_id());
+  EXPECT_EQ(TASK_RUNNING, status1.get().state());
+
+  AWAIT_READY(status2);
+  EXPECT_EQ(task.task_id(), status2.get().task_id());
+  EXPECT_EQ(TASK_FINISHED, status2.get().state());
+
+  const string& volumePath = slave::paths::getPersistentVolumePath(
+      slaveFlags.work_dir,
+      "role1",
+      "id1");
+  struct stat volumeStat;
+  EXPECT_FALSE(::stat(volumePath.c_str(), &volumeStat) < 0);
+  Result<string> user = os::user(volumeStat.st_uid);
+  // Verify whether the user of persistent volume is 'nobody' or not.
+  // And because command don't have group attribute now, we don't need
+  // to check the group ownership here.
+  EXPECT_EQ(testUser, user.get());
 
   EXPECT_SOME_EQ("abc\n", os::read(path::join(volumePath, "file")));
 

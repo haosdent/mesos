@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <stout/check.hpp>
 #include <stout/foreach.hpp>
@@ -29,6 +30,10 @@
 #include <stout/uuid.hpp>
 
 #include "authorizer/authorizer.hpp"
+
+#include "slave/containerizer/fetcher.hpp"
+
+#include "slave/containerizer/mesos/containerizer.hpp"
 
 #ifdef __linux__
 #include "linux/cgroups.hpp"
@@ -51,6 +56,7 @@
 using std::list;
 using std::shared_ptr;
 using std::string;
+using std::vector;
 using testing::_;
 using testing::Invoke;
 
@@ -442,6 +448,102 @@ void MesosTest::ShutdownSlaves()
     delete containerizer;
   }
   containerizers.clear();
+}
+
+
+void MesosSpecialUserTest::SetUp()
+{
+  MesosTest::SetUp();
+
+  // HACK: Launch a prepare task as root to prepare the binaries.
+  // This task creates the lt-mesos-executor binary in the build dir.
+  // Because the real task is run as a test user (nobody), it does not
+  // have permission to create files in the build directory.
+  Try<PID<master::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  // Need flags for 'executor_registration_timeout'.
+  slave::Flags flags = CreateSlaveFlags();
+  flags.isolation = "posix/cpu,posix/mem";
+
+  slave::Fetcher fetcher;
+
+  Try<slave::MesosContainerizer*> containerizer =
+    slave::MesosContainerizer::create(flags, false, &fetcher);
+  CHECK_SOME(containerizer);
+
+  Try<PID<slave::Slave>> slave = StartSlave(containerizer.get());
+  ASSERT_SOME(slave);
+
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get(), DEFAULT_CREDENTIAL);
+
+  EXPECT_CALL(sched, registered(&driver, _, _))
+    .Times(1);
+
+  Future<vector<Offer>> offers;
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return()); // Ignore subsequent offers.
+
+  driver.start();
+
+  AWAIT_READY(offers);
+  EXPECT_NE(0u, offers.get().size());
+
+  // Launch a task with the command executor.
+  TaskInfo task;
+  task.set_name("");
+  task.mutable_task_id()->set_value("1");
+  task.mutable_slave_id()->CopyFrom(offers.get()[0].slave_id());
+  task.mutable_resources()->CopyFrom(offers.get()[0].resources());
+
+  Result<string> user = os::user();
+  CHECK_SOME(user) << "Failed to get current user name"
+                   << (user.isError() ? ": " + user.error() : "");
+  // Current user should be root.
+  EXPECT_EQ("root", user.get());
+
+  const string helper =
+      path::join(tests::flags.build_dir, "src", "active-user-test-helper");
+
+  // This command executor will run as the current user running
+  // the tests (root). After this command executor finishes, we
+  // know that the lt-mesos-executor binary file exists.
+  CommandInfo command;
+  command.set_shell(false);
+  command.set_value(helper);
+  command.add_arguments(helper);
+  command.add_arguments(user.get());
+
+  task.mutable_command()->CopyFrom(command);
+
+  vector<TaskInfo> tasks;
+  tasks.push_back(task);
+
+  Future<TaskStatus> statusRunning;
+  Future<TaskStatus> statusFinished;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&statusRunning))
+    .WillOnce(FutureArg<1>(&statusFinished));
+
+  driver.launchTasks(offers.get()[0].id(), tasks);
+
+  // Scheduler should first receive TASK_RUNNING followed by the
+  // TASK_FINISHED from the executor.
+  AWAIT_READY(statusRunning);
+  EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
+  EXPECT_EQ(TaskStatus::SOURCE_EXECUTOR, statusRunning.get().source());
+
+  AWAIT_READY(statusFinished);
+  EXPECT_EQ(TASK_FINISHED, statusFinished.get().state());
+  EXPECT_EQ(TaskStatus::SOURCE_EXECUTOR, statusFinished.get().source());
+
+  driver.stop();
+  driver.join();
+
+  Shutdown(); // Must shutdown before 'containerizer' gets deallocated.
 }
 
 
