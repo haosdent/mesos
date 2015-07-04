@@ -48,6 +48,16 @@ import java.util.concurrent.Future;
  * </pre>
  */
 public interface State {
+
+  /**
+   * Exception thrown when future execute failed.
+   */
+  public static class FutureFailureException extends Exception {
+    public FutureFailureException(String message) {
+      super(message);
+    }
+  }
+
   /**
    * Returns an immutable "variable" representing the current value
    * from the state associated with the specified name.

@@ -41,6 +41,26 @@ using std::string;
 
 extern "C" {
 
+jthrowable createExecuteException(const string& message, JNIEnv* env)
+{
+  jclass clazz = env->FindClass(
+      "org/apache/mesos/state/State$FutureFailureException");
+  jmethodID _init_ = env->GetMethodID(clazz,
+                                      "<init>",
+                                      "(Ljava/lang/String;)V");
+  jobject failureException = env->NewObject(clazz, _init_, message.c_str());
+  clazz = env->FindClass("java/util/concurrent/ExecutionException");
+  _init_ = env->GetMethodID(clazz,
+                            "<init>",
+                            "(Ljava/lang/String;Ljava/lang/Throwable;)V");
+  jthrowable executeException = (jthrowable) env->NewObject(clazz,
+                                                            _init_,
+                                                            message.c_str(),
+                                                            failureException);
+  return executeException;
+}
+
+
 // TODO(jmlvanre): Deprecate the JNI functions that are in the AbstractState
 // scope that we have replaced with the ones in the names classes 'FetchFuture',
 // 'StoreFuture', 'ExpungeFuture', and 'NamesFuture'. (MESOS-2161). The
@@ -159,8 +179,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1fetch_1g
   future->await();
 
   if (future->isFailed()) {
-    jclass clazz = env->FindClass("java/util/concurrent/ExecutionException");
-    env->ThrowNew(clazz, future->failure().c_str());
+    env->Throw(createExecuteException(future->failure(), env));
     return NULL;
   } else if (future->isDiscarded()) {
     // TODO(benh): Consider throwing an ExecutionException since we
@@ -208,8 +227,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1fetch_1g
 
   if (future->await(seconds)) {
     if (future->isFailed()) {
-      clazz = env->FindClass("java/util/concurrent/ExecutionException");
-      env->ThrowNew(clazz, future->failure().c_str());
+      env->Throw(createExecuteException(future->failure(), env));
       return NULL;
     } else if (future->isDiscarded()) {
       // TODO(benh): Consider throwing an ExecutionException since we
@@ -470,8 +488,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1store_1g
   future->await();
 
   if (future->isFailed()) {
-    jclass clazz = env->FindClass("java/util/concurrent/ExecutionException");
-    env->ThrowNew(clazz, future->failure().c_str());
+    env->Throw(createExecuteException(future->failure(), env));
     return NULL;
   } else if (future->isDiscarded()) {
     // TODO(benh): Consider throwing an ExecutionException since we
@@ -523,8 +540,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1store_1g
 
   if (future->await(seconds)) {
     if (future->isFailed()) {
-      clazz = env->FindClass("java/util/concurrent/ExecutionException");
-      env->ThrowNew(clazz, future->failure().c_str());
+      env->Throw(createExecuteException(future->failure(), env));
       return NULL;
     } else if (future->isDiscarded()) {
       // TODO(benh): Consider throwing an ExecutionException since we
@@ -789,8 +805,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1expunge_
   future->await();
 
   if (future->isFailed()) {
-    jclass clazz = env->FindClass("java/util/concurrent/ExecutionException");
-    env->ThrowNew(clazz, future->failure().c_str());
+    env->Throw(createExecuteException(future->failure(), env));
     return NULL;
   } else if (future->isDiscarded()) {
     // TODO(benh): Consider throwing an ExecutionException since we
@@ -835,8 +850,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1expunge_
 
   if (future->await(seconds)) {
     if (future->isFailed()) {
-      clazz = env->FindClass("java/util/concurrent/ExecutionException");
-      env->ThrowNew(clazz, future->failure().c_str());
+      env->Throw(createExecuteException(future->failure(), env));
       return NULL;
     } else if (future->isDiscarded()) {
       // TODO(benh): Consider throwing an ExecutionException since we
@@ -1088,8 +1102,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1names_1g
   future->await();
 
   if (future->isFailed()) {
-    jclass clazz = env->FindClass("java/util/concurrent/ExecutionException");
-    env->ThrowNew(clazz, future->failure().c_str());
+    env->Throw(createExecuteException(future->failure(), env));
     return NULL;
   } else if (future->isDiscarded()) {
     // TODO(benh): Consider throwing an ExecutionException since we
@@ -1144,8 +1157,7 @@ JNIEXPORT jobject JNICALL Java_org_apache_mesos_state_AbstractState__1_1names_1g
 
   if (future->await(seconds)) {
     if (future->isFailed()) {
-      clazz = env->FindClass("java/util/concurrent/ExecutionException");
-      env->ThrowNew(clazz, future->failure().c_str());
+      env->Throw(createExecuteException(future->failure(), env));
       return NULL;
     } else if (future->isDiscarded()) {
       // TODO(benh): Consider throwing an ExecutionException since we
