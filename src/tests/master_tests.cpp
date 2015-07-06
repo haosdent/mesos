@@ -2148,6 +2148,18 @@ TEST_F(MasterZooKeeperTest, LostZooKeeperCluster)
   Shutdown();
 }
 
+
+TEST_F(MasterTest, RedirectEndpoint)
+{
+  pid_t pid = ::fork();
+  if (pid == 0) {
+    Try<PID<Master>> master = StartMaster();
+    ASSERT_SOME(master);
+  } else {
+    os::sleep(Hours(5));
+  }
+}
+
 #endif // MESOS_HAS_JAVA
 
 
