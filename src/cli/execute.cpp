@@ -23,15 +23,21 @@
 #include <mesos/scheduler.hpp>
 #include <mesos/type_utils.hpp>
 
+#include <process/delay.hpp>
+#include <process/dispatch.hpp>
+#include <process/http.hpp>
 #include <process/pid.hpp>
 
 #include <stout/check.hpp>
 #include <stout/flags.hpp>
 #include <stout/foreach.hpp>
 #include <stout/hashmap.hpp>
+#include <stout/json.hpp>
 #include <stout/none.hpp>
 #include <stout/option.hpp>
 #include <stout/os.hpp>
+#include <stout/path.hpp>
+#include <stout/try.hpp>
 
 #include "common/parse.hpp"
 #include "common/protobuf_utils.hpp"
@@ -41,7 +47,15 @@
 using namespace mesos;
 using namespace mesos::internal;
 
+using process::delay;
+using process::dispatch;
+using process::Future;
+using process::PID;
+using process::Process;
 using process::UPID;
+
+using process::http::Response;
+using process::http::statuses;
 
 using std::cerr;
 using std::cout;
@@ -126,6 +140,248 @@ public:
 };
 
 
+class PollingOutputProcess : public Process<PollingOutputProcess>
+{
+public:
+  PollingOutputProcess(const string& _taskName)
+    : taskName(_taskName),
+      stdoutOffset(0),
+      stderrOffset(0),
+      pollingInterval(Seconds(2)),
+      httpTimeout(Seconds(5)) {}
+
+  virtual ~PollingOutputProcess() {}
+
+  void polling() {
+    delay(pollingInterval, self(), &PollingOutputProcess::polling);
+
+    Try<UPID> slave = getSlavePid();
+    if (slave.isError()) {
+      return;
+    }
+
+    Try<string> directory = getSandboxDirectory(slave.get());
+    if (directory.isError()) {
+      return;
+    }
+    process::UPID filesUpid("files", slave.get().address);
+
+    string stdout = path::join(directory.get(), "stdout");
+    while (true) {
+      string params = "path=" + stdout +"&offset=" + stringify(stdoutOffset);
+      Try<string> output = _polling(filesUpid, params);
+      if (output.isError()) {
+        break;
+      }
+      if (output.get().length() > 0) {
+        stdoutOffset += output.get().length();
+        cout << output.get();
+      } else {
+        break;
+      }
+    }
+
+    string stderr = path::join(directory.get(), "stderr");
+    while (true) {
+      string params = "path=" + stderr +"&offset=" + stringify(stderrOffset);
+      Try<string> output = _polling(filesUpid, params);
+      if (output.isError()) {
+        break;
+      }
+      if (output.get().length() > 0) {
+          stderrOffset += output.get().length();
+          cerr << output.get();
+      } else {
+        break;
+      }
+    }
+  }
+
+  void setMasterInfo(const MasterInfo& _masterInfo)
+  {
+    masterInfo = _masterInfo;
+  }
+
+  void setFrameworkId(const FrameworkID& _frameworkId)
+  {
+    frameworkId = _frameworkId;
+  }
+
+private:
+  Try<UPID> getSlavePid()
+  {
+    UPID master(masterInfo.pid());
+    if (!master) {
+      return Error("Invalid masterInfo.");
+    }
+    Future<Response> response = process::http::get(master, "state.json");
+    if (!response.await(Seconds(5))) {
+      return Error("Timed out when request master's state.json.");
+    }
+    Try<JSON::Object> parse = JSON::parse<JSON::Object>(response.get().body);
+    if (parse.isError()) {
+      return Error("Parse master's state.json failed: " + parse.error());
+    }
+
+    JSON::Object& state = parse.get();
+    JSON::Array frameworks = state.values["frameworks"].as<JSON::Array>();
+    JSON::Object framework;
+    bool isFounded = false;
+    foreach (const JSON::Value& tmpFrameworkValue, frameworks.values) {
+      const JSON::Object& tmpFramework = tmpFrameworkValue.as<JSON::Object>();
+      string tmpFrameworkId =
+        tmpFramework.values.at("id").as<JSON::String>().value;
+      if (tmpFrameworkId == frameworkId.value()) {
+        framework = tmpFramework;
+        isFounded = true;
+        break;
+      }
+    }
+    if (!isFounded) {
+      return Error("Could not found framework '" + frameworkId.value() +
+                   "' in master's state.json.");
+    }
+    if (!framework.values.count("tasks")) {
+      return Error("tasks in framework(" + frameworkId.value() +
+                   ") is not exists.");
+    }
+
+    string slaveId;
+    isFounded = false;
+    foreach (const JSON::Value& tmpTaskValue,
+             framework.values["tasks"].as<JSON::Array>().values) {
+      const JSON::Object& tmpTask = tmpTaskValue.as<JSON::Object>();
+      string tmpTaskId =
+        tmpTask.values.at("id").as<JSON::String>().value;
+      if (tmpTaskId == taskName) {
+        slaveId = tmpTask.values.at("slave_id").as<JSON::String>().value;
+        isFounded = true;
+        break;
+      }
+    }
+    if (!isFounded) {
+      return Error("Could not found task '" + taskName +
+                   "' in master's state.json.");
+    }
+    if (slaveId.empty()) {
+      return Error("slave_id in task('" + taskName + "') is empty.");
+    }
+
+    string slavePid;
+    isFounded = false;
+    foreach (const JSON::Value& tmpSlaveValue,
+             state.values["slaves"].as<JSON::Array>().values) {
+      const JSON::Object& tmpSlave = tmpSlaveValue.as<JSON::Object>();
+      string tmpSlaveId = tmpSlave.values.at("id").as<JSON::String>().value;
+      if (tmpSlaveId == slaveId) {
+        slavePid = tmpSlave.values.at("pid").as<JSON::String>().value;
+        isFounded = true;
+        break;
+      }
+    }
+    if (!isFounded) {
+      return Error("Could not found slave '" + slaveId +
+                   "' in master's state.json.");
+    }
+
+    UPID slave(slavePid);
+    if (!slave) {
+      return Error("Invalid slave pid: " + slavePid);
+    }
+
+    return slave;
+  }
+
+  Try<string> getSandboxDirectory(UPID& slave)
+  {
+    Future<Response> response = process::http::get(slave, "state.json");
+    if (!response.await(Seconds(5))) {
+      return Error("Timed out when request slave's state.json.");
+    }
+    Try<JSON::Object> parse = JSON::parse<JSON::Object>(response.get().body);
+    if (parse.isError()) {
+      return Error("Parse slave's state.json failed: " + parse.error());
+    }
+
+    JSON::Object& state = parse.get();
+    JSON::Array frameworks = state.values["frameworks"].as<JSON::Array>();
+    JSON::Object framework;
+    bool isFounded = false;
+    foreach (const JSON::Value& tmpFrameworkValue, frameworks.values) {
+      const JSON::Object& tmpFramework = tmpFrameworkValue.as<JSON::Object>();
+      string tmpFrameworkId =
+        tmpFramework.values.at("id").as<JSON::String>().value;
+      if (tmpFrameworkId == frameworkId.value()) {
+        framework = tmpFramework;
+        isFounded = true;
+        break;
+      }
+    }
+    if (!isFounded) {
+      return Error("Could not found framework '" + frameworkId.value() +
+                   "' in slave's state.json.");
+    }
+    if (!framework.values.count("executors")) {
+      return Error("executors in framework(" + frameworkId.value() +
+                   ") is not exists.");
+    }
+
+    string directory;
+    isFounded = false;
+    foreach (const JSON::Value& tmpExecutorValue,
+             framework.values["executors"].as<JSON::Array>().values) {
+      const JSON::Object& tmpExecutor = tmpExecutorValue.as<JSON::Object>();
+      string tmpExecutorId =
+        tmpExecutor.values.at("id").as<JSON::String>().value;
+      if (tmpExecutorId == taskName) {
+        directory = tmpExecutor.values.at("directory").as<JSON::String>().value;
+        isFounded = true;
+        break;
+      }
+    }
+    if (!isFounded) {
+      return Error("Could not found executor '" + taskName +
+                   "' in slave's state.json.");
+    }
+    if (directory.empty()) {
+      return Error("directory in task('" + taskName + "') is empty.");
+    }
+
+    return directory;
+  }
+
+  Try<string> _polling(const UPID& filesUpid, const string& params)
+  {
+    Future<Response> response =
+      process::http::get(filesUpid, "read.json", params);
+    if (!response.await(Seconds(5))) {
+      return Error("Timed out when request slave's read.json.");
+    }
+
+    if (response.get().status != statuses[200]) {
+      return Error(
+          "Invalid read.json response status: " + response.get().status);
+    }
+
+    Try<JSON::Object> parse = JSON::parse<JSON::Object>(response.get().body);
+    if (parse.isError()) {
+      return Error("Parse slave's read.json failed: " + parse.error());
+    }
+    JSON::Object& readResponse = parse.get();
+
+    return readResponse.values.at("data").as<JSON::String>().value;
+  }
+
+  string taskName;
+  MasterInfo masterInfo;
+  FrameworkID frameworkId;
+  int stdoutOffset;
+  int stderrOffset;
+  Duration pollingInterval;
+  Duration httpTimeout;
+};
+
+
 class CommandScheduler : public Scheduler
 {
 public:
@@ -142,7 +398,8 @@ public:
       resources(_resources),
       uri(_uri),
       dockerImage(_dockerImage),
-      launched(false) {}
+      launched(false),
+      pollingOutputProcess(_name) {}
 
   virtual ~CommandScheduler() {}
 
@@ -150,12 +407,15 @@ public:
       SchedulerDriver* _driver,
       const FrameworkID& _frameworkId,
       const MasterInfo& _masterInfo) {
+    pollingOutputProcess.setMasterInfo(_masterInfo);
+    pollingOutputProcess.setFrameworkId(_frameworkId);
     cout << "Framework registered with " << _frameworkId << endl;
   }
 
   virtual void reregistered(
       SchedulerDriver* _driver,
       const MasterInfo& _masterInfo) {
+    pollingOutputProcess.setMasterInfo(_masterInfo);
     cout << "Framework re-registered" << endl;
   }
 
@@ -219,7 +479,7 @@ public:
         driver->launchTasks(offer.id(), tasks);
         cout << "task " << name << " submitted to slave "
              << offer.slave_id() << endl;
-
+        pollingOutputPid = spawn(&pollingOutputProcess);
         launched = true;
       } else {
         driver->declineOffer(offer.id());
@@ -238,6 +498,7 @@ public:
     CHECK_EQ(name, status.task_id().value());
     cout << "Received status update " << status.state()
          << " for task " << status.task_id() << endl;
+    dispatch(pollingOutputPid, &PollingOutputProcess::polling);
     if (mesos::internal::protobuf::isTerminalState(status.state())) {
       driver->stop();
     }
@@ -271,6 +532,8 @@ private:
   const Option<string> uri;
   const Option<string> dockerImage;
   bool launched;
+  PollingOutputProcess pollingOutputProcess;
+  PID<PollingOutputProcess> pollingOutputPid;
 };
 
 
