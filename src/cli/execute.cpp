@@ -178,13 +178,10 @@ public:
     foreach (const Offer& offer, offers) {
       if (!launched &&
           Resources(offer.resources()).contains(TASK_RESOURCES.get())) {
-        TaskInfo task;
-        task.set_name(name);
-        task.mutable_task_id()->set_value(name);
-        task.mutable_slave_id()->MergeFrom(offer.slave_id());
-        task.mutable_resources()->CopyFrom(TASK_RESOURCES.get());
+        ExecutorInfo executor;
+        executor.mutable_executor_id()->set_value(name);
 
-        CommandInfo* commandInfo = task.mutable_command();
+        CommandInfo* commandInfo = executor.mutable_command();
         commandInfo->set_value(command);
         if (environment.isSome()) {
           Environment* environment_ = commandInfo->mutable_environment();
@@ -199,7 +196,7 @@ public:
         }
 
         if (uri.isSome()) {
-          task.mutable_command()->add_uris()->set_value(uri.get());
+          executor.mutable_command()->add_uris()->set_value(uri.get());
         }
 
         if (dockerImage.isSome()) {
@@ -210,8 +207,15 @@ public:
           dockerInfo.set_image(dockerImage.get());
 
           containerInfo.mutable_docker()->CopyFrom(dockerInfo);
-          task.mutable_container()->CopyFrom(containerInfo);
+          executor.mutable_container()->CopyFrom(containerInfo);
         }
+
+        TaskInfo task;
+        task.set_name(name);
+        task.mutable_task_id()->set_value(name);
+        task.mutable_slave_id()->MergeFrom(offer.slave_id());
+        task.mutable_resources()->CopyFrom(TASK_RESOURCES.get());
+        task.mutable_executor()->CopyFrom(executor);
 
         vector<TaskInfo> tasks;
         tasks.push_back(task);
