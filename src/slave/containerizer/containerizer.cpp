@@ -305,6 +305,9 @@ map<string, string> executorEnvironment(
     environment["MESOS_RECOVERY_TIMEOUT"] = stringify(flags.recovery_timeout);
   }
 
+  environment["MESOS_EXECUTOR_SHUTDOWN_TIMEOUT"] =
+    stringify(flags.executor_shutdown_grace_period);
+
   if (HookManager::hooksAvailable()) {
     // Include any environment variables from Hooks.
     // TODO(karya): Call environment decorator hook _after_ putting all
