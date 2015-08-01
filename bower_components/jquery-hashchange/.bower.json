@@ -1,0 +1,13 @@
+{
+  "name": "jquery-hashchange",
+  "homepage": "https://github.com/cowboy/jquery-hashchange",
+  "_release": "v1.3",
+  "_resolution": {
+    "type": "tag",
+    "tag": "v1.3",
+    "commit": "9f75268502c65943269eb4470b22032bfef0e7b2"
+  },
+  "_source": "git://github.com/cowboy/jquery-hashchange.git",
+  "_target": "v1.3",
+  "_originalSource": "jquery-hashchange"
+}
