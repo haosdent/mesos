@@ -1,0 +1,11 @@
+{
+  "name": "goagent-wiki",
+  "version": "0.0.0",
+  "dependencies": {
+    "jquery": "~1.11.1",
+    "underscore": "~1.8.3",
+    "marked": "0.3.3",
+    "pen": "~0.1.0"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,94 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+#nav {
+    /*background: 50px #1abf89 solid;*/
+    background-color: #1abf89;
+    color: white;
+    position: fixed;
+    width: 100%;
+    text-align: center;
+    font-size: 2em;
+    z-index: 1000;
+}
+#nav .logo {
+    width: 35px;
+    vertical-align: text-top;
+    margin-right: 10px;
+}
+
+#content {
+    width: 800px;
+    margin: 0 auto;
+    padding: 5% 20px 20px;
+    font-family: Palatino, Optima, Georgia, serif;
+}
+
+@media all and (max-width: 1024px) {
+    #content, pre a {
+        width:60%;
+    }
+}
+
+small {
+    color: #999;
+}
+
+#toolbar {
+    margin-bottom: 1em;
+    position: fixed;
+    left: 20px;
+    margin-top: 5px;
+}
+#toolbar [class^="icon-"]:before, #toolbar [class*=" icon-"]:before {
+    font-family: 'pen'
+}
+
+#mode {
+    color: #1abf89;
+    ;cursor: pointer;
+}
+#mode.disabled {
+    color: #666;
+}
+#mode:before {
+    content: '\e813';
+}
+
+#hinted {
+    color: #1abf89;
+    cursor: pointer;
+}
+#hinted.disabled {
+    color: #666;
+}
+#hinted:before {
+    content: '\e816';
+}
+
+#fork {
+    position: fixed;
+    right: 0;
+    top: 0;
+}
+
+/*
+  When the webpage is printed
+  this media query hides extra elements,
+  and makes the text content fit the page.
+  */
+@media print {
+    #fork, #toolbar {
+        display: none;
+    }
+    #content {
+        width: 94%;
+        padding-top: 1em;
+        font-size: 12px;
+    }
+    #nav {
+        border-top: 0px;
+    }
+}
