@@ -156,7 +156,9 @@ JSON::Object model(const Task& task)
   if (task.has_executor_id()) {
     object.values["executor_id"] = task.executor_id().value();
   } else {
-    object.values["executor_id"] = "";
+    // Task which run in CommandExecutor don't have ExecutorInfo.
+    // And CommandExecutor use task_id as executor_id when launch.
+    object.values["executor_id"] = task.task_id().value();
   }
 
   object.values["slave_id"] = task.slave_id().value();
@@ -267,7 +269,9 @@ JSON::Object model(
   if (task.has_executor()) {
     object.values["executor_id"] = task.executor().executor_id().value();
   } else {
-    object.values["executor_id"] = "";
+    // Task which run in CommandExecutor don't have ExecutorInfo.
+    // And CommandExecutor use task_id as executor_id when launch.
+    object.values["executor_id"] = task.task_id().value();
   }
 
   object.values["slave_id"] = task.slave_id().value();

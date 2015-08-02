@@ -83,7 +83,7 @@ TEST(HTTPTest, ModelTask)
 
   Try<JSON::Value> expected = JSON::parse(
       "{"
-      "  \"executor_id\":\"\","
+      "  \"executor_id\":\"t\","
       "  \"framework_id\":\"f\","
       "  \"id\":\"t\","
       "  \"labels\": [],"
