@@ -49,6 +49,7 @@
 #include <stout/path.hpp>
 #include <stout/strings.hpp>
 
+#include "common/executor.hpp"
 #include "common/http.hpp"
 #include "common/status_utils.hpp"
 
@@ -73,18 +74,15 @@ namespace internal {
 
 using namespace process;
 
-class CommandExecutorProcess : public ProtobufProcess<CommandExecutorProcess>
+class CommandExecutorProcess : public MesosExecutorProcess<CommandExecutorProcess>
 {
 public:
   CommandExecutorProcess(Option<char**> override, const string& _healthCheckDir)
-    : launched(false),
+    : MesosExecutorProcess(_healthCheckDir),
+      launched(false),
       killed(false),
-      killedByHealthCheck(false),
       pid(-1),
-      healthPid(-1),
       escalationTimeout(slave::EXECUTOR_SIGNAL_ESCALATION_TIMEOUT),
-      driver(None()),
-      healthCheckDir(_healthCheckDir),
       override(override) {}
 
   virtual ~CommandExecutorProcess() {}
@@ -336,40 +334,14 @@ public:
 
   virtual void error(ExecutorDriver* driver, const string& message) {}
 
-protected:
   virtual void initialize()
   {
     install<TaskHealthStatus>(
-        &CommandExecutorProcess::taskHealthUpdated,
-        &TaskHealthStatus::task_id,
-        &TaskHealthStatus::healthy,
-        &TaskHealthStatus::kill_task);
+      &CommandExecutorProcess::taskHealthUpdated,
+      &TaskHealthStatus::task_id,
+      &TaskHealthStatus::healthy,
+      &TaskHealthStatus::kill_task);
   }
-
-  void taskHealthUpdated(
-      const TaskID& taskID,
-      const bool& healthy,
-      const bool& initiateTaskKill)
-  {
-    if (driver.isNone()) {
-      return;
-    }
-
-    cout << "Received task health update, healthy: "
-         << stringify(healthy) << endl;
-
-    TaskStatus status;
-    status.mutable_task_id()->CopyFrom(taskID);
-    status.set_healthy(healthy);
-    status.set_state(TASK_RUNNING);
-    driver.get()->sendStatusUpdate(status);
-
-    if (initiateTaskKill) {
-      killedByHealthCheck = true;
-      killTask(driver.get(), taskID);
-    }
-  }
-
 
 private:
   void reaped(
@@ -493,13 +465,9 @@ private:
 
   bool launched;
   bool killed;
-  bool killedByHealthCheck;
   pid_t pid;
-  pid_t healthPid;
   Duration escalationTimeout;
   Timer escalationTimer;
-  Option<ExecutorDriver*> driver;
-  string healthCheckDir;
   Option<char**> override;
 };
 
