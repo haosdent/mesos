@@ -45,9 +45,7 @@ set(PROTOBUF_LIB       ${PROTOBUF_ROOT}-lib/lib)
 #########################
 if (APPLE)
   # GTEST on OSX needs its own tr1 tuple.
-  # TODO(dhamon): Update to gmock 1.7 and pass GTEST_LANG_CXX11 when
-  # in C++11 mode.
-  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1)
+  add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=1 -DGTEST_LANG_CXX11)
 endif (APPLE)
 
 # DEFINE PROCESS TEST LIBRARY DEPENDENCIES. Tells the process library build
