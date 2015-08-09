@@ -73,7 +73,7 @@ if (WIN32)
   if (${MSVC_VERSION} LESS 1900)
     message(
       WARNING
-      "Mesos does not support compiling on MSVC versions earlier than 1900. "
+      "Mesos does not support compiling on MSVC versions ${MSVC_VERSION} which earlier than 1900. "
       "Please use MSVC 1900 (included with Visual Studio 2015 or later).")
   endif (${MSVC_VERSION} LESS 1900)
 
@@ -115,3 +115,16 @@ endif (WIN32)
 # NOTE: The third-party configuration variables exported here are used
 # throughout the project, so it's important that this config script goes here.
 include(ProcessConfigure)
+
+# Generate make batch script when WIN32.
+if (WIN32)
+  VS_BUILD_CMD(${PROJECT_NAME_UPPER}
+    ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.sln
+    FALSE
+    "")
+
+  string(REPLACE ";" " " BUILD_CMD "${${PROJECT_NAME_UPPER}_BUILD_CMD}")
+  file(WRITE
+    ${CMAKE_BINARY_DIR}/make.bat
+    ${BUILD_CMD})
+endif (WIN32)
