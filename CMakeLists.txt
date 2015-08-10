@@ -21,6 +21,7 @@ cmake_minimum_required(VERSION 2.8)
 project(Mesos)
 set(MESOS_PACKAGE_VERSION 0.22.1)
 set(MESOS_PACKAGE_SOVERSION 0)
+string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
 
 # MESOS BUILD CONFIGURATION OPTIONS.
 ####################################
@@ -41,6 +42,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/3rdparty/libprocess/cmake/macr
 
 # Macros.
 include(PatchCommand)
+include(VsBuildCommand)
 include(External)
 
 # Configuration.
