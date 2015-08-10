@@ -1,0 +1,55 @@
+diff --git a/src/google/protobuf/io/zero_copy_stream_impl_lite.h b/src/google/protobuf/io/zero_copy_stream_impl_lite.h
+index 153f543..4097cd4 100644
+--- a/src/google/protobuf/io/zero_copy_stream_impl_lite.h
++++ b/src/google/protobuf/io/zero_copy_stream_impl_lite.h
+@@ -44,6 +44,7 @@
+ #ifndef GOOGLE_PROTOBUF_IO_ZERO_COPY_STREAM_IMPL_LITE_H__
+ #define GOOGLE_PROTOBUF_IO_ZERO_COPY_STREAM_IMPL_LITE_H__
+
++#include <algorithm>
+ #include <string>
+ #include <iosfwd>
+ #include <google/protobuf/io/zero_copy_stream.h>
+diff --git a/vsprojects/config.h b/vsprojects/config.h
+index 2c64450..a5b9490 100644
+--- a/vsprojects/config.h
++++ b/vsprojects/config.h
+@@ -1,9 +1,22 @@
+ /* protobuf config.h for MSVC.  On other platforms, this is generated
+  * automatically by autoheader / autoconf / configure. */
+
++#if _MSC_VER < 1900
++
+ /* the location of <hash_map> */
+ #define HASH_MAP_H <hash_map>
+
++/* the location of <hash_set> */
++#define HASH_SET_H <hash_set>
++
++/* define if the compiler has hash_map */
++#define HAVE_HASH_MAP 1
++
++/* define if the compiler has hash_set */
++#define HAVE_HASH_SET 1
++
++#endif
++
+ /* the namespace of hash_map/hash_set */
+ // Apparently Microsoft decided to move hash_map *back* to the std namespace
+ // in MSVC 2010:
+@@ -15,15 +28,6 @@
+ #define HASH_NAMESPACE stdext
+ #endif
+
+-/* the location of <hash_set> */
+-#define HASH_SET_H <hash_set>
+-
+-/* define if the compiler has hash_map */
+-#define HAVE_HASH_MAP 1
+-
+-/* define if the compiler has hash_set */
+-#define HAVE_HASH_SET 1
+-
+ /* define if you want to use zlib.  See readme.txt for additional
+  * requirements. */
+ // #define HAVE_ZLIB 1

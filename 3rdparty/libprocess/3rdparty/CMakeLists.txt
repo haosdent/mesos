@@ -49,13 +49,15 @@ endif (WIN32)
 
 # DEFINE BUILD/PATCH/CONFIGURE COMMANDS FOR THIRD-PARTY LIBS.
 #############################################################
+
+# Patch glog to deal with a problem that appears when compiling on clang
+# under the C++11 standard. cf. MESOS-860, MESOS-966.
+PATCH_CMD(${PROCESS_3RD_SRC}/glog-0.3.3.patch GLOG_PATCH_CMD)
+
 if (NOT WIN32)
   set(GLOG_CONFIG_CMD  ${GLOG_ROOT}/src/../configure --prefix=${GLOG_LIB})
   set(GLOG_BUILD_CMD   make)
   set(GLOG_INSTALL_CMD make install)
-  # Patch glog to deal with a problem that appears when compiling on clang
-  # under the C++11 standard. cf. MESOS-860, MESOS-966.
-  PATCH_CMD(${PROCESS_3RD_SRC}/glog-0.3.3.patch GLOG_PATCH_CMD)
 
   set(RY_BUILD_CMD   make -C ${HTTP_PARSER_ROOT})
   set(RY_INSTALL_CMD ar -rv libhttp_parser.a ${HTTP_PARSER_ROOT}/http_parser_g.o)
@@ -65,21 +67,22 @@ if (NOT WIN32)
   # Patch libev to keep it from reaping child processes.
   PATCH_CMD(${PROCESS_3RD_SRC}/libev-4.15.patch LIBEV_PATCH_CMD)
 else (NOT WIN32)
-  # Quotes are important in the following commands. Building glog on WIN32
+  # TRUE are important in the following commands. Building glog on WIN32
   # must be done in Visual Studio, and in that case, these commands must be
-  # nops. But if you take out the quote marks, CMake will treat this as an
+  # nops. But if you take out the TRUE marks, CMake will treat this as an
   # empty build command, and will attempt to build glog as a CMake project.
-  set(GLOG_CONFIG_CMD  "")
-  set(GLOG_BUILD_CMD   "")
-  set(GLOG_INSTALL_CMD "")
-  set(GLOG_PATCH_CMD   "")
+  set(GLOG_CONFIG_CMD TRUE)
+  set(GLOG_INSTALL_CMD TRUE)
+  VS_BUILD_CMD(GLOG
+    ${GLOG_ROOT}/google-glog.sln
+    "libglog_static")
 
-  set(RY_BUILD_CMD   "")
-  set(RY_INSTALL_CMD "")
+  set(RY_BUILD_CMD   TRUE)
+  set(RY_INSTALL_CMD TRUE)
 
-  set(LIBEV_CONFIG_CMD "")
-  set(LIBEV_BUILD_CMD  "")
-  set(LIBEV_PATCH_CMD  "")
+  set(LIBEV_CONFIG_CMD TRUE)
+  set(LIBEV_BUILD_CMD  TRUE)
+  set(LIBEV_PATCH_CMD  TRUE)
 endif (NOT WIN32)
 
 # THIRD-PARTY LIBRARIES. Tell the build system how to pull in and build third-
@@ -168,12 +171,25 @@ if (APPLE)
 elseif (NOT WIN32)
   set(GMOCK_CONFIG_CMD ${GMOCK_ROOT}/configure --prefix=${GMOCK_ROOT}-lib/lib)
   set(GMOCK_BUILD_CMD  make)
+elseif (WIN32)
+  set(GMOCK_CONFIG_CMD TRUE)
+  VS_BUILD_CMD(GMOCK
+    ${GMOCK_ROOT}/msvc/2010/gmock.sln
+    "gmock#gmock_main")
 endif (APPLE)
 
 if (NOT WIN32)
   set(PROTOBUF_CONFIG_CMD  ${PROTOBUF_ROOT}/src/../configure --prefix=${PROTOBUF_LIB})
   set(PROTOBUF_BUILD_CMD   make)
   set(PROTOBUF_INSTALL_CMD make install)
+else (NOT WIN32)
+  set(PROTOBUF_CONFIG_CMD  TRUE)
+  set(PROTOBUF_INSTALL_CMD TRUE)
+
+  PATCH_CMD(${PROCESS_3RD_SRC}/protobuf-2.5.0.patch PROTOBUF_PATCH_CMD)
+  VS_BUILD_CMD(PROTOBUF
+    ${PROTOBUF_ROOT}/vsprojects/protobuf.sln
+    "libprotobuf#libprotoc#protoc")
 endif (NOT WIN32)
 
 ExternalProject_Add(

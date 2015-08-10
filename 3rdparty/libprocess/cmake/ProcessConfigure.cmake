@@ -56,8 +56,10 @@ EXTERNAL("glog"        "0.3.3"   "${PROCESS_3RD_BIN}")
 EXTERNAL("picojson"    "4f93734" "${PROCESS_3RD_BIN}")
 EXTERNAL("http_parser" "1c3624a" "${PROCESS_3RD_BIN}")
 EXTERNAL("libev"       "4.15"    "${PROCESS_3RD_BIN}")
+EXTERNAL("protobuf"    "2.5.0"   "${PROCESS_3RD_BIN}")
 
-set(GLOG_LIB ${GLOG_ROOT}-lib/lib)
+set(GLOG_LIB           ${GLOG_ROOT}-lib/lib)
+set(PROTOBUF_LIB       ${PROTOBUF_ROOT}-lib/lib)
 
 # DIRECTORY STRUCTURE FOR WINDOWS-ONLY THIRD-PARTY LIBS.
 ########################################################
@@ -87,6 +89,7 @@ set(PROCESS_INCLUDE_DIRS
   ${BOOST_ROOT}
   ${LIBEV_ROOT}
   ${PICOJSON_ROOT}
+  ${PROTOBUF_ROOT}/src
   )
 
 if (WIN32)
@@ -112,6 +115,8 @@ if (HAS_GPERFTOOLS)
     ${GPERFTOOLS}/src
     )
 endif (HAS_GPERFTOOLS)
+
+message("${PROCESS_INCLUDE_DIRS}")
 
 # DEFINE THIRD-PARTY LIB INSTALL DIRECTORIES. Used to tell the compiler
 # toolchain where to find our third party libs (e.g., -L/path/to/glog on

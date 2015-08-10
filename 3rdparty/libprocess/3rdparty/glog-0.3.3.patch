@@ -1,123 +1,5 @@
-diff --git a/src/symbolize.cc b/src/symbolize.cc
-index 30836de..3e90573 100644
---- a/src/symbolize.cc
-+++ b/src/symbolize.cc
-@@ -232,7 +232,7 @@
-     }
-     char header_name[kMaxSectionNameLen];
-     if (sizeof(header_name) < name_len) {
--      RAW_LOG(WARNING, "Section name '%s' is too long (%"PRIuS"); "
-+      RAW_LOG(WARNING, "Section name '%s' is too long (%" PRIuS "); "
-               "section will not be found (even if present).", name, name_len);
-       // No point in even trying.
-       return false;
-diff --git a/src/glog/stl_logging.h.in b/src/glog/stl_logging.h.in
-index 30836de..3e90573 100644
---- a/src/glog/stl_logging.h.in
-+++ b/src/glog/stl_logging.h.in
-@@ -50,10 +50,13 @@
- #include <utility>
- #include <vector>
- 
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
- # include <ext/hash_set>
- # include <ext/hash_map>
- # include <ext/slist>
-+#elif defined(_LIBCPP_VERSION)
-+# include <unordered_map>
-+# include <unordered_set>
- #endif
- 
- // Forward declare these two, and define them after all the container streams
-@@ -80,7 +83,7 @@ inline std::ostream& operator<<(std::ostream& out, \
- OUTPUT_TWO_ARG_CONTAINER(std::vector)
- OUTPUT_TWO_ARG_CONTAINER(std::deque)
- OUTPUT_TWO_ARG_CONTAINER(std::list)
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
- OUTPUT_TWO_ARG_CONTAINER(__gnu_cxx::slist)
- #endif
- 
-@@ -109,9 +112,12 @@ inline std::ostream& operator<<(std::ostream& out, \
- 
- OUTPUT_FOUR_ARG_CONTAINER(std::map)
- OUTPUT_FOUR_ARG_CONTAINER(std::multimap)
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
- OUTPUT_FOUR_ARG_CONTAINER(__gnu_cxx::hash_set)
- OUTPUT_FOUR_ARG_CONTAINER(__gnu_cxx::hash_multiset)
-+#elif defined(_LIBCPP_VERSION)
-+OUTPUT_FOUR_ARG_CONTAINER(std::unordered_set)
-+OUTPUT_FOUR_ARG_CONTAINER(std::unordered_multiset)
- #endif
- 
- #undef OUTPUT_FOUR_ARG_CONTAINER
-@@ -124,9 +130,12 @@ inline std::ostream& operator<<(std::ostream& out, \
-   return out; \
- }
- 
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
- OUTPUT_FIVE_ARG_CONTAINER(__gnu_cxx::hash_map)
- OUTPUT_FIVE_ARG_CONTAINER(__gnu_cxx::hash_multimap)
-+#elif defined(_LIBCPP_VERSION)
-+OUTPUT_FIVE_ARG_CONTAINER(std::unordered_map)
-+OUTPUT_FIVE_ARG_CONTAINER(std::unordered_multimap)
- #endif
- 
- #undef OUTPUT_FIVE_ARG_CONTAINER
-diff --git a/src/stl_logging_unittest.cc b/src/stl_logging_unittest.cc
-index 5dcbc44..ee344ca 100644
---- a/src/stl_logging_unittest.cc
-+++ b/src/stl_logging_unittest.cc
-@@ -39,7 +39,7 @@
- #include <string>
- #include <vector>
- 
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
- # include <ext/hash_map>
- # include <ext/hash_set>
- #endif
-@@ -48,7 +48,7 @@
- #include "googletest.h"
- 
- using namespace std;
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
- using namespace __gnu_cxx;
- #endif
- 
-@@ -83,7 +83,7 @@ void TestSTLLogging() {
-     CHECK_EQ(m, copied_m);  // This must compile.
-   }
- 
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
-   {
-     // Test a hashed simple associative container.
-     hash_set<int> hs;
-@@ -98,7 +98,7 @@ void TestSTLLogging() {
-   }
- #endif
- 
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
-   {
-     // Test a hashed pair associative container.
-     hash_map<int, string> hm;
-@@ -145,7 +145,7 @@ void TestSTLLogging() {
-     CHECK_EQ(m, copied_m);  // This must compile.
-   }
- 
--#ifdef __GNUC__
-+#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
-   {
-     // Test a hashed simple associative container.
-     // Use a user defined hash function.
 diff --git a/src/demangle.cc b/src/demangle.cc
-index 0daf308..1136e0d 100644
+index 0daf308..4b7c160 100644
 --- a/src/demangle.cc
 +++ b/src/demangle.cc
 @@ -167,7 +167,7 @@ static size_t StrLen(const char *str) {
@@ -138,3 +20,186 @@ index 0daf308..1136e0d 100644
      return false;
    }
    const char *p = char_class;
+diff --git a/src/glog/logging.h.in b/src/glog/logging.h.in
+index cdd47b8..9c32296 100644
+--- a/src/glog/logging.h.in
++++ b/src/glog/logging.h.in
+@@ -1144,6 +1144,12 @@ public:
+     int ctr() const { return ctr_; }
+     void set_ctr(int ctr) { ctr_ = ctr; }
+     LogStream* self() const { return self_; }
++#if defined(_MSC_VER) && (_MSC_VER >= 1900)
++    // MSC 1900 will implicitly generate this move constructor, which will
++    // in turn (somehow) call the basic_ios copy constructor, which is deleted.
++    // Explicitly deleting this constructor prevents this.
++    LogStream(LogStream &&) = delete;
++#endif
+
+     // Legacy std::streambuf methods.
+     size_t pcount() const { return streambuf_.pcount(); }
+diff --git a/src/glog/stl_logging.h.in b/src/glog/stl_logging.h.in
+index 30836de..3e90573 100644
+--- a/src/glog/stl_logging.h.in
++++ b/src/glog/stl_logging.h.in
+@@ -50,10 +50,13 @@
+ #include <utility>
+ #include <vector>
+
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+ # include <ext/hash_set>
+ # include <ext/hash_map>
+ # include <ext/slist>
++#elif defined(_LIBCPP_VERSION)
++# include <unordered_map>
++# include <unordered_set>
+ #endif
+
+ // Forward declare these two, and define them after all the container streams
+@@ -80,7 +83,7 @@ inline std::ostream& operator<<(std::ostream& out, \
+ OUTPUT_TWO_ARG_CONTAINER(std::vector)
+ OUTPUT_TWO_ARG_CONTAINER(std::deque)
+ OUTPUT_TWO_ARG_CONTAINER(std::list)
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+ OUTPUT_TWO_ARG_CONTAINER(__gnu_cxx::slist)
+ #endif
+
+@@ -109,9 +112,12 @@ inline std::ostream& operator<<(std::ostream& out, \
+
+ OUTPUT_FOUR_ARG_CONTAINER(std::map)
+ OUTPUT_FOUR_ARG_CONTAINER(std::multimap)
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+ OUTPUT_FOUR_ARG_CONTAINER(__gnu_cxx::hash_set)
+ OUTPUT_FOUR_ARG_CONTAINER(__gnu_cxx::hash_multiset)
++#elif defined(_LIBCPP_VERSION)
++OUTPUT_FOUR_ARG_CONTAINER(std::unordered_set)
++OUTPUT_FOUR_ARG_CONTAINER(std::unordered_multiset)
+ #endif
+
+ #undef OUTPUT_FOUR_ARG_CONTAINER
+@@ -124,9 +130,12 @@ inline std::ostream& operator<<(std::ostream& out, \
+   return out; \
+ }
+
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+ OUTPUT_FIVE_ARG_CONTAINER(__gnu_cxx::hash_map)
+ OUTPUT_FIVE_ARG_CONTAINER(__gnu_cxx::hash_multimap)
++#elif defined(_LIBCPP_VERSION)
++OUTPUT_FIVE_ARG_CONTAINER(std::unordered_map)
++OUTPUT_FIVE_ARG_CONTAINER(std::unordered_multimap)
+ #endif
+
+ #undef OUTPUT_FIVE_ARG_CONTAINER
+diff --git a/src/logging.cc b/src/logging.cc
+index ec334a9..2c3058c 100644
+--- a/src/logging.cc
++++ b/src/logging.cc
+@@ -31,6 +31,7 @@
+
+ #include "utilities.h"
+
++#include <algorithm>
+ #include <assert.h>
+ #include <iomanip>
+ #include <string>
+diff --git a/src/stl_logging_unittest.cc b/src/stl_logging_unittest.cc
+index 5dcbc44..ee344ca 100644
+--- a/src/stl_logging_unittest.cc
++++ b/src/stl_logging_unittest.cc
+@@ -39,7 +39,7 @@
+ #include <string>
+ #include <vector>
+
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+ # include <ext/hash_map>
+ # include <ext/hash_set>
+ #endif
+@@ -48,7 +48,7 @@
+ #include "googletest.h"
+
+ using namespace std;
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+ using namespace __gnu_cxx;
+ #endif
+
+@@ -83,7 +83,7 @@ void TestSTLLogging() {
+     CHECK_EQ(m, copied_m);  // This must compile.
+   }
+
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+   {
+     // Test a hashed simple associative container.
+     hash_set<int> hs;
+@@ -98,7 +98,7 @@ void TestSTLLogging() {
+   }
+ #endif
+
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+   {
+     // Test a hashed pair associative container.
+     hash_map<int, string> hm;
+@@ -145,7 +145,7 @@ void TestSTLLogging() {
+     CHECK_EQ(m, copied_m);  // This must compile.
+   }
+
+-#ifdef __GNUC__
++#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
+   {
+     // Test a hashed simple associative container.
+     // Use a user defined hash function.
+diff --git a/src/symbolize.cc b/src/symbolize.cc
+index b69eefd..18bbccf 100644
+--- a/src/symbolize.cc
++++ b/src/symbolize.cc
+@@ -232,7 +232,7 @@ bool GetSectionHeaderByName(int fd, const char *name, size_t name_len,
+     }
+     char header_name[kMaxSectionNameLen];
+     if (sizeof(header_name) < name_len) {
+-      RAW_LOG(WARNING, "Section name '%s' is too long (%"PRIuS"); "
++      RAW_LOG(WARNING, "Section name '%s' is too long (%" PRIuS "); "
+               "section will not be found (even if present).", name, name_len);
+       // No point in even trying.
+       return false;
+diff --git a/src/windows/glog/logging.h b/src/windows/glog/logging.h
+index 1d91b12..2b06d49 100755
+--- a/src/windows/glog/logging.h
++++ b/src/windows/glog/logging.h
+@@ -1148,6 +1148,12 @@ public:
+     int ctr() const { return ctr_; }
+     void set_ctr(int ctr) { ctr_ = ctr; }
+     LogStream* self() const { return self_; }
++#if defined(_MSC_VER) && (_MSC_VER >= 1900)
++    // MSC 1900 will implicitly generate this move constructor, which will
++    // in turn (somehow) call the basic_ios copy constructor, which is deleted.
++    // Explicitly deleting this constructor prevents this.
++    LogStream(LogStream &&) = delete;
++#endif
+
+     // Legacy std::streambuf methods.
+     size_t pcount() const { return streambuf_.pcount(); }
+diff --git a/src/windows/port.cc b/src/windows/port.cc
+old mode 100755
+new mode 100644
+index bfa6e70..d7e8f71
+--- a/src/windows/port.cc
++++ b/src/windows/port.cc
+@@ -55,6 +55,7 @@ int safe_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
+   return _vsnprintf(str, size-1, format, ap);
+ }
+
++#if !(defined(_MSC_VER) && (_MSC_VER >= 1900))
+ int snprintf(char *str, size_t size, const char *format, ...) {
+   va_list ap;
+   va_start(ap, format);
+@@ -62,3 +63,4 @@ int snprintf(char *str, size_t size, const char *format, ...) {
+   va_end(ap);
+   return r;
+ }
++#endif
