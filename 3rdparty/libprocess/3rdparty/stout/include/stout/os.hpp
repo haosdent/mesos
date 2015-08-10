@@ -23,24 +23,30 @@
 #ifndef NAME_MAX
 #define NAME_MAX MAXNAMLEN
 #endif // NAME_MAX
-#else
+#elif defined(__linux__) || defined(__APPLE__)
 #include <fts.h>
 #endif // __sun
 #include <fcntl.h>
+#ifdef defined(__linux__) || defined(__APPLE__)
 #include <glob.h>
 #include <grp.h>
+#endif
 #ifdef __WINDOWS__
 #include <io.h>
 #endif // __WINDOWS__
 #include <limits.h>
+#ifdef defined(__linux__) || defined(__APPLE__)
 #include <netdb.h>
 #include <pwd.h>
+#endif
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #include <utime.h>
+#endif
 
 #include <glog/logging.h>
 
@@ -52,11 +58,10 @@
 #include <sys/sysinfo.h>
 #endif // __linux__
 #include <sys/types.h>
-#ifdef __WINDOWS__
-#include <sys/utime.h>
-#endif // __WINDOWS
+#ifdef defined(__linux__) || defined(__APPLE__)
 #include <sys/utsname.h>
 #include <sys/wait.h>
+#endif
 
 #include <list>
 #include <queue>

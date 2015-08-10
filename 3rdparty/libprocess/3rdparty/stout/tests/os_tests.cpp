@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 
-#ifndef __linux__
+#ifdef __APPLE__
 #include <sys/time.h> // For gettimeofday.
 #endif
 

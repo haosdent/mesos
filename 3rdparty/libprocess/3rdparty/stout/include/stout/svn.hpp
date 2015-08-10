@@ -14,14 +14,18 @@
 #ifndef __STOUT_SVN_HPP__
 #define __STOUT_SVN_HPP__
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <apr_pools.h>
+#endif
 
 #include <stdlib.h>
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <svn_delta.h>
 #include <svn_error.h>
 #include <svn_pools.h>
 #include <svn_version.h>
+#endif
 
 #include <string>
 

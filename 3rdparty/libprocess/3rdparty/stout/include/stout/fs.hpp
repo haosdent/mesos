@@ -14,9 +14,13 @@
 #ifndef __STOUT_FS_HPP__
 #define __STOUT_FS_HPP__
 
+#ifdef defined(__linux__) || defined(__APPLE__)
 #include <unistd.h> // For symlink.
+#endif
 
+#ifdef defined(__linux__) || defined(__APPLE__)
 #include <sys/statvfs.h>
+#endif
 
 #include <string>
 

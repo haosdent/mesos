@@ -20,15 +20,22 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef __WINDOWS__
+#include <winsock2.h>
+#endif // __WINDOWS__
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <arpa/inet.h>
+#endif
 
 #ifdef __linux__
 #include <linux/if.h>
 #include <linux/if_packet.h>
 #endif
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <net/ethernet.h>
+#endif
 
 #ifdef __APPLE__
 #include <net/if.h>
@@ -36,8 +43,10 @@
 #include <net/if_types.h>
 #endif
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/socket.h>
 #include <sys/types.h>
+#endif
 
 #include <iostream>
 #include <string>

@@ -17,7 +17,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdint.h>
+#if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
+#endif
 
 #include <sys/types.h>
 

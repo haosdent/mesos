@@ -14,7 +14,9 @@
 #ifndef __STOUT_DYNAMICLIBRARY_HPP__
 #define __STOUT_DYNAMICLIBRARY_HPP__
 
+#if defined(__linux__) || defined(__APPLE__)
 #include <dlfcn.h>
+#endif
 
 #include <string>
 
