@@ -16,6 +16,8 @@
 
 #include <errno.h>
 
+#include <stout/unimplemented.hpp>
+
 
 namespace os {
 

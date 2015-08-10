@@ -16,8 +16,10 @@
 
 #include <string>
 
+#include <stout/bytes.hpp>
 #include <stout/ip.hpp>
 #include <stout/try.hpp>
+#include <stout/unimplemented.hpp>
 
 
 // Network utilities.

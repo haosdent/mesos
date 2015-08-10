@@ -16,6 +16,8 @@
 
 #include <stdlib.h>
 
+#include <stout/unimplemented.hpp>
+
 
 namespace os {
 

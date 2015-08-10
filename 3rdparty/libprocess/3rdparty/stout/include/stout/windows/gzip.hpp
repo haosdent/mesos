@@ -17,6 +17,7 @@
 #include <string>
 
 #include <stout/try.hpp>
+#include <stout/unimplemented.hpp>
 
 
 namespace gzip {
@@ -30,7 +31,7 @@ namespace gzip {
 //   #define Z_DEFAULT_COMPRESSION  (-1)
 inline Try<std::string> compress(
     const std::string& decompressed,
-    int level = Z_DEFAULT_COMPRESSION)
+    int level = -1)
 {
   UNIMPLEMENTED;
 }

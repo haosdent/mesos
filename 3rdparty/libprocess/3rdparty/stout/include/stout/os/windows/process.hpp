@@ -18,6 +18,8 @@
 #include <ostream>
 #include <string>
 
+#include <stout/unimplemented.hpp>
+
 
 namespace os {
 

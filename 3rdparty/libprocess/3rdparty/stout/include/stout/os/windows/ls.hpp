@@ -17,6 +17,8 @@
 #include <list>
 #include <string>
 
+#include <stout/unimplemented.hpp>
+
 
 namespace os {
 

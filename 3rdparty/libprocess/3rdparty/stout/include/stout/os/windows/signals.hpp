@@ -19,6 +19,8 @@
 #include <signal.h>
 #include <string.h>
 
+#include <stout/unimplemented.hpp>
+
 
 namespace os {
 

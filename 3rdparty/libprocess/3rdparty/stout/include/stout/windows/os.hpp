@@ -32,6 +32,7 @@
 #include <stout/path.hpp>
 #include <stout/try.hpp>
 #include <stout/windows.hpp>
+#include <stout/unimplemented.hpp>
 
 
 namespace os {

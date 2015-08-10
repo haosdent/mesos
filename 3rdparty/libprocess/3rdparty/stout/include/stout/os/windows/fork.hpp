@@ -14,6 +14,8 @@
 #ifndef __STOUT_OS_WINDOWS_FORK_HPP__
 #define __STOUT_OS_WINDOWS_FORK_HPP__
 
+#include <stout/unimplemented.hpp>
+
 namespace os {
 
 struct Exec

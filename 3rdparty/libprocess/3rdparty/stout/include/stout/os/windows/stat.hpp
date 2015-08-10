@@ -17,6 +17,7 @@
 #include <string>
 
 #include <stout/try.hpp>
+#include <stout/unimplemented.hpp>
 
 
 namespace os {

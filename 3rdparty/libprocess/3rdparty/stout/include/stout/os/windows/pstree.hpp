@@ -19,6 +19,7 @@
 
 #include <stout/option.hpp>
 #include <stout/try.hpp>
+#include <stout/unimplemented.hpp>
 
 #include <stout/os/process.hpp>
 

@@ -20,6 +20,7 @@
 
 #include <stout/result.hpp>
 #include <stout/try.hpp>
+#include <stout/unimplemented.hpp>
 
 
 namespace os {
