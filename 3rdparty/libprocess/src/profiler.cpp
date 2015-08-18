@@ -42,8 +42,6 @@ const std::string Profiler::START_HELP()
   return HELP(
     TLDR(
         "Starts profiling ..."),
-    USAGE(
-        "/profiler/start..."),
     DESCRIPTION(
         "...",
         "",
@@ -58,8 +56,6 @@ const std::string Profiler::STOP_HELP()
   return HELP(
     TLDR(
         "Stops profiling ..."),
-    USAGE(
-        "/profiler/stop..."),
     DESCRIPTION(
         "...",
         "",

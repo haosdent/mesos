@@ -40,17 +40,12 @@ namespace process {
 
 string HELP(
     string tldr,
-    string usage,
     string description,
     const Option<string>& references)
 {
-  // Make sure 'tldr', 'usage', and 'description' end with a newline.
+  // Make sure 'tldr' and 'description' end with a newline.
   if (!strings::endsWith(tldr, "\n")) {
     tldr += "\n";
-  }
-
-  if (!strings::endsWith(usage, "\n")) {
-    usage += "\n";
   }
 
   if (!strings::endsWith(description, "\n")) {
@@ -61,9 +56,6 @@ string HELP(
   string help =
     "### TL;DR; ###\n" +
     tldr +
-    "\n" +
-    "### USAGE ###\n" +
-    usage +
     "\n" +
     "### DESCRIPTION ###\n" +
     description;
@@ -85,11 +77,19 @@ void Help::add(const string& id,
     const Option<string>& help)
 {
   if (id != "help") { // TODO(benh): Enable help for help.
-    if (help.isSome()) {
-      helps[id][name] = help.get();
-    } else {
-      helps[id][name] = "## No help page for `/" + id + name + "`\n";
+    string path = "/" + id;
+    // Remove tail slash in usage information.
+    if (name != "/") {
+      path += name;
     }
+
+    if (help.isSome()) {
+      string usage = "### USAGE ###\n" + USAGE(path) + "\n";
+      helps[id][name] = usage + help.get();
+    } else {
+      helps[id][name] = "## No help page for `" + path + "`\n";
+    }
+
     route("/" + id, "Help for " + id, &Help::help);
   }
 }
