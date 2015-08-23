@@ -373,18 +373,29 @@ JNIEXPORT void JNICALL Java_org_apache_mesos_MesosExecutorDriver_initialize
 
   jfieldID __driver = env->GetFieldID(clazz, "__driver", "J");
   env->SetLongField(thiz, __driver, (jlong) driver);
+
+  jfieldID __closed = env->GetFieldID(clazz, "__closed", "Z");
+  env->SetBooleanField(thiz, __closed, (jboolean) false);
 }
 
 
 /*
  * Class:     org_apache_mesos_MesosExecutorDriver
- * Method:    finalize
+ * Method:    close
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_apache_mesos_MesosExecutorDriver_finalize
+JNIEXPORT void JNICALL Java_org_apache_mesos_MesosExecutorDriver_close
   (JNIEnv* env, jobject thiz)
 {
   jclass clazz = env->GetObjectClass(thiz);
+
+  jfieldID __closed = env->GetFieldID(clazz, "__closed", "Z");
+  bool closed = (bool) env->GetBooleanField(thiz, __closed);
+  if (closed) {
+    return;
+  } else {
+    env->SetBooleanField(thiz, __closed, (jboolean) true);
+  }
 
   jfieldID __driver = env->GetFieldID(clazz, "__driver", "J");
   MesosExecutorDriver* driver =

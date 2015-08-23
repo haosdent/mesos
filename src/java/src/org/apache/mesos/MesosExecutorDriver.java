@@ -89,10 +89,15 @@ public class MesosExecutorDriver implements ExecutorDriver {
   public native Status sendFrameworkMessage(byte[] data);
 
   protected native void initialize();
-  protected native void finalize();
+  protected native void close();
+
+  protected void finalize() {
+    close();
+  };
 
   private final Executor executor;
 
   private long __executor;
   private long __driver;
+  private boolean __closed;
 }
