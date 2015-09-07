@@ -47,6 +47,7 @@ using namespace process;
 using std::list;
 using std::ostringstream;
 using std::string;
+using std::vector;
 
 using mesos::slave::ContainerState;
 using mesos::slave::ContainerLimitation;
@@ -816,7 +817,12 @@ Future<Nothing> LinuxFilesystemIsolatorProcess::cleanup(
 
   bool sandboxMountExists = false;
 
-  foreach (const fs::MountInfoTable::Entry& entry, table.get().entries) {
+  // Use reverse umount order here because the mount points maybe have nested
+  // mount point.
+  vector<fs::MountInfoTable::Entry>::const_reverse_iterator riter =
+    table.get().entries.rbegin();
+  for (; riter != table.get().entries.rend(); ++riter) {
+    const fs::MountInfoTable::Entry& entry = *riter;
     // NOTE: All persistent volumes are mounted at targets under the
     // container's work directory. We unmount all the persistent
     // volumes before unmounting the sandbox/work directory mount.
