@@ -31,6 +31,8 @@
 #include <stout/stringify.hpp>
 #include <stout/strings.hpp>
 
+#include <stout/os/stat.hpp>
+
 #include "linux/fs.hpp"
 #include "linux/ns.hpp"
 
@@ -65,6 +67,47 @@ Try<Isolator*> LinuxFilesystemIsolatorProcess::create(
 
   if (user.get() != "root") {
     return Error("LinuxFilesystemIsolator requires root privileges");
+  }
+
+  // NOTE: We need to mark the device that contains the sandboxes a
+  // shared mount so that persistent volume mount points can be
+  // properly removed. If not, containers might hold extra references
+  // to the persistent volume mounts due to new mount namespaces,
+  // causing 'rmdir' to fail even after 'umount' succeeds. See more
+  // details in MESOS-3349.
+  Try<dev_t> dev = os::stat::dev(flags.work_dir);
+  if (dev.isError()) {
+    return Error(
+        "Failed to get the device ID containing work_dir '" +
+        flags.work_dir + "': " + dev.error());
+  }
+
+  Try<fs::MountInfoTable> table = fs::MountInfoTable::read();
+  if (table.isError()) {
+    return Error("Failed to get mount table: " + table.error());
+  }
+
+  foreach (const fs::MountInfoTable::Entry& entry, table.get().entries) {
+    if (entry.devno != dev.get()) {
+      continue;
+    }
+
+    LOG(INFO) << "Mark the mount at '" << entry.root << "' as a shared mount";
+
+    Try<Nothing> mount = fs::mount(
+        None(),
+        entry.root,
+        None(),
+        MS_SHARED,
+        NULL);
+
+    if (mount.isError()) {
+      return Error(
+          "Failed to mark the mount at '" + entry.root +
+          "' as a shared mount: " + mount.error());
+    }
+
+    break;
   }
 
   Owned<MesosIsolatorProcess> process(
