@@ -17,6 +17,8 @@
  */
 
 #include <paths.h>
+#include <sched.h>
+#include <unistd.h>
 
 #include <gmock/gmock.h>
 
@@ -24,9 +26,17 @@
 #include <stout/gtest.hpp>
 #include <stout/none.hpp>
 #include <stout/option.hpp>
+#include <stout/os.hpp>
 #include <stout/try.hpp>
 
+#include <process/gtest.hpp>
+#include <process/subprocess.hpp>
+
 #include "linux/fs.hpp"
+#include "linux/ns.hpp"
+#include "linux/sched.hpp"
+
+#include "tests/utils.hpp"
 
 namespace mesos {
 namespace internal {
@@ -36,6 +46,48 @@ using fs::MountTable;
 using fs::FileSystemTable;
 using fs::MountInfoTable;
 
+using std::string;
+
+using process::Subprocess;
+using process::subprocess;
+
+class FsMountTest : public TemporaryDirectoryTest
+{
+public:
+  Try<Subprocess> run(const string& command)
+  {
+    Try<Subprocess> s = subprocess(
+        command,
+        Subprocess::PATH("/dev/null"),
+        Subprocess::FD(STDOUT_FILENO),
+        Subprocess::FD(STDERR_FILENO),
+        None(),
+        None(),
+        lambda::bind(&clone, lambda::_1));
+
+    return s;
+  }
+
+private:
+  static pid_t clone(const lambda::function<int()>& f)
+  {
+    static unsigned long long stack[(8*1024*1024)/sizeof(unsigned long long)];
+
+    return ::clone(
+        _clone,
+        &stack[sizeof(stack)/sizeof(stack[0]) - 1],  // Stack grows down.
+        CLONE_NEWNS | SIGCHLD,   // Specify SIGCHLD as child termination signal.
+        (void*) &f);
+  }
+
+  static int _clone(void* f)
+  {
+    const lambda::function<int()>* _f =
+      static_cast<const lambda::function<int()>*> (f);
+
+    return (*_f)();
+  }
+};
 
 TEST(FsTest, MountTableRead)
 {
@@ -163,6 +215,69 @@ TEST(FsTest, DISABLED_MountInfoTableRead)
   }
 
   EXPECT_SOME(root);
+}
+
+
+TEST_F(FsMountTest, ROOT_SharedMount)
+{
+  Try<Nothing> mount =
+    fs::mount(sandbox.get(), sandbox.get(), None(), MS_BIND, NULL);
+  ASSERT_SOME(mount)
+    << "Failed to mount sandbox '" << sandbox.get() << "': " << mount.error();
+  mount = fs::mount(None(), sandbox.get(), None(), MS_SHARED, NULL);
+  ASSERT_SOME(mount)
+    << "Failed to mark work directory '" << sandbox.get()
+    << "' as a shared mount: " << mount.error();
+  LOG(INFO) << "Mark '" << sandbox.get() << "' as a shared mount.";
+
+  string source = path::join(sandbox.get(), "source");
+  string target = path::join(sandbox.get(), "target");
+
+  Try<Nothing> mkdir = os::mkdir(source);
+  ASSERT_SOME(mkdir)
+    << "Failed to create dir at '" << source << "': " << mkdir.error();
+
+  mkdir = os::mkdir(target);
+  ASSERT_SOME(mkdir)
+    << "Failed to create persistent volume mount point at '" << target << "': "
+    << mkdir.error();
+
+  mount = fs::mount(source, target, None(), MS_BIND, NULL);
+  ASSERT_SOME(mount)
+    << "Failed to mount persistent volume from '" << source << "' to '"
+    << target << "': " << mount.error();
+  LOG(INFO) << "Mounting '" << source << "' to '" << target;
+
+  // Although use shared mount, also could not slove this problem.
+  // mount = fs::mount(None(), target, None(), MS_SHARED, NULL);
+  // ASSERT_SOME(mount)
+  //   << "Failed to mark work directory '" << target << "' as a shared mount: "
+  //   << mount.error();
+  // LOG(INFO) << "Mark '" << target << "' as a shared mount.";
+
+  Try<Subprocess> s = run("sleep 2");
+
+  Try<Nothing> unmount = fs::unmount(target);
+  ASSERT_SOME(unmount)
+    << "Failed to unmount '" << target << "': " << unmount.error();
+  LOG(INFO) << "Unmount '" << target << "'";
+
+  LOG(INFO) << "After Unmount, current process mount table: "
+    << os::read("/proc/self/mountinfo").get();
+  LOG(INFO) << "After Unmount, child mount table: "
+    << os::read("/proc/" + stringify(s.get().pid()) + "/mountinfo").get();
+
+  Try<Nothing> rmdir = os::rmdir(target, false);
+  EXPECT_SOME(rmdir) << "Failed to rmdir target: " << rmdir.error();
+  rmdir = os::rmdir(source, false);
+  EXPECT_SOME(rmdir) << "Failed to rmdir source: " << rmdir.error();
+
+  AWAIT_READY(s.get().status());
+
+  unmount = fs::unmount(sandbox.get());
+  ASSERT_SOME(unmount)
+    << "Failed to unmount '" << sandbox.get() << "': " << unmount.error();
+  LOG(INFO) << "Unmount '" << sandbox.get() << "'";
 }
 
 } // namespace tests {
