@@ -209,16 +209,12 @@ else (REBUNDLED)
   set(PROTOBUF_URL https://github.com/hausdorff/mesos/raw/test_cmake/3rdparty/libprocess/3rdparty/protobuf-${PROTOBUF_VERSION}.tar.gz)
 endif (REBUNDLED)
 
-if (APPLE)
-  # GTEST on OSX needs its own tr1 tuple.
-  set(GMOCK_BUILD_CMD  make CPPFLAGS=-DGTEST_USE_OWN_TR1_TUPLE)
-  set(GMOCK_CONFIG_CMD ${GMOCK_ROOT}/configure --prefix=${GMOCK_ROOT}-lib/lib)
-elseif (NOT WIN32)
-  set(GMOCK_CONFIG_CMD ${GMOCK_ROOT}/configure --prefix=${GMOCK_ROOT}-lib/lib)
-  set(GMOCK_BUILD_CMD  make)
-endif (APPLE)
-
 if (NOT WIN32)
+  set(GMOCK_BUILD_CMD  make)
+  # Our compiler has already support C++11, compile GTEST under C++11 mode.
+  set(GMOCK_CONFIG_CXXFLAGS "${CMAKE_CXX_FLAGS} -DGTEST_LANG_CXX11")
+  set(GMOCK_CONFIG_CMD ${GMOCK_ROOT}/configure --prefix=${GMOCK_ROOT}-lib/lib CXXFLAGS=${GMOCK_CONFIG_CXXFLAGS})
+
   set(PROTOBUF_CONFIG_CMD  ${PROTOBUF_ROOT}/src/../configure --prefix=${PROTOBUF_LIB})
   set(PROTOBUF_BUILD_CMD   make)
   set(PROTOBUF_INSTALL_CMD make install)
