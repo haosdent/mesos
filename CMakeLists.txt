@@ -40,8 +40,10 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/3rdparty/libprocess/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/3rdparty/libprocess/cmake/macros)
 
 # Macros.
-include(PatchCommand)
 include(External)
+include(Noop)
+include(PatchCommand)
+include(VsBuildCommand)
 
 # Configuration.
 include(MesosConfigure)
