@@ -11,6 +11,7 @@
     <tr>
       <th data-key="id">ID</th>
       <th data-key="hostname">Host</th>
+      <th data-key="role">Role</th>
       <th data-key="user">User</th>
       <th data-key="name">Name</th>
       <th data-key="tasks.length">Active Tasks</th>
@@ -38,6 +39,7 @@
         <a ng-href="{{framework.webui_url}}" ng-switch-when="true">{{framework.hostname}}</a>
         <span ng-switch-when="false">{{framework.hostname}}</span>
       </td>
+      <td>{{framework.role}}</td>
       <td>{{framework.user}}</td>
       <td>{{framework.name}}</td>
       <td>{{framework.tasks.length}}</td>
@@ -61,6 +63,7 @@
     <tr>
       <th data-key="id">ID</th>
       <th data-key="hostname">Host</th>
+      <th data-key="role">Role</th>
       <th data-key="user">User</th>
       <th data-key="name">Name</th>
       <th data-key="registered_time">Registered</th>
@@ -81,6 +84,7 @@
         </button>
       </td>
       <td>{{framework.hostname}}</td>
+      <td>{{framework.role}}</td>
       <td>{{framework.user}}</td>
       <td>{{framework.name}}</td>
       <td>

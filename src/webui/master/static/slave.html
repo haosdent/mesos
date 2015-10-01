@@ -114,6 +114,7 @@
       <thead>
         <tr>
           <th data-key="id">ID</th>
+          <th data-key="role">Role</th>
           <th data-key="user">User</th>
           <th data-key="name">Name</th>
           <th data-key="num_tasks">Active Tasks</th>
@@ -134,6 +135,7 @@
               tooltip-trigger="clipboardhover">
             </button>
           </td>
+          <td>{{framework.role}}</td>
           <td>{{framework.user}}</td>
           <td>{{framework.name}}</td>
           <td>{{framework.num_tasks | number}}</td>
@@ -148,6 +150,7 @@
       <thead>
         <tr>
           <th data-key="id">ID</th>
+          <th data-key="role">Role</th>
           <th data-key="user">User</th>
           <th data-key="name">Name</th>
           <th data-key="tasks.length">Active Tasks</th>
@@ -168,6 +171,7 @@
               tooltip-trigger="clipboardhover">
             </button>
           </td>
+          <td>{{completed_framework.role}}</td>
           <td>{{completed_framework.user}}</td>
           <td>{{completed_framework.name}}</td>
           <td>{{completed_framework.num_tasks | number}}</td>
