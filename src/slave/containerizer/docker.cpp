@@ -139,6 +139,15 @@ Try<DockerContainerizer*> DockerContainerizer::create(
     }
   }
 
+  if (flags.cgroups_enable_cfs) {
+    Try<Nothing> validateResult = docker->validateVersion(Version(1, 7, 0));
+    if (validateResult.isError()) {
+      string message = "Docker with CFS support requires docker 1.7+";
+      message += validateResult.error();
+      return Error(message);
+    }
+  }
+
   return new DockerContainerizer(flags, fetcher, docker);
 }
 
@@ -273,6 +282,24 @@ DockerContainerizerProcess::Container::create(
 
     ContainerInfo::DockerInfo dockerInfo;
     dockerInfo.set_image(flags.docker_mesos_image.get());
+
+    // Set cfs quota if slave enabled cfs.
+    if (flags.cgroups_enable_cfs) {
+      Resources resources(executorInfo.resources());
+      double cpus = 0;
+      if (resources.cpus().isSome()) {
+        cpus = resources.cpus().get();
+      }
+      Parameter* parameter = dockerInfo.add_parameters();
+      parameter->set_key("cpu-period");
+      parameter->set_value(
+          stringify(static_cast<uint64_t>(CPU_CFS_PERIOD.us())));
+
+      parameter = dockerInfo.add_parameters();
+      Duration quota = std::max(CPU_CFS_PERIOD * cpus, MIN_CPU_CFS_QUOTA);
+      parameter->set_key("cpu-quota");
+      parameter->set_value(stringify(static_cast<int64_t>(quota.us())));
+    }
 
     newContainerInfo.mutable_docker()->CopyFrom(dockerInfo);
 
