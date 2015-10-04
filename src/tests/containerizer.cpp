@@ -17,11 +17,6 @@
  */
 
 #include "tests/containerizer.hpp"
-
-#include <mutex>
-
-#include "stout/synchronized.hpp"
-
 #include "tests/mesos.hpp"
 
 using std::map;
@@ -105,39 +100,31 @@ Future<bool> TestContainerizer::_launch(
 
   Executor* executor = executors[executorInfo.executor_id()];
 
-  // We need to synchronize all reads and writes to the environment as this is
-  // global state.
-  // TODO(jmlvanre): Even this is not sufficient, as other aspects of the code
-  // may read an environment variable while we are manipulating it. The better
-  // solution is to pass the environment variables into the fork, or to set them
-  // on the command line. See MESOS-3475.
-  static std::mutex mutex;
+  // Since the constructor for `MesosExecutorDriver` reads environment
+  // variables to load flags, even it needs to be within this synchronization
+  // section.
+  Owned<MesosExecutorDriver> driver(new MesosExecutorDriver(executor));
+  drivers[containerId] = driver;
 
-  synchronized(mutex) {
-    // Since the constructor for `MesosExecutorDriver` reads environment
-    // variables to load flags, even it needs to be within this synchronization
-    // section.
-    Owned<MesosExecutorDriver> driver(new MesosExecutorDriver(executor));
-    drivers[containerId] = driver;
+  // Prepare additional environment variables for the executor.
+  // TODO(benh): Need to get flags passed into the TestContainerizer
+  // in order to properly use here.
+  slave::Flags flags;
+  flags.recovery_timeout = Duration::zero();
 
-    // Prepare additional environment variables for the executor.
-    // TODO(benh): Need to get flags passed into the TestContainerizer
-    // in order to properly use here.
-    slave::Flags flags;
-    flags.recovery_timeout = Duration::zero();
+  const map<string, string> environment = executorEnvironment(
+      executorInfo,
+      directory,
+      slaveId,
+      slavePid,
+      checkpoint,
+      flags);
 
-    // We need to save the original set of environment variables so we
-    // can reset the environment after calling 'driver->start()' below.
-    hashmap<string, string> original = os::environment();
-
-    const map<string, string> environment = executorEnvironment(
-        executorInfo,
-        directory,
-        slaveId,
-        slavePid,
-        checkpoint,
-        flags);
-
+  pid_t pid = ::fork();
+  if (pid == -1) {
+    return Failure("Failed to fork process to start driver.");
+  } else if (pid == 0) {
+    // In Child.
     foreachpair (const string& name, const string variable, environment) {
       os::setenv(name, variable);
     }
@@ -152,30 +139,15 @@ Future<bool> TestContainerizer::_launch(
     }
 
     os::setenv("MESOS_LOCAL", "1");
-
     driver->start();
-
-    os::unsetenv("MESOS_LOCAL");
-
-    // Unset the environment variables we set by resetting them to their
-    // original values and also removing any that were not part of the
-    // original environment.
-    foreachpair (const string& name, const string& value, original) {
-      os::setenv(name, value);
-    }
-
-    foreachkey (const string& name, environment) {
-      if (!original.contains(name)) {
-        os::unsetenv(name);
-      }
-    }
+    return true;
+  } else {
+    // In Parent.
+    promises[containerId] =
+      Owned<Promise<containerizer::Termination>>(
+        new Promise<containerizer::Termination>());
+    return true;
   }
-
-  promises[containerId] =
-    Owned<Promise<containerizer::Termination>>(
-      new Promise<containerizer::Termination>());
-
-  return true;
 }
 
 
