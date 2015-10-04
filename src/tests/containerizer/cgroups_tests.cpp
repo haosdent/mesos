@@ -1048,6 +1048,12 @@ protected:
     hierarchy = path::join(baseHierarchy, "memory");
 
     ASSERT_SOME(cgroups::create(hierarchy, cgroup));
+    ASSERT_TRUE(os::exists(path::join(hierarchy, "memory.pressure_level")))
+      << "-------------------------------------------------------------\n"
+      << "We cannot run this test because it appears you do not have\n"
+      << "a modern enough version of the Linux kernel. Feel free to\n"
+      << "disable this test.\n"
+      << "-------------------------------------------------------------";
   }
 
   void listen()
