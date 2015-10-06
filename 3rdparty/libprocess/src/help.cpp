@@ -40,25 +40,31 @@ namespace process {
 
 string HELP(
     string tldr,
-    string description,
+    const Option<string>& description,
     const Option<string>& references)
 {
-  // Make sure 'tldr' and 'description' end with a newline.
+  // Make sure 'tldr' end with a newline.
   if (!strings::endsWith(tldr, "\n")) {
     tldr += "\n";
-  }
-
-  if (!strings::endsWith(description, "\n")) {
-    description += "\n";
   }
 
   // Construct the help string.
   string help =
     "### TL;DR; ###\n" +
-    tldr +
-    "\n" +
-    "### DESCRIPTION ###\n" +
-    description;
+    tldr;
+
+  if (description.isSome()) {
+    help +=
+      "\n"
+      "### DESCRIPTION ###\n" +
+      description.get();
+
+    // Append a newline to help information when 'description' not end with a
+    // newline.
+    if (!strings::endsWith(description.get(), "\n")) {
+      help += "\n";
+    }
+  }
 
   if (references.isSome()) {
     help += "\n";
