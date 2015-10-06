@@ -266,6 +266,10 @@ protected:
     container2Ready = path::join(os::getcwd(), "container2_ready");
     trafficViaLoopback = path::join(os::getcwd(), "traffic_via_loopback");
     trafficViaPublic = path::join(os::getcwd(), "traffic_via_public");
+    trafficInvalidViaLoopback =
+      path::join(os::getcwd(), "traffic_invalid_via_loopback");
+    trafficInvalidViaPublic =
+      path::join(os::getcwd(), "traffic_invalid_via_public");
     exitStatus = path::join(os::getcwd(), "exit_status");
   }
 
@@ -406,6 +410,8 @@ protected:
   string container2Ready;
   string trafficViaLoopback;
   string trafficViaPublic;
+  string trafficInvalidViaLoopback;
+  string trafficInvalidViaPublic;
   string exitStatus;
 };
 
@@ -479,8 +485,8 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_ContainerToContainerTCP)
            << trafficViaPublic << "& ";
 
   // Listen to 'invalidPort'.  This should not receive any data.
-  command1 << "nc -l " << invalidPort << " | tee " << trafficViaLoopback << " "
-           << trafficViaPublic << "& ";
+  command1 << "nc -l " << invalidPort << " | tee " << trafficInvalidViaLoopback
+           << " " << trafficInvalidViaPublic << "& ";
 
   // Touch the guard file.
   command1 << "touch " << container1Ready;
@@ -580,6 +586,8 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_ContainerToContainerTCP)
 
   EXPECT_SOME_EQ("hello1", os::read(trafficViaLoopback));
   EXPECT_SOME_EQ("hello3", os::read(trafficViaPublic));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaLoopback));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaPublic));
 
   // Ensure all processes are killed.
   AWAIT_READY(launcher.get()->destroy(containerId1));
@@ -638,8 +646,9 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_ContainerToContainerUDP)
            << trafficViaPublic << "& ";
 
   // Listen to 'invalidPort'. This should not receive anything.
-  command1 << "nc -u -l " << invalidPort << " | tee " << trafficViaLoopback
-           << " " << trafficViaPublic << "& ";
+  command1 << "nc -u -l " << invalidPort << " | tee "
+           << trafficInvalidViaLoopback << " " << trafficInvalidViaPublic
+           << "& ";
 
   // Touch the guard file.
   command1 << "touch " << container1Ready;
@@ -741,6 +750,8 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_ContainerToContainerUDP)
 
   EXPECT_SOME_EQ("hello1", os::read(trafficViaLoopback));
   EXPECT_SOME_EQ("hello3", os::read(trafficViaPublic));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaLoopback));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaPublic));
 
   AWAIT_READY(launcher.get()->destroy(containerId1));
   AWAIT_READY(launcher.get()->destroy(containerId2));
@@ -799,8 +810,9 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_HostToContainerUDP)
            << trafficViaPublic << "&";
 
   // Listen to 'public IP' and 'invalidPort'. This should not receive anything.
-  command1 << "nc -u -l " << invalidPort << " | tee " << trafficViaLoopback
-           << " " << trafficViaPublic << "&";
+  command1 << "nc -u -l " << invalidPort << " | tee "
+           << trafficInvalidViaLoopback << " " << trafficInvalidViaPublic
+           << "&";
 
   // Touch the guard file.
   command1 << "touch " << container1Ready;
@@ -858,6 +870,8 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_HostToContainerUDP)
 
   EXPECT_SOME_EQ("hello1", os::read(trafficViaLoopback));
   EXPECT_SOME_EQ("hello3", os::read(trafficViaPublic));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaLoopback));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaPublic));
 
   // Ensure all processes are killed.
   AWAIT_READY(launcher.get()->destroy(containerId));
@@ -915,8 +929,8 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_HostToContainerTCP)
            << trafficViaPublic << "&";
 
   // Listen to 'public IP' and 'invalidPort'. This should fail.
-  command1 << "nc -l " << invalidPort << " | tee " << trafficViaLoopback << " "
-           << trafficViaPublic << "&";
+  command1 << "nc -l " << invalidPort << " | tee " << trafficInvalidViaLoopback
+           << " " << trafficInvalidViaPublic << "&";
 
   // Touch the guard file.
   command1 << "touch " << container1Ready;
@@ -974,6 +988,8 @@ TEST_F(PortMappingIsolatorTest, ROOT_NC_HostToContainerTCP)
 
   EXPECT_SOME_EQ("hello1", os::read(trafficViaLoopback));
   EXPECT_SOME_EQ("hello3", os::read(trafficViaPublic));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaLoopback));
+  EXPECT_SOME_EQ("", os::read(trafficInvalidViaPublic));
 
   // Ensure all processes are killed.
   AWAIT_READY(launcher.get()->destroy(containerId));
