@@ -263,6 +263,7 @@ public:
 
 protected:
   virtual slave::Flags CreateSlaveFlags();
+  virtual std::string getBaseHierarchy();
   virtual void SetUp();
   virtual void TearDown();
 

@@ -1185,11 +1185,14 @@ const string UNPRIVILEGED_USERNAME = "mesos.test.unprivileged.user";
 
 
 template <typename T>
-class UserCgroupIsolatorTest : public MesosTest
+class UserCgroupIsolatorTest :
+  public ContainerizerTest<slave::MesosContainerizer>
 {
 public:
   static void SetUpTestCase()
   {
+    ContainerizerTest<slave::MesosContainerizer>::SetUpTestCase();
+
     // Remove the user in case it wasn't cleaned up from a previous
     // test.
     os::system("userdel -r " + UNPRIVILEGED_USERNAME + " > /dev/null");
@@ -1197,9 +1200,10 @@ public:
     ASSERT_EQ(0, os::system("useradd " + UNPRIVILEGED_USERNAME));
   }
 
-
   static void TearDownTestCase()
   {
+    ContainerizerTest<slave::MesosContainerizer>::TearDownTestCase();
+
     ASSERT_EQ(0, os::system("userdel -r " + UNPRIVILEGED_USERNAME));
   }
 };
@@ -1219,6 +1223,7 @@ TYPED_TEST(UserCgroupIsolatorTest, ROOT_CGROUPS_UserCgroup)
 {
   slave::Flags flags;
   flags.perf_events = "cpu-cycles"; // Needed for CgroupsPerfEventIsolator.
+  flags.cgroups_hierarchy = this->getBaseHierarchy();
 
   Try<Isolator*> isolator = TypeParam::create(flags);
   ASSERT_SOME(isolator);

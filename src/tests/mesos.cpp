@@ -629,6 +629,12 @@ slave::Flags ContainerizerTest<slave::MesosContainerizer>::CreateSlaveFlags()
 }
 
 
+string ContainerizerTest<slave::MesosContainerizer>::getBaseHierarchy()
+{
+  return baseHierarchy;
+}
+
+
 #ifdef __linux__
 void ContainerizerTest<slave::MesosContainerizer>::SetUpTestCase()
 {
