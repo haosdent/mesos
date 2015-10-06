@@ -520,6 +520,25 @@ Future<Response> Master::Http::scheduler(const Request& request) const
 }
 
 
+Future<Response> Master::Http::flags(const Request& request) const
+{
+  JSON::Object object;
+
+  {
+    JSON::Object flags;
+    foreachpair (const string& name, const flags::Flag& flag, master->flags) {
+      Option<string> value = flag.stringify(master->flags);
+      if (value.isSome()) {
+        flags.values[name] = value.get();
+      }
+    }
+    object.values["flags"] = std::move(flags);
+  }
+
+  return OK(object, request.url.query.get("jsonp"));
+}
+
+
 const string Master::Http::HEALTH_HELP = HELP(
     TLDR(
         "Health check of the Master."),

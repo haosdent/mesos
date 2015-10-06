@@ -851,6 +851,10 @@ private:
     process::Future<process::http::Response> scheduler(
         const process::http::Request& request) const;
 
+    // /master/flags
+    process::Future<process::http::Response> flags(
+        const process::http::Request& request) const;
+
     // /master/health
     process::Future<process::http::Response> health(
         const process::http::Request& request) const;

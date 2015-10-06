@@ -403,6 +403,10 @@ private:
     process::Future<process::http::Response> executor(
         const process::http::Request& request) const;
 
+    // /slave/flags
+    process::Future<process::http::Response> flags(
+        const process::http::Request& request) const;
+
     // /slave/health
     process::Future<process::http::Response> health(
         const process::http::Request& request) const;

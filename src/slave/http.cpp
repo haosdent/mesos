@@ -319,6 +319,25 @@ Future<Response> Slave::Http::executor(const Request& request) const
 }
 
 
+Future<Response> Slave::Http::flags(const Request& request) const
+{
+  JSON::Object object;
+
+  {
+    JSON::Object flags;
+    foreachpair (const string& name, const flags::Flag& flag, slave->flags) {
+      Option<string> value = flag.stringify(slave->flags);
+      if (value.isSome()) {
+        flags.values[name] = value.get();
+      }
+    }
+    object.values["flags"] = std::move(flags);
+  }
+
+  return OK(object, request.url.query.get("jsonp"));
+}
+
+
 const string Slave::Http::HEALTH_HELP = HELP(
     TLDR(
         "Health check of the Slave."),

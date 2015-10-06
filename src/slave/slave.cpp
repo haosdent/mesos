@@ -40,6 +40,7 @@
 #include <process/defer.hpp>
 #include <process/delay.hpp>
 #include <process/dispatch.hpp>
+#include <process/help.hpp>
 #include <process/http.hpp>
 #include <process/id.hpp>
 #include <process/time.hpp>
@@ -102,10 +103,13 @@ using std::vector;
 using process::async;
 using process::wait; // Necessary on some OS's to disambiguate.
 using process::Clock;
+using process::DESCRIPTION;
 using process::Failure;
 using process::Future;
+using process::HELP;
 using process::Owned;
 using process::Time;
+using process::TLDR;
 using process::UPID;
 
 namespace mesos {
@@ -113,6 +117,14 @@ namespace internal {
 namespace slave {
 
 using namespace state;
+
+static const string FLAGS_HELP()
+{
+  return HELP(
+    TLDR(
+        "Information about slave flags."));
+}
+
 
 Slave::Slave(const slave::Flags& _flags,
              MasterDetector* _detector,
@@ -520,6 +532,12 @@ void Slave::initialize()
         [http](const process::http::Request& request) {
           Http::log(request);
           return http.state(request);
+        });
+  route("/flags",
+        FLAGS_HELP(),
+        [http](const process::http::Request& request) {
+          Http::log(request);
+          return http.flags(request);
         });
   route("/health",
         Http::HEALTH_HELP,

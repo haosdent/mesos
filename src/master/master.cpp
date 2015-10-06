@@ -40,6 +40,7 @@
 #include <process/collect.hpp>
 #include <process/defer.hpp>
 #include <process/delay.hpp>
+#include <process/help.hpp>
 #include <process/http.hpp>
 #include <process/id.hpp>
 #include <process/limiter.hpp>
@@ -96,6 +97,7 @@ using process::Clock;
 using process::ExitedEvent;
 using process::Failure;
 using process::Future;
+using process::HELP;
 using process::MessageEvent;
 using process::Owned;
 using process::PID;
@@ -105,6 +107,7 @@ using process::RateLimiter;
 using process::Shared;
 using process::Time;
 using process::Timer;
+using process::TLDR;
 using process::UPID;
 
 using process::http::Pipe;
@@ -117,6 +120,14 @@ namespace master {
 
 using mesos::master::RoleInfo;
 using mesos::master::allocator::Allocator;
+
+
+static const string FLAGS_HELP()
+{
+ return HELP(
+    TLDR(
+        "Information about master flags."));
+}
 
 
 class SlaveObserver : public ProtobufProcess<SlaveObserver>
@@ -761,6 +772,12 @@ void Master::initialize()
         [http](const process::http::Request& request) {
           Http::log(request);
           return http.scheduler(request);
+        });
+  route("/flags",
+        FLAGS_HELP(),
+        [http](const process::http::Request& request) {
+          Http::log(request);
+          return http.flags(request);
         });
   route("/health",
         Http::HEALTH_HELP,
