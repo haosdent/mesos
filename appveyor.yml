@@ -1,0 +1,13 @@
+os: Visual Studio 2015
+
+configuration:
+  - Debug
+
+platform:
+  - x64
+
+build_script:
+  - MKDIR build
+  - CD build
+  - CMAKE -DENABLE_LIBEVENT=1 ..
+  - MAKE
