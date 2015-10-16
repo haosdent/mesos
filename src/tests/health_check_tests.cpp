@@ -22,6 +22,8 @@
 #include <process/owned.hpp>
 #include <process/pid.hpp>
 
+#include <stout/strings.hpp>
+
 #include "docker/docker.hpp"
 
 #include "slave/slave.hpp"
@@ -311,8 +313,13 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
   dockerInfo.set_image("busybox");
   containerInfo.mutable_docker()->CopyFrom(dockerInfo);
 
+  string healthCheckCommand = strings::format(
+      "%s -H unix://%s exec $MESOS_CONTAINER_NAME true",
+      tests::flags.docker,
+      tests::flags.docker_socket).get();
+  Offer offer = offers.get()[0];
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit 0", offers.get()[0], 0, None(), None(), containerInfo);
+    "sleep 120", healthCheckCommand, offer, 0, None(), None(), containerInfo);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealth;
@@ -321,7 +328,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
     .WillOnce(FutureArg<1>(&statusRunning))
     .WillOnce(FutureArg<1>(&statusHealth));
 
-  driver.launchTasks(offers.get()[0].id(), tasks);
+  driver.launchTasks(offer.id(), tasks);
 
   AWAIT_READY(statusRunning);
   EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
@@ -573,8 +580,17 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
   //
   // Case 1:
   //   - Remove the temporary file.
-  string alt = "rm " + tmpPath + " || (mkdir -p " + os::getcwd() +
-               " && echo foo >" + tmpPath + " && exit 1)";
+  string alt = strings::format(
+      "rm %s || (mkdir -p %s && echo foo >%s && exit 1)",
+      tmpPath,
+      os::getcwd(),
+      tmpPath).get();
+  // Wrap with docker exec.
+  alt = strings::format(
+      "%s -H unix://%s exec $MESOS_CONTAINER_NAME sh -c \"%s\"",
+      tests::flags.docker,
+      tests::flags.docker_socket,
+      alt).get();
 
   vector<TaskInfo> tasks = populateTasks(
       "sleep 120", alt, offers.get()[0], 0, 3, None(), containerInfo);

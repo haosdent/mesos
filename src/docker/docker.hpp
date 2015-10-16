@@ -155,11 +155,6 @@ public:
   // Validate current docker version is not less than minVersion.
   virtual Try<Nothing> validateVersion(const Version& minVersion) const;
 
-  virtual std::string getPath()
-  {
-    return path;
-  }
-
 protected:
   // Uses the specified path to the Docker CLI tool.
   Docker(const std::string& _path,
