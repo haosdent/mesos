@@ -278,6 +278,74 @@ TEST_F(DockerTest, ROOT_DOCKER_CheckCommandWithShell)
 }
 
 
+TEST_F(DockerTest, ROOT_DOCKER_RunWithEnv)
+{
+  const string containerName = NAME_PREFIX + "-test";
+  Resources resources = Resources::parse("cpus:1;mem:512").get();
+
+  Owned<Docker> docker(Docker::create(tests::flags.docker,
+                                      tests::flags.docker_socket,
+                                      false).get());
+
+  // Verify that we do not see the container.
+  Future<list<Docker::Container> > containers = docker->ps(true, containerName);
+  AWAIT_READY(containers);
+  foreach (const Docker::Container& container, containers.get()) {
+    EXPECT_NE("/" + containerName, container.name);
+  }
+
+  Try<string> directory = environment->mkdtemp();
+  CHECK_SOME(directory) << "Failed to create temporary directory";
+
+  ContainerInfo containerInfo;
+  containerInfo.set_type(ContainerInfo::DOCKER);
+
+  ContainerInfo::DockerInfo dockerInfo;
+  // Set image name by environment variables.
+  os::setenv("MESOS_DOCKER_TEST_IMAGE", "busybox");
+  dockerInfo.set_image("${MESOS_DOCKER_TEST_IMAGE}");
+  containerInfo.mutable_docker()->CopyFrom(dockerInfo);
+
+  CommandInfo commandInfo;
+  commandInfo.set_value("sleep 120");
+
+  // Start the container.
+  Future<Nothing> status = docker->run(
+      containerInfo,
+      commandInfo,
+      containerName,
+      directory.get(),
+      "/mnt/mesos/sandbox",
+      resources);
+
+  // Unset the environmen variables for testing.
+  os::unsetenv("MESOS_DOCKER_TEST_IMAGE");
+
+  // Should be able to see the container now.
+  containers = docker->ps();
+  AWAIT_READY(containers);
+  bool found = false;
+  foreach (const Docker::Container& container, containers.get()) {
+    if ("/" + containerName == container.name) {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
+
+  // Stop the container.
+  status = docker->stop(containerName);
+  AWAIT_READY(status);
+
+  // Remove the container.
+  status = docker->rm(containerName);
+  AWAIT_READY(status);
+  Owned<Docker> docker(Docker::create(tests::flags.docker,
+                                     tests::flags.docker_socket,
+                                     false).get());
+}
+
+
 TEST_F(DockerTest, ROOT_DOCKER_CheckPortResource)
 {
   const string containerName = NAME_PREFIX + "-port-resource-test";
