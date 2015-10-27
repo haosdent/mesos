@@ -34,6 +34,8 @@ GTEST = $(GMOCK)/gtest
 LIBEV = 3rdparty/libev-$(LIBEV_VERSION)
 PICOJSON = 3rdparty/picojson-$(PICOJSON_VERSION)
 
+am__v_CXX_time = /bin/echo -n "  CXX  " $@ && /usr/bin/time
+am__v_lt_time = --silent
 
 # Library. It is not installable presently because most people link
 # the libprocess statically into their resulting library or binary and

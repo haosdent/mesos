@@ -56,6 +56,9 @@ endif
 
 PROTOCFLAGS = -I$(top_srcdir)/include -I$(srcdir)
 
+am__v_CXX_time = /bin/echo -n "  CXX  " $@ && /usr/bin/time
+am__v_lt_time = --silent
+
 # Initialize variables here so we can use += operator everywhere else.
 lib_LTLIBRARIES =
 noinst_LTLIBRARIES =

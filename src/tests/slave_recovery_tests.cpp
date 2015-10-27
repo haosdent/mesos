@@ -44,7 +44,7 @@
 #include "common/protobuf_utils.hpp"
 
 #include "master/detector.hpp"
-#include "master/master.hpp"
+// #include "master/master.hpp"
 
 #include "master/allocator/mesos/hierarchical.hpp"
 
@@ -59,9 +59,10 @@
 #include "messages/messages.hpp"
 
 #include "tests/containerizer.hpp"
-#include "tests/mesos.hpp"
+// #include "tests/mesos.hpp"
 #include "tests/utils.hpp"
 
+/**
 using namespace mesos::internal::slave;
 
 using namespace process;
@@ -80,12 +81,13 @@ using testing::DoAll;
 using testing::Eq;
 using testing::Return;
 using testing::SaveArg;
+**/
 
 namespace mesos {
 namespace internal {
 namespace tests {
 
-
+/**
 class SlaveStateTest : public TemporaryDirectoryTest {};
 
 
@@ -130,7 +132,6 @@ TEST_F(SlaveStateTest, CheckpointRepeatedProtobufMessages)
 
   EXPECT_SOME_EQ(expected, actual);
 }
-
 
 template <typename T>
 class SlaveRecoveryTest : public ContainerizerTest<T>
@@ -3645,6 +3646,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceBackward)
   delete containerizer2.get();
 }
 #endif // __linux__
+**/
 
 } // namespace tests {
 } // namespace internal {

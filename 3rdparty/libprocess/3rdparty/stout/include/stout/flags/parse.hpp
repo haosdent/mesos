@@ -21,6 +21,7 @@
 #include <stout/duration.hpp>
 #include <stout/error.hpp>
 #include <stout/json.hpp>
+#include <stout/path.hpp>
 #include <stout/strings.hpp>
 #include <stout/try.hpp>
 

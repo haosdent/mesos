@@ -583,8 +583,7 @@ Future<Nothing> Docker::run(
   }
 
   Try<Subprocess> s = subprocess(
-      path,
-      argv,
+      cmd,
       Subprocess::PATH("/dev/null"),
       stdoutIo,
       stderrIo,
