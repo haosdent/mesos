@@ -95,6 +95,21 @@ TEST_F(OsTest, Environment)
     EXPECT_TRUE(environment.contains(key));
     EXPECT_EQ(value, environment[key]);
   }
+
+  // Verify only filter environment varialbes that match specific regex.
+  environment = os::environment("SOME_SPECIAL_FLAG=.*");
+  EXPECT_EQ(1, environment.size());
+  EXPECT_EQ("--flag=foobar", environment["SOME_SPECIAL_FLAG"]);
+
+  os::setenv("EXTERNAL_SOME_SPECIAL_FLAG", "--flag=foobar");
+  environment = os::environment("SOME_SPECIAL_FLAG=.*");
+  EXPECT_EQ(1, environment.size());
+  EXPECT_EQ("--flag=foobar", environment["SOME_SPECIAL_FLAG"]);
+
+  environment =
+    os::environment("(SOME_SPECIAL_FLAG=|EXTERNAL_SOME_SPECIAL_FLAG=).*");
+  EXPECT_EQ(2, environment.size());
+  EXPECT_EQ("--flag=foobar", environment["SOME_SPECIAL_FLAG"]);
 }
 
 

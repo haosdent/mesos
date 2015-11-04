@@ -15,16 +15,26 @@
 #define __STOUT_OS_ENVIRONMENT_HPP__
 
 #include <map>
+#include <regex>
 #include <string>
+
+#include <stout/option.hpp>
 
 #include <stout/os/raw/environment.hpp>
 
 
 namespace os {
 
-inline std::map<std::string, std::string> environment()
+inline std::map<std::string, std::string> environment(
+    Option<std::string> strRegex = None())
 {
   char** env = os::raw::environment();
+
+  std::smatch match;
+  Option<std::regex> regex = None();
+  if (strRegex.isSome()) {
+    regex = std::regex(strRegex.get());
+  }
 
   std::map<std::string, std::string> result;
 
@@ -33,6 +43,16 @@ inline std::map<std::string, std::string> environment()
     size_t position = entry.find_first_of('=');
     if (position == std::string::npos) {
       continue; // Skip malformed environment entries.
+    }
+
+    // gcc 4.8 not implement regex completely. More details could be found in
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53631
+    // Skip dismatch environment entries when specify regex filter.
+    if (regex.isSome()) {
+      std::regex_match(entry, match, regex.get());
+      if (match.size() == 0) {
+        continue;
+      }
     }
 
     result[entry.substr(0, position)] = entry.substr(position + 1);
