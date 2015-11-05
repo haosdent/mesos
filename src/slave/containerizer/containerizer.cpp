@@ -245,15 +245,11 @@ map<string, string> executorEnvironment(
 {
   map<string, string> environment;
 
-  // In cases where DNS is not available on the slave, the absence of
-  // LIBPROCESS_IP in the executor's environment will cause an error when the
-  // new executor process attempts a hostname lookup. Thus, we pass the slave's
-  // LIBPROCESS_IP through here, even if the executor environment is specified
-  // explicitly. Note that a LIBPROCESS_IP present in the provided flags will
-  // override this value.
-  Option<string> libprocessIP = os::getenv("LIBPROCESS_IP");
-  if (libprocessIP.isSome()) {
-    environment["LIBPROCESS_IP"] = libprocessIP.get();
+  // Pass LIBPROCESS and SSL environment variables to executor.
+  foreachpair (const string& key,
+               const string& value,
+               os::environment("(LIBPROCESS_|SSL_).*")) {
+    environment[key] = value;
   }
 
   if (flags.executor_environment_variables.isSome()) {
