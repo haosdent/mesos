@@ -256,6 +256,64 @@ map<string, string> executorEnvironment(
     environment["LIBPROCESS_IP"] = libprocessIP.get();
   }
 
+  // Include SSL related environment variables.
+  Option<string> sslEnable = os::getenv("SSL_ENABLED");
+  if (sslEnable.isSome()) {
+    environment["SSL_ENABLED"] = sslEnable.get();
+  }
+  Option<string> sslSupportDowngrade = os::getenv("SSL_SUPPORT_DOWNGRADE");
+  if (sslSupportDowngrade.isSome()) {
+    environment["SSL_SUPPORT_DOWNGRADE"] = sslSupportDowngrade.get();
+  }
+  Option<string> sslKeyFile = os::getenv("SSL_KEY_FILE");
+  if (sslKeyFile.isSome()) {
+    environment["SSL_KEY_FILE"] = sslKeyFile.get();
+  }
+  Option<string> sslCertFile = os::getenv("SSL_CERT_FILE");
+  if (sslCertFile.isSome()) {
+    environment["SSL_CERT_FILE"] = sslCertFile.get();
+  }
+  Option<string> sslVerifyCert = os::getenv("SSL_VERIFY_CERT");
+  if (sslVerifyCert.isSome()) {
+    environment["SSL_VERIFY_CERT"] = sslVerifyCert.get();
+  }
+  Option<string> sslRequireCert = os::getenv("SSL_REQUIRE_CERT");
+  if (sslRequireCert.isSome()) {
+    environment["SSL_REQUIRE_CERT"] = sslRequireCert.get();
+  }
+  Option<string> sslVerifyDepth = os::getenv("SSL_VERIFY_DEPTH");
+  if (sslVerifyDepth.isSome()) {
+    environment["SSL_VERIFY_DEPTH"] = sslVerifyDepth.get();
+  }
+  Option<string> sslCaDir = os::getenv("SSL_CA_DIR");
+  if (sslCaDir.isSome()) {
+    environment["SSL_CA_DIR"] = sslCaDir.get();
+  }
+  Option<string> sslCaFile = os::getenv("SSL_CA_FILE");
+  if (sslCaFile.isSome()) {
+    environment["SSL_CA_FILE"] = sslCaFile.get();
+  }
+  Option<string> sslCiphers = os::getenv("SSL_CIPHERS");
+  if (sslCiphers.isSome()) {
+    environment["SSL_CIPHERS"] = sslCiphers.get();
+  }
+  Option<string> sslEnableSslV3 = os::getenv("SSL_ENABLE_SSL_V3");
+  if (sslEnableSslV3.isSome()) {
+    environment["SSL_ENABLE_SSL_V3"] = sslEnableSslV3.get();
+  }
+  Option<string> sslEnableTlsV10 = os::getenv("SSL_ENABLE_TLS_V1_0");
+  if (sslEnableTlsV10.isSome()) {
+    environment["SSL_ENABLE_TLS_V1_0"] = sslEnableTlsV10.get();
+  }
+  Option<string> sslEnableTlsV11 = os::getenv("SSL_ENABLE_TLS_V1_1");
+  if (sslEnableTlsV11.isSome()) {
+    environment["SSL_ENABLE_TLS_V1_1"] = sslEnableTlsV11.get();
+  }
+  Option<string> sslEnableTlsV12 = os::getenv("SSL_ENABLE_TLS_V1_2");
+  if (sslEnableTlsV12.isSome()) {
+    environment["SSL_ENABLE_TLS_V1_2"] = sslEnableTlsV12.get();
+  }
+
   if (flags.executor_environment_variables.isSome()) {
     foreachpair (const string& key,
                  const JSON::Value& value,
