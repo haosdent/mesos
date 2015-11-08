@@ -379,6 +379,49 @@ TEST_F(FetcherTest, OSNetUriSpaceTest)
 }
 
 
+TEST_F(FetcherTest, OSNetUriWithQueryTest)
+{
+  HttpProcess process;
+
+  spawn(process);
+
+  const network::Address& address = process.self().address;
+
+  process::http::URL url(
+      "http",
+      address.ip,
+      address.port,
+      path::join(process.self().id, "test"));
+
+  string localFile = path::join(os::getcwd(), "test");
+  EXPECT_FALSE(os::exists(localFile));
+
+  slave::Flags flags;
+  flags.launcher_dir = path::join(tests::flags.build_dir, "src");
+  flags.frameworks_home = "/tmp/frameworks";
+
+  ContainerID containerId;
+  containerId.set_value(UUID::random().toString());
+
+  CommandInfo commandInfo;
+  CommandInfo::URI* uri = commandInfo.add_uris();
+  uri->set_value(stringify(url) + "?hasi");
+
+  Fetcher fetcher;
+  SlaveID slaveId;
+
+  EXPECT_CALL(process, test(_))
+    .WillOnce(Return(http::OK()));
+
+  Future<Nothing> fetch = fetcher.fetch(
+      containerId, commandInfo, os::getcwd(), None(), slaveId, flags);
+
+  AWAIT_READY(fetch);
+
+  EXPECT_TRUE(os::exists(localFile));
+}
+
+
 TEST_F(FetcherTest, FileLocalhostURI)
 {
   string fromDir = path::join(os::getcwd(), "from");

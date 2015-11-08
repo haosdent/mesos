@@ -22,6 +22,7 @@
 #include <process/check.hpp>
 #include <process/collect.hpp>
 #include <process/dispatch.hpp>
+#include <process/http.hpp>
 
 #include <stout/net.hpp>
 #include <stout/path.hpp>
@@ -103,31 +104,22 @@ Try<Nothing> Fetcher::recover(const SlaveID& slaveId, const Flags& flags)
 
 Try<string> Fetcher::basename(const string& uri)
 {
-  // TODO(bernd-mesos): full URI parsing, then move this to stout.
-  // There is a bug (or is it a feature?) in the original fetcher
-  // code without caching that remains in effect here. URIs are
-  // treated like file paths, looking for occurrences of "/",
-  // but ignoring other separators that can show up
-  // (e.g. "?", "=" in HTTP URLs).
-
-  if (uri.find_first_of('\\') != string::npos ||
-      uri.find_first_of('\'') != string::npos ||
-      uri.find_first_of('\0') != string::npos) {
-      return Error("Illegal characters in URI");
-  }
-
   size_t index = uri.find("://");
   if (index != string::npos && 1 < index) {
-    // URI starts with protocol specifier, e.g., http://, https://,
-    // ftp://, ftps://, hdfs://, hftp://, s3://, s3n://.
+    // URI starts with protocol specifier, e.g., http://, https://, ftp://,
+    // ftps://, hdfs://, hftp://, s3://, s3n://. We parse it to an URL struct.
+    Try<process::http::URL> url = process::http::URL::parse(uri);
+    if (url.isError()) {
+      return url.error();
+    }
 
-    string path = uri.substr(index + 3);
-    if (!strings::contains(path, "/") || path.size() <= path.find("/") + 1) {
+    if (url.get().path == "/") {
       return Error("Malformed URI (missing path): " + uri);
     }
 
-    return path.substr(path.find_last_of("/") + 1);
+    return Path(url.get().path).basename();
   }
+
   return Path(uri).basename();
 }
 
