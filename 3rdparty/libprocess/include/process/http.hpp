@@ -68,6 +68,8 @@ extern hashmap<uint16_t, std::string>* statuses;
 // TODO(bmahler): The default port should depend on the scheme!
 struct URL
 {
+  static Try<URL> parse(const std::string& strUrl);
+
   URL() = default;
 
   URL(const std::string& _scheme,

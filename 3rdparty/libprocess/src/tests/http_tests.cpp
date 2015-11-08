@@ -1164,3 +1164,53 @@ TEST(URLTest, Stringification)
   EXPECT_TRUE(url4 == "http://172.158.1.23:80/path?baz=bam&foo=bar#fragment" ||
               url4 == "http://172.158.1.23:80/path?foo=bar&baz=bam#fragment");
 }
+
+
+TEST(URLTest, Parsing)
+{
+  EXPECT_ERROR(URL::parse(""));
+  EXPECT_ERROR(URL::parse("foo"));
+  EXPECT_ERROR(URL::parse("://"));
+  EXPECT_ERROR(URL::parse("foo://"));
+  EXPECT_ERROR(URL::parse("://bar"));
+
+  Try<URL> url1 = URL::parse("http://mesos.apache.org");
+  EXPECT_SOME(url1);
+  EXPECT_EQ("http://mesos.apache.org:80/", stringify(url1.get()));
+
+  Try<URL> url2 = URL::parse("http://mesos.apache.org:8080/");
+  EXPECT_SOME(url2);
+  EXPECT_EQ("http://mesos.apache.org:8080/", stringify(url2.get()));
+
+  Try<URL> url3 = URL::parse("http://172.158.1.23:80/?baz=bam&foo=bar");
+  EXPECT_SOME(url3);
+  string strUrl3 = stringify(url3.get());
+  EXPECT_TRUE(strUrl3 == "http://172.158.1.23:80/?baz=bam&foo=bar" ||
+              strUrl3 == "http://172.158.1.23:80/?foo=bar&baz=bam");
+
+  Try<URL> url4 = URL::parse("http://172.158.1.23:80/path?baz=bam&foo=bar");
+  EXPECT_SOME(url4);
+  string strUrl4 = stringify(url4.get());
+  EXPECT_TRUE(strUrl4 == "http://172.158.1.23:80/path?baz=bam&foo=bar" ||
+              strUrl4 == "http://172.158.1.23:80/path?foo=bar&baz=bam");
+
+  Try<URL> url5 =
+    URL::parse("http://172.158.1.23:80/?baz=bam&foo=bar#fragment");
+  EXPECT_SOME(url5);
+  string strUrl5 = stringify(url5.get());
+  EXPECT_TRUE(strUrl5 == "http://172.158.1.23:80/?baz=bam&foo=bar#fragment" ||
+              strUrl5 == "http://172.158.1.23:80/?foo=bar&baz=bam#fragment");
+
+  Try<URL> url6 =
+    URL::parse("http://172.158.1.23:80/path?baz=bam&foo=bar#fragment");
+  EXPECT_SOME(url6);
+  string strUrl6 = stringify(url6.get());
+  EXPECT_TRUE(
+      strUrl6 == "http://172.158.1.23:80/path?baz=bam&foo=bar#fragment" ||
+      strUrl6 == "http://172.158.1.23:80/path?foo=bar&baz=bam#fragment");
+
+  Try<URL> url7 = URL::parse("http://172.158.1.23:80/path?baz#fragment");
+  EXPECT_SOME(url7);
+  string strUrl7 = stringify(url7.get());
+  EXPECT_TRUE(strUrl7 == "http://172.158.1.23:80/path?baz#fragment");
+}

@@ -31,6 +31,8 @@
 #include <tuple>
 #include <vector>
 
+#include <boost/xpressive/xpressive.hpp>
+
 #include <process/async.hpp>
 #include <process/defer.hpp>
 #include <process/dispatch.hpp>
@@ -72,6 +74,69 @@ using process::network::Socket;
 
 namespace process {
 namespace http {
+
+
+Try<URL> URL::parse(const string& strUrl) {
+  // Use regex to match a URL here. The URL should match this format:
+  //   scheme://domain:port/path?query#fragment
+  // `scheme` and `domain` are required, other parts are optional. For optinal
+  // fields, we would fill them with default value.
+  static boost::xpressive::sregex parsingRegex =
+    boost::xpressive::sregex::compile(
+      "^([^\\/\\?:#]+):\\/+([^\\/\\?:#]+):?(\\d+)?"
+      "(\\/[^\\?#]*)?(\\?)?([^\\?#]+)?#?(.*)$");
+
+  boost::xpressive::smatch urlMatch;
+  boost::xpressive::regex_match(strUrl, urlMatch, parsingRegex);
+  if (urlMatch.size() == 0) {
+    return Error(strUrl + " is an illegal URL string.");
+  }
+
+  string scheme = urlMatch[1];
+  if (scheme.empty()) {
+    return Error("Malformed URI (missing scheme): " + strUrl);
+  }
+
+  string domain = urlMatch[2];
+  if (domain.empty()) {
+    return Error("Malformed URI (missing domain): " + strUrl);
+  }
+
+  // TODO(bmahler): The default port should depend on the scheme!
+  uint16_t port = 80;
+  if (urlMatch[3].length()) {
+    Try<uint16_t> portTry = numify<uint16_t>(urlMatch[3].str());
+    if (portTry.isError()) {
+      return Error("Malformed URI (illegal port): " + strUrl);
+    }
+    port = portTry.get();
+  }
+
+  string path = "/";
+  if (urlMatch[4].length()) {
+    path = urlMatch[4];
+  }
+
+  hashmap<string, string> query;
+  if (urlMatch[6].length()) {
+    vector<string> tokens = strings::tokenize(urlMatch[6], "&");
+    foreach (const string& token, tokens) {
+      vector<string> parts = strings::split(token, "=", 2);
+      if (parts.size() == 1) {
+        query[parts[0]] = "";
+      } else if (parts.size() == 2) {
+        query[parts[0]] = parts[1];
+      }
+    }
+  }
+
+  Option<string> fragment = None();
+  if (urlMatch[7].length()) {
+    fragment = urlMatch[7];
+  }
+
+  return URL(scheme, domain, port, path, query, fragment);
+}
 
 
 hashmap<uint16_t, string>* statuses = new hashmap<uint16_t, string> {
