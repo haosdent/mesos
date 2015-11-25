@@ -14,7 +14,10 @@ The following sections will describe the API changes along with Docker support, 
 
 To run the slave to enable the Docker Containerizer, you must launch the slave with "docker" as one of the containerizers option.
 
-Example: `mesos-slave --containerizers=docker,mesos`
+```
+# Example
+mesos-slave --containerizers=docker,mesos
+```
 
 Each slave that has the Docker containerizer should have Docker CLI client installed (version >= 1.0.0).
 
@@ -43,11 +46,8 @@ The Docker Containerizer is translating Task/Executor `Launch` and `Destroy` cal
 Currently the Docker Containerizer when launching as task will do the following:
 
 1. Fetch all the files specified in the CommandInfo into the sandbox.
-
 2. Pull the docker image from the remote repository.
-
 3. Run the docker image with the Docker executor, and map the sandbox directory into the Docker container and set the directory mapping to the MESOS_SANDBOX environment variable. The executor will also stream the container logs into stdout/stderr files in the sandbox.
-
 4. On container exit or containerizer destroy, stop and remove the docker container.
 
 The Docker Containerizer launches all containers with the `mesos-` prefix plus the slave id (ie: `mesos-slave1-abcdefghji`), and also assumes all containers with the `mesos-` prefix is managed by the slave and is free to stop or kill the containers.
@@ -70,6 +70,7 @@ A docker image currently supports having an entrypoint and/or a default command.
 To run a docker image with the default command (ie: `docker run image`), the CommandInfo's value must not be set. If the value is set then it will override the default command.
 
 To run a docker image with an entrypoint defined, the CommandInfo's shell option must be set to false.
+
 If shell option is set to true the Docker Containerizer will run the user's command wrapped with `/bin/sh -c` which will also become parameters to the image entrypoint.
 
 ## Recover Docker containers on slave recovery
