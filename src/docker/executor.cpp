@@ -313,8 +313,15 @@ private:
     if (!killed && task.has_health_check()) {
       HealthCheck healthCheck = task.health_check();
 
-      // Wrap the original health check command in "docker exec".
-      if (healthCheck.has_command()) {
+      if (!healthCheck.has_command()) {
+          cerr << "Unable to launch health process: "
+               << "Only command health check is supported now." << endl;
+          return;
+      }
+
+      // Wrap the original health check command in "docker exec" when
+      // `execute_command_in_container` is true.
+      if (healthCheck.execute_command_in_container()) {
           CommandInfo command = healthCheck.command();
 
           // "docker exec" require docker version greater than 1.3.0.
@@ -360,10 +367,6 @@ private:
           command.clear_arguments();
           command.set_value(strings::join(" ", argv));
           healthCheck.mutable_command()->CopyFrom(command);
-      } else {
-          cerr << "Unable to launch health process: "
-               << "Only command health check is supported now." << endl;
-          return;
       }
 
       JSON::Object json = JSON::protobuf(healthCheck);

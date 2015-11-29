@@ -74,7 +74,8 @@ public:
       const Option<int>& consecutiveFailures = None(),
       const Option<map<string, string>>& env = None(),
       const Option<ContainerInfo>& containerInfo = None(),
-      const Option<int>& timeoutSeconds = None())
+      const Option<int>& timeoutSeconds = None(),
+      bool executeCommandInContainer = true)
   {
     CommandInfo healthCommand;
     healthCommand.set_value(healthCmd);
@@ -87,7 +88,8 @@ public:
         consecutiveFailures,
         env,
         containerInfo,
-        timeoutSeconds);
+        timeoutSeconds,
+        executeCommandInContainer);
   }
 
   vector<TaskInfo> populateTasks(
@@ -98,7 +100,8 @@ public:
       const Option<int>& consecutiveFailures = None(),
       const Option<map<string, string>>& env = None(),
       const Option<ContainerInfo>& containerInfo = None(),
-      const Option<int>& timeoutSeconds = None())
+      const Option<int>& timeoutSeconds = None(),
+      bool executeCommandInContainer = true)
   {
     TaskInfo task;
     task.set_name("");
@@ -138,6 +141,7 @@ public:
     healthCheck.set_delay_seconds(0);
     healthCheck.set_interval_seconds(0);
     healthCheck.set_grace_period_seconds(gracePeriodSeconds);
+    healthCheck.set_execute_command_in_container(executeCommandInContainer);
 
     if (timeoutSeconds.isSome()) {
       healthCheck.set_timeout_seconds(timeoutSeconds.get());
@@ -322,6 +326,91 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
     .WillOnce(FutureArg<1>(&statusHealth));
 
   driver.launchTasks(offers.get()[0].id(), tasks);
+
+  AWAIT_READY(statusRunning);
+  EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
+
+  AWAIT_READY(statusHealth);
+  EXPECT_EQ(TASK_RUNNING, statusHealth.get().state());
+  EXPECT_TRUE(statusHealth.get().has_healthy());
+  EXPECT_TRUE(statusHealth.get().healthy());
+
+  driver.stop();
+  driver.join();
+
+  Shutdown();
+
+  Future<std::list<Docker::Container>> containers =
+    docker->ps(true, slave::DOCKER_NAME_PREFIX);
+
+  AWAIT_READY(containers);
+
+  // Cleanup all mesos launched containers.
+  foreach (const Docker::Container& container, containers.get()) {
+    AWAIT_READY_FOR(docker->rm(container.id, true), Seconds(30));
+  }
+}
+
+
+// Testing a healthy task run outside container and reporting one healthy status
+// to scheduler for docker executor.
+TEST_F(HealthCheckTest, ROOT_DOCKER_DockerOutsideContainerHealthyTask)
+{
+  Owned<Docker> docker(Docker::create(tests::flags.docker,
+                                      tests::flags.docker_socket,
+                                      false).get());
+
+  Try<PID<Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  slave::Flags flags = CreateSlaveFlags();
+
+  Fetcher fetcher;
+
+  Try<DockerContainerizer*> containerizer =
+    DockerContainerizer::create(flags, &fetcher);
+  CHECK_SOME(containerizer);
+
+  Try<PID<Slave>> slave = StartSlave(containerizer.get());
+  ASSERT_SOME(slave);
+
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+    &sched, DEFAULT_FRAMEWORK_INFO, master.get(), DEFAULT_CREDENTIAL);
+
+  EXPECT_CALL(sched, registered(&driver, _, _))
+    .Times(1);
+
+  Future<vector<Offer>> offers;
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return()); // Ignore subsequent offers.
+
+  driver.start();
+
+  AWAIT_READY(offers);
+  EXPECT_NE(0u, offers.get().size());
+  Offer offer = offers.get()[0];
+
+  ContainerInfo containerInfo;
+  containerInfo.set_type(ContainerInfo::DOCKER);
+
+  // TODO(tnachen): Use local image to test if possible.
+  ContainerInfo::DockerInfo dockerInfo;
+  dockerInfo.set_image("busybox");
+  containerInfo.mutable_docker()->CopyFrom(dockerInfo);
+
+  vector<TaskInfo> tasks = populateTasks(
+    "sleep 120", "exit 0", offer, 0, None(), None(), containerInfo, false);
+
+  Future<TaskStatus> statusRunning;
+  Future<TaskStatus> statusHealth;
+
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&statusRunning))
+    .WillOnce(FutureArg<1>(&statusHealth));
+
+  driver.launchTasks(offer.id(), tasks);
 
   AWAIT_READY(statusRunning);
   EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());

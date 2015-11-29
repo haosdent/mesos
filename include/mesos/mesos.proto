@@ -330,6 +330,9 @@ message HealthCheck {
 
   // Command health check.
   optional CommandInfo command = 7;
+
+  // Execute health check command inside container or not.
+  optional bool execute_command_in_container = 8 [default = true];
 }
 
 
