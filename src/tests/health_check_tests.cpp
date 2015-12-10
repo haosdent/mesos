@@ -288,9 +288,10 @@ TEST_F(HealthCheckTest, HealthyTask)
 // docker executor.
 TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
 {
-  Owned<Docker> docker(Docker::create(tests::flags.docker,
-                                      tests::flags.docker_socket,
-                                      false).get());
+  MockDocker* mockDocker =
+    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+
+  Shared<Docker> docker(mockDocker);
   Try<Nothing> validateResult = docker->validateVersion(Version(1, 3, 0));
   ASSERT_SOME(validateResult)
     << "-------------------------------------------------------------\n"
@@ -307,11 +308,8 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
 
   Fetcher fetcher;
 
-  Try<DockerContainerizer*> containerizer =
-    DockerContainerizer::create(flags, &fetcher);
-  CHECK_SOME(containerizer);
-
-  Try<PID<Slave>> slave = StartSlave(containerizer.get());
+  MockDockerContainerizer dockerContainerizer(flags, &fetcher, docker);
+  Try<PID<Slave>> slave = StartSlave(&dockerContainerizer, flags);
   ASSERT_SOME(slave);
 
   MockScheduler sched;
@@ -618,9 +616,10 @@ TEST_F(HealthCheckTest, HealthStatusChange)
 // Testing health status change reporting to scheduler for docker executor.
 TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
 {
-  Owned<Docker> docker(Docker::create(tests::flags.docker,
-                                      tests::flags.docker_socket,
-                                      false).get());
+  MockDocker* mockDocker =
+    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+
+  Shared<Docker> docker(mockDocker);
   Try<Nothing> validateResult = docker->validateVersion(Version(1, 3, 0));
   ASSERT_SOME(validateResult)
     << "-------------------------------------------------------------\n"
@@ -637,11 +636,8 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
 
   Fetcher fetcher;
 
-  Try<DockerContainerizer*> containerizer =
-    DockerContainerizer::create(flags, &fetcher);
-  CHECK_SOME(containerizer);
-
-  Try<PID<Slave>> slave = StartSlave(containerizer.get());
+  MockDockerContainerizer dockerContainerizer(flags, &fetcher, docker);
+  Try<PID<Slave>> slave = StartSlave(&dockerContainerizer, flags);
   ASSERT_SOME(slave);
 
   MockScheduler sched;
