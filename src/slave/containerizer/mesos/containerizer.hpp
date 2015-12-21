@@ -20,6 +20,7 @@
 #include <list>
 #include <vector>
 
+#include <mesos/slave/containerizer.hpp>
 #include <mesos/slave/isolator.hpp>
 
 #include <process/metrics/counter.hpp>
@@ -29,7 +30,7 @@
 
 #include "slave/state.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
+#include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/launcher.hpp"
 
@@ -45,22 +46,18 @@ class MesosContainerizerProcess;
 class MesosContainerizer : public Containerizer
 {
 public:
-  static Try<MesosContainerizer*> create(
-      const Flags& flags,
-      bool local,
-      Fetcher* fetcher);
+  static Try<Containerizer*> create();
 
-  MesosContainerizer(
-      const Flags& flags,
-      bool local,
-      Fetcher* fetcher,
-      const process::Owned<Launcher>& launcher,
-      const std::vector<process::Owned<mesos::slave::Isolator>>& isolators);
+  MesosContainerizer();
 
   // Used for testing.
   MesosContainerizer(const process::Owned<MesosContainerizerProcess>& _process);
 
   virtual ~MesosContainerizer();
+
+  virtual Try<Nothing> initialize(
+      const Flags& flags,
+      bool local);
 
   virtual process::Future<Nothing> recover(
       const Option<state::SlaveState>& state);
@@ -99,6 +96,7 @@ public:
   virtual process::Future<hashset<ContainerID>> containers();
 
 private:
+  Fetcher fetcher;
   process::Owned<MesosContainerizerProcess> process;
 };
 

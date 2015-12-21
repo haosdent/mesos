@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __CONTAINERIZER_HPP__
-#define __CONTAINERIZER_HPP__
+#ifndef __SLAVE_CONTAINERIZER_MESOS_CONTAINERIZER_HPP__
+#define __SLAVE_CONTAINERIZER_MESOS_CONTAINERIZER_HPP__
 
 #include <map>
 
@@ -33,15 +33,14 @@
 #include <stout/option.hpp>
 #include <stout/try.hpp>
 
-#include "slave/containerizer/fetcher.hpp"
-
 namespace mesos {
 namespace internal {
 namespace slave {
 
 // Forward declaration.
-class Slave;
+class Fetcher;
 class Flags;
+class Slave;
 
 namespace state {
 // Forward declaration.
@@ -53,11 +52,14 @@ struct SlaveState;
 class Containerizer
 {
 public:
-  // Attempts to create a containerizer as specified by 'isolation' in flags.
-  static Try<Containerizer*> create(
-      const Flags& flags,
-      bool local,
-      Fetcher* fetcher);
+  /**
+   * Attempts either to create a built-in MesosContainerizer or to load an
+   * allocator instance from a module using the given name. If `Try`
+   * does not report an error, the wrapped `Containerizer*` is not null.
+   *
+   * @param names Name of the containerizers.
+   */
+  static Try<Containerizer*> create(const std::string& names);
 
   // Determine slave resources from flags, probing the system or querying a
   // delegate.
@@ -67,6 +69,11 @@ public:
   static Try<Resources> resources(const Flags& flags);
 
   virtual ~Containerizer() {}
+
+  // Initialize a containerizer as specified by 'isolation' in flags.
+  virtual Try<Nothing> initialize(
+      const Flags& flags,
+      bool local) = 0;
 
   // Recover all containerized executors specified in state. Any containerized
   // executors present on the system but not included in state (or state is
@@ -153,4 +160,4 @@ std::map<std::string, std::string> executorEnvironment(
 } // namespace internal {
 } // namespace mesos {
 
-#endif // __CONTAINERIZER_HPP__
+#endif // __SLAVE_CONTAINERIZER_MESOS_CONTAINERIZER_HPP__

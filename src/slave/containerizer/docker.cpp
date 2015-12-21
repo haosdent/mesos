@@ -42,9 +42,7 @@
 #include "slave/paths.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/docker.hpp"
-#include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
 
@@ -117,9 +115,37 @@ Option<ContainerID> parse(const Docker::Container& container)
 }
 
 
-Try<DockerContainerizer*> DockerContainerizer::create(
+Try<Containerizer*> DockerContainerizer::create()
+{
+  return new DockerContainerizer();
+}
+
+
+DockerContainerizer::DockerContainerizer(
+    const Owned<DockerContainerizerProcess>& _process)
+  : process(_process)
+{
+  spawn(process.get());
+}
+
+
+DockerContainerizer::DockerContainerizer()
+{
+}
+
+
+DockerContainerizer::~DockerContainerizer()
+{
+  if (process.get() != NULL) {
+    terminate(process.get());
+    process::wait(process.get());
+  }
+}
+
+
+Try<Nothing> DockerContainerizer::initialize(
     const Flags& flags,
-    Fetcher* fetcher)
+    bool local)
 {
   Try<Docker*> create = Docker::create(flags.docker, flags.docker_socket, true);
   if (create.isError()) {
@@ -137,32 +163,9 @@ Try<DockerContainerizer*> DockerContainerizer::create(
     }
   }
 
-  return new DockerContainerizer(flags, fetcher, docker);
-}
-
-
-DockerContainerizer::DockerContainerizer(
-    const Owned<DockerContainerizerProcess>& _process)
-  : process(_process)
-{
+  process.reset(new DockerContainerizerProcess(flags, &fetcher, docker));
   spawn(process.get());
-}
-
-
-DockerContainerizer::DockerContainerizer(
-    const Flags& flags,
-    Fetcher* fetcher,
-    Shared<Docker> docker)
-  : process(new DockerContainerizerProcess(flags, fetcher, docker))
-{
-  spawn(process.get());
-}
-
-
-DockerContainerizer::~DockerContainerizer()
-{
-  terminate(process.get());
-  process::wait(process.get());
+  return Nothing();
 }
 
 
@@ -391,6 +394,10 @@ Try<Nothing> DockerContainerizerProcess::checkpoint(
 Future<Nothing> DockerContainerizer::recover(
     const Option<SlaveState>& state)
 {
+  if (process.get() == NULL) {
+    return Failure("DockerContainerizer not initialized");
+  }
+
   return dispatch(
       process.get(),
       &DockerContainerizerProcess::recover,
@@ -407,6 +414,10 @@ Future<bool> DockerContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
+  if (process.get() == NULL) {
+    return Failure("DockerContainerizer not initialized");
+  }
+
   return dispatch(
       process.get(),
       &DockerContainerizerProcess::launch,
@@ -431,6 +442,10 @@ Future<bool> DockerContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
+  if (process.get() == NULL) {
+    return Failure("DockerContainerizer not initialized");
+  }
+
   return dispatch(
       process.get(),
       &DockerContainerizerProcess::launch,
@@ -449,6 +464,10 @@ Future<Nothing> DockerContainerizer::update(
     const ContainerID& containerId,
     const Resources& resources)
 {
+  if (process.get() == NULL) {
+    return Failure("DockerContainerizer not initialized");
+  }
+
   return dispatch(
       process.get(),
       &DockerContainerizerProcess::update,
@@ -460,6 +479,10 @@ Future<Nothing> DockerContainerizer::update(
 Future<ResourceStatistics> DockerContainerizer::usage(
     const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    return Failure("DockerContainerizer not initialized");
+  }
+
   return dispatch(
       process.get(),
       &DockerContainerizerProcess::usage,
@@ -470,6 +493,10 @@ Future<ResourceStatistics> DockerContainerizer::usage(
 Future<containerizer::Termination> DockerContainerizer::wait(
     const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    return Failure("DockerContainerizer not initialized");
+  }
+
   return dispatch(
       process.get(),
       &DockerContainerizerProcess::wait,
@@ -479,6 +506,12 @@ Future<containerizer::Termination> DockerContainerizer::wait(
 
 void DockerContainerizer::destroy(const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    LOG(ERROR) << "Destroy container '" << containerId << "' failed because "
+               << "DockerContainerizer not initialized";
+    return;
+  }
+
   dispatch(
       process.get(),
       &DockerContainerizerProcess::destroy,
@@ -488,6 +521,10 @@ void DockerContainerizer::destroy(const ContainerID& containerId)
 
 Future<hashset<ContainerID>> DockerContainerizer::containers()
 {
+  if (process.get() == NULL) {
+    return Failure("DockerContainerizer not initialized");
+  }
+
   return dispatch(process.get(), &DockerContainerizerProcess::containers);
 }
 
@@ -1593,7 +1630,6 @@ void DockerContainerizerProcess::remove(
     docker->rm(executor.get(), true);
   }
 }
-
 
 } // namespace slave {
 } // namespace internal {

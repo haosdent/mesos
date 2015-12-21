@@ -220,14 +220,19 @@ int main(int argc, char** argv)
     LOG(INFO) << "Git SHA: " << build::GIT_SHA.get();
   }
 
-  Fetcher fetcher;
-
   Try<Containerizer*> containerizer =
-    Containerizer::create(flags, false, &fetcher);
+    Containerizer::create(flags.containerizers);
 
   if (containerizer.isError()) {
     EXIT(EXIT_FAILURE)
-      << "Failed to create a containerizer: " << containerizer.error();
+      << "Failed to create containerizers: " << containerizer.error();
+  }
+
+  Try<Nothing> initialize = containerizer.get()->initialize(flags, true);
+
+  if (initialize.isError()) {
+    EXIT(EXIT_FAILURE)
+      << "Failed to initialize containerizers: " << initialize.error();
   }
 
   Try<MasterDetector*> detector = MasterDetector::create(master.get());

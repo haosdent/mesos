@@ -17,6 +17,8 @@
 #ifndef __DOCKER_CONTAINERIZER_HPP__
 #define __DOCKER_CONTAINERIZER_HPP__
 
+#include <mesos/slave/containerizer.hpp>
+
 #include <process/shared.hpp>
 
 #include <stout/flags.hpp>
@@ -25,7 +27,7 @@
 #include "docker/docker.hpp"
 #include "docker/executor.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
+#include "slave/containerizer/fetcher.hpp"
 
 namespace mesos {
 namespace internal {
@@ -53,21 +55,20 @@ class DockerContainerizerProcess;
 class DockerContainerizer : public Containerizer
 {
 public:
-  static Try<DockerContainerizer*> create(
-      const Flags& flags,
-      Fetcher* fetcher);
+  static Try<Containerizer*> create();
 
   // This is only public for tests.
-  DockerContainerizer(
-      const Flags& flags,
-      Fetcher* fetcher,
-      process::Shared<Docker> docker);
+  DockerContainerizer();
 
   // This is only public for tests.
   DockerContainerizer(
       const process::Owned<DockerContainerizerProcess>& _process);
 
   virtual ~DockerContainerizer();
+
+  virtual Try<Nothing> initialize(
+      const Flags& flags,
+      bool local);
 
   virtual process::Future<Nothing> recover(
       const Option<state::SlaveState>& state);
@@ -106,6 +107,7 @@ public:
   virtual process::Future<hashset<ContainerID>> containers();
 
 private:
+  Fetcher fetcher;
   process::Owned<DockerContainerizerProcess> process;
 };
 
@@ -456,7 +458,6 @@ private:
 
   hashmap<ContainerID, Container*> containers_;
 };
-
 
 } // namespace slave {
 } // namespace internal {

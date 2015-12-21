@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+#include <mesos/slave/containerizer.hpp>
+
 #include <process/future.hpp>
 #include <process/gmock.hpp>
 
@@ -27,7 +29,6 @@
 
 #include "messages/messages.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/composing.hpp"
 
 #include "tests/mesos.hpp"

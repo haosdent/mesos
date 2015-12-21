@@ -388,7 +388,8 @@ containerizerdir = $(pkgincludedir)/containerizer
 
 containerizer_HEADERS =							\
   $(top_srcdir)/include/mesos/containerizer/containerizer.hpp		\
-  $(top_srcdir)/include/mesos/containerizer/containerizer.proto
+  $(top_srcdir)/include/mesos/containerizer/containerizer.proto		\
+  $(top_srcdir)/include/mesos/slave/containerizer.hpp
 
 nodist_containerizer_HEADERS =						\
   ../include/mesos/containerizer/containerizer.pb.h
@@ -437,6 +438,7 @@ module_HEADERS =							\
   $(top_srcdir)/include/mesos/module/authenticatee.hpp			\
   $(top_srcdir)/include/mesos/module/authenticator.hpp			\
   $(top_srcdir)/include/mesos/module/authorizer.hpp			\
+  $(top_srcdir)/include/mesos/module/containerizer.hpp			\
   $(top_srcdir)/include/mesos/module/hook.hpp				\
   $(top_srcdir)/include/mesos/module/isolator.hpp			\
   $(top_srcdir)/include/mesos/module/module.hpp				\
@@ -706,7 +708,6 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   slave/status_update_manager.hpp					\
   slave/validation.hpp							\
   slave/containerizer/composing.hpp					\
-  slave/containerizer/containerizer.hpp					\
   slave/containerizer/docker.hpp					\
   slave/containerizer/external_containerizer.hpp			\
   slave/containerizer/fetcher.hpp					\

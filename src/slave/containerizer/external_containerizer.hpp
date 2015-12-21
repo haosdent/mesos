@@ -22,6 +22,8 @@
 #include <string>
 #include <tuple>
 
+#include <mesos/slave/containerizer.hpp>
+
 #include <process/owned.hpp>
 #include <process/subprocess.hpp>
 
@@ -30,8 +32,6 @@
 #include <stout/try.hpp>
 
 #include "slave/state.hpp"
-
-#include "slave/containerizer/containerizer.hpp"
 
 #include "slave/containerizer/mesos/launcher.hpp"
 
@@ -74,11 +74,15 @@ class ExternalContainerizerProcess;
 class ExternalContainerizer : public Containerizer
 {
 public:
-  static Try<ExternalContainerizer*> create(const Flags& flags);
+  static Try<Containerizer*> create();
 
-  ExternalContainerizer(const Flags& flags);
+  ExternalContainerizer();
 
   virtual ~ExternalContainerizer();
+
+  virtual Try<Nothing> initialize(
+      const Flags& flags,
+      bool local);
 
   virtual process::Future<Nothing> recover(
       const Option<state::SlaveState>& state);

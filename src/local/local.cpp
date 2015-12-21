@@ -28,6 +28,7 @@
 #include <mesos/module/anonymous.hpp>
 #include <mesos/module/authorizer.hpp>
 
+#include <mesos/slave/containerizer.hpp>
 #include <mesos/slave/resource_estimator.hpp>
 
 #include <process/limiter.hpp>
@@ -64,9 +65,6 @@
 #include "slave/slave.hpp"
 #include "slave/status_update_manager.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
-#include "slave/containerizer/fetcher.hpp"
-
 #include "state/in_memory.hpp"
 #include "state/log.hpp"
 #include "state/protobuf.hpp"
@@ -84,7 +82,6 @@ using mesos::internal::master::Registrar;
 using mesos::internal::master::Repairer;
 
 using mesos::internal::slave::Containerizer;
-using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::GarbageCollector;
 using mesos::internal::slave::Slave;
 using mesos::internal::slave::StatusUpdateManager;
@@ -126,7 +123,6 @@ static Option<Authorizer*> authorizer = None();
 static Files* files = NULL;
 static vector<GarbageCollector*>* garbageCollectors = NULL;
 static vector<StatusUpdateManager*>* statusUpdateManagers = NULL;
-static vector<Fetcher*>* fetchers = NULL;
 static vector<ResourceEstimator*>* resourceEstimators = NULL;
 static vector<QoSController*>* qosControllers = NULL;
 
@@ -327,7 +323,6 @@ PID<Master> launch(const Flags& flags, Allocator* _allocator)
 
   garbageCollectors = new vector<GarbageCollector*>();
   statusUpdateManagers = new vector<StatusUpdateManager*>();
-  fetchers = new vector<Fetcher*>();
   resourceEstimators = new vector<ResourceEstimator*>();
   qosControllers = new vector<QoSController*>();
 
@@ -347,7 +342,6 @@ PID<Master> launch(const Flags& flags, Allocator* _allocator)
 
     garbageCollectors->push_back(new GarbageCollector());
     statusUpdateManagers->push_back(new StatusUpdateManager(flags));
-    fetchers->push_back(new Fetcher());
 
     Try<ResourceEstimator*> resourceEstimator =
       ResourceEstimator::create(flags.resource_estimator);
@@ -375,10 +369,15 @@ PID<Master> launch(const Flags& flags, Allocator* _allocator)
     }
 
     Try<Containerizer*> containerizer =
-      Containerizer::create(flags, true, fetchers->back());
+      Containerizer::create(flags.containerizers);
 
     if (containerizer.isError()) {
-      EXIT(1) << "Failed to create a containerizer: " << containerizer.error();
+      EXIT(1) << "Failed to create containerizers: " << containerizer.error();
+    }
+
+    Try<Nothing> initialize = containerizer.get()->initialize(flags, true);
+    if (initialize.isError()) {
+      EXIT(1) << "Failed to initialize containerizers: " << initialize.error();
     }
 
     // NOTE: At this point detector is already initialized by the
@@ -453,13 +452,6 @@ void shutdown()
 
     delete statusUpdateManagers;
     statusUpdateManagers = NULL;
-
-    foreach (Fetcher* fetcher, *fetchers) {
-      delete fetcher;
-    }
-
-    delete fetchers;
-    fetchers = NULL;
 
     foreach (ResourceEstimator* estimator, *resourceEstimators) {
       delete estimator;

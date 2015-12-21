@@ -24,6 +24,8 @@
 
 #include <gmock/gmock.h>
 
+#include <mesos/slave/containerizer.hpp>
+
 #include <process/dispatch.hpp>
 #include <process/future.hpp>
 #include <process/pid.hpp>
@@ -37,8 +39,6 @@
 #include "mesos/mesos.hpp"
 #include "mesos/resources.hpp"
 #include "mesos/type_utils.hpp"
-
-#include "slave/containerizer/containerizer.hpp"
 
 #include "slave/slave.hpp"
 #include "slave/state.hpp"

@@ -24,6 +24,8 @@
 
 #include <mesos/resources.hpp>
 
+#include <mesos/slave/containerizer.hpp>
+
 #include <process/future.hpp>
 
 #include <stout/os.hpp>
@@ -35,7 +37,6 @@
 #include "slave/flags.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/external_containerizer.hpp"
 
 #include "tests/mesos.hpp"

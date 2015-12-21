@@ -72,9 +72,9 @@ using state::RunState;
 using state::SlaveState;
 
 
-Try<ExternalContainerizer*> ExternalContainerizer::create(const Flags& flags)
+Try<Containerizer*> ExternalContainerizer::create()
 {
-  return new ExternalContainerizer(flags);
+  return new ExternalContainerizer();
 }
 
 
@@ -133,10 +133,9 @@ static Try<T> result(
 }
 
 
-ExternalContainerizer::ExternalContainerizer(const Flags& flags)
-  : process(new ExternalContainerizerProcess(flags))
+ExternalContainerizer::ExternalContainerizer()
+  : process()
 {
-  spawn(process.get());
 }
 
 
@@ -147,9 +146,23 @@ ExternalContainerizer::~ExternalContainerizer()
 }
 
 
+Try<Nothing> ExternalContainerizer::initialize(
+      const Flags& flags,
+      bool local)
+{
+  process.reset(new ExternalContainerizerProcess(flags));
+  spawn(process.get());
+
+  return Nothing();
+}
+
 Future<Nothing> ExternalContainerizer::recover(
     const Option<state::SlaveState>& state)
 {
+  if (process.get() == NULL) {
+    return Failure("ExternalContainerizer not initialized");
+  }
+
   return dispatch(process.get(),
                   &ExternalContainerizerProcess::recover,
                   state);
@@ -165,16 +178,20 @@ Future<bool> ExternalContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
-    return dispatch(process.get(),
-                    &ExternalContainerizerProcess::launch,
-                    containerId,
-                    None(),
-                    executorInfo,
-                    directory,
-                    user,
-                    slaveId,
-                    slavePid,
-                    checkpoint);
+  if (process.get() == NULL) {
+    return Failure("ExternalContainerizer not initialized");
+  }
+
+  return dispatch(process.get(),
+                  &ExternalContainerizerProcess::launch,
+                  containerId,
+                  None(),
+                  executorInfo,
+                  directory,
+                  user,
+                  slaveId,
+                  slavePid,
+                  checkpoint);
 }
 
 
@@ -188,16 +205,20 @@ Future<bool> ExternalContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
-    return dispatch(process.get(),
-                    &ExternalContainerizerProcess::launch,
-                    containerId,
-                    taskInfo,
-                    executorInfo,
-                    directory,
-                    user,
-                    slaveId,
-                    slavePid,
-                    checkpoint);
+  if (process.get() == NULL) {
+    return Failure("ExternalContainerizer not initialized");
+  }
+
+  return dispatch(process.get(),
+                  &ExternalContainerizerProcess::launch,
+                  containerId,
+                  taskInfo,
+                  executorInfo,
+                  directory,
+                  user,
+                  slaveId,
+                  slavePid,
+                  checkpoint);
 }
 
 
@@ -205,16 +226,24 @@ Future<Nothing> ExternalContainerizer::update(
     const ContainerID& containerId,
     const Resources& resources)
 {
-    return dispatch(process.get(),
-                    &ExternalContainerizerProcess::update,
-                    containerId,
-                    resources);
+  if (process.get() == NULL) {
+    return Failure("ExternalContainerizer not initialized");
+  }
+
+  return dispatch(process.get(),
+                  &ExternalContainerizerProcess::update,
+                  containerId,
+                  resources);
 }
 
 
 Future<ResourceStatistics> ExternalContainerizer::usage(
     const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    return Failure("ExternalContainerizer not initialized");
+  }
+
   return dispatch(process.get(),
                   &ExternalContainerizerProcess::usage,
                   containerId);
@@ -224,6 +253,10 @@ Future<ResourceStatistics> ExternalContainerizer::usage(
 Future<containerizer::Termination> ExternalContainerizer::wait(
     const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    return Failure("ExternalContainerizer not initialized");
+  }
+
   return dispatch(process.get(),
                   &ExternalContainerizerProcess::wait,
                   containerId);
@@ -232,6 +265,12 @@ Future<containerizer::Termination> ExternalContainerizer::wait(
 
 void ExternalContainerizer::destroy(const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    LOG(ERROR) << "Destroy container '" << containerId << "' failed because "
+               << "ExternalContainerizer not initialized";
+    return;
+  }
+
   dispatch(process.get(),
            &ExternalContainerizerProcess::destroy,
            containerId);
@@ -240,6 +279,10 @@ void ExternalContainerizer::destroy(const ContainerID& containerId)
 
 Future<hashset<ContainerID>> ExternalContainerizer::containers()
 {
+  if (process.get() == NULL) {
+    return Failure("ExternalContainerizer not initialized");
+  }
+
   return dispatch(process.get(),
                   &ExternalContainerizerProcess::containers);
 }

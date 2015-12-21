@@ -28,6 +28,7 @@
 
 #include <mesos/master/allocator.hpp>
 
+#include <mesos/slave/containerizer.hpp>
 #include <mesos/slave/resource_estimator.hpp>
 
 #include <process/owned.hpp>
@@ -60,7 +61,6 @@
 #include "slave/slave.hpp"
 #include "slave/status_update_manager.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/fetcher.hpp"
 
 #include "state/in_memory.hpp"

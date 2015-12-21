@@ -28,7 +28,6 @@
 
 #include "slave/state.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/composing.hpp"
 
 using std::list;
@@ -129,7 +128,7 @@ private:
 };
 
 
-Try<ComposingContainerizer*> ComposingContainerizer::create(
+Try<Containerizer*> ComposingContainerizer::create(
     const vector<Containerizer*>& containerizers)
 {
   return new ComposingContainerizer(containerizers);
@@ -137,24 +136,48 @@ Try<ComposingContainerizer*> ComposingContainerizer::create(
 
 
 ComposingContainerizer::ComposingContainerizer(
-    const vector<Containerizer*>& containerizers)
+    const vector<Containerizer*>& _containerizers)
+  : containerizers(_containerizers)
 {
-  process = new ComposingContainerizerProcess(containerizers);
-  spawn(process);
 }
 
 
 ComposingContainerizer::~ComposingContainerizer()
 {
-  terminate(process);
-  process::wait(process);
-  delete process;
+  if (process == NULL) {
+    terminate(process);
+    process::wait(process);
+    delete process;
+  }
+  foreach (Containerizer* containerizer, containerizers) {
+    delete containerizer;
+  }
+}
+
+
+Try<Nothing> ComposingContainerizer::initialize(
+    const Flags& flags,
+    bool local) {
+  foreach (Containerizer* containerizer, containerizers) {
+    Try<Nothing> init = containerizer->initialize(flags, local);
+    if (init.isError()) {
+      return init;
+    }
+  }
+
+  process = new ComposingContainerizerProcess(containerizers);
+  spawn(process);
+  return Nothing();
 }
 
 
 Future<Nothing> ComposingContainerizer::recover(
     const Option<state::SlaveState>& state)
 {
+  if (process == NULL) {
+    return Failure("ComposingContainerizer not initialized");
+  }
+
   return dispatch(process, &ComposingContainerizerProcess::recover, state);
 }
 
@@ -168,6 +191,10 @@ Future<bool> ComposingContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
+  if (process == NULL) {
+    return Failure("ComposingContainerizer not initialized");
+  }
+
   return dispatch(process,
                   &ComposingContainerizerProcess::launch,
                   containerId,
@@ -190,6 +217,10 @@ Future<bool> ComposingContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
+  if (process == NULL) {
+    return Failure("ComposingContainerizer not initialized");
+  }
+
   return dispatch(process,
                   &ComposingContainerizerProcess::launch,
                   containerId,
@@ -207,6 +238,10 @@ Future<Nothing> ComposingContainerizer::update(
     const ContainerID& containerId,
     const Resources& resources)
 {
+  if (process == NULL) {
+    return Failure("ComposingContainerizer not initialized");
+  }
+
   return dispatch(process,
                   &ComposingContainerizerProcess::update,
                   containerId,
@@ -217,6 +252,10 @@ Future<Nothing> ComposingContainerizer::update(
 Future<ResourceStatistics> ComposingContainerizer::usage(
     const ContainerID& containerId)
 {
+  if (process == NULL) {
+    return Failure("ComposingContainerizer not initialized");
+  }
+
   return dispatch(process, &ComposingContainerizerProcess::usage, containerId);
 }
 
@@ -224,18 +263,32 @@ Future<ResourceStatistics> ComposingContainerizer::usage(
 Future<containerizer::Termination> ComposingContainerizer::wait(
     const ContainerID& containerId)
 {
+  if (process == NULL) {
+    return Failure("ComposingContainerizer not initialized");
+  }
+
   return dispatch(process, &ComposingContainerizerProcess::wait, containerId);
 }
 
 
 void ComposingContainerizer::destroy(const ContainerID& containerId)
 {
+  if (process == NULL) {
+    LOG(ERROR) << "Destroy container '" << containerId << "' failed because "
+               << "ComposingContainerizer not initialized";
+    return;
+  }
+
   dispatch(process, &ComposingContainerizerProcess::destroy, containerId);
 }
 
 
 Future<hashset<ContainerID>> ComposingContainerizer::containers()
 {
+  if (process == NULL) {
+    return Failure("ComposingContainerizer not initialized");
+  }
+
   return dispatch(process, &ComposingContainerizerProcess::containers);
 }
 

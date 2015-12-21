@@ -17,6 +17,10 @@
 #include <map>
 #include <vector>
 
+#include <mesos/module/module.hpp>
+#include <mesos/module/containerizer.hpp>
+#include <mesos/slave/containerizer.hpp>
+
 #include <process/dispatch.hpp>
 #include <process/owned.hpp>
 
@@ -29,13 +33,15 @@
 
 #include "hook/manager.hpp"
 
+#include "module/manager.hpp"
+
 #include "slave/flags.hpp"
 #include "slave/slave.hpp"
 
 #include "slave/containerizer/composing.hpp"
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/docker.hpp"
 #include "slave/containerizer/external_containerizer.hpp"
+#include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/containerizer.hpp"
 #include "slave/containerizer/mesos/launcher.hpp"
@@ -52,6 +58,52 @@ using namespace process;
 namespace mesos {
 namespace internal {
 namespace slave {
+
+Try<Containerizer*> Containerizer::create(const string& names)
+{
+  // TODO(benh): We need to store which containerizer or
+  // containerizers were being used. See MESOS-1663.
+
+  // Create containerizer(s).
+  vector<Containerizer*> containerizers;
+
+  foreach (const string& type, strings::split(names, ",")) {
+    if (type == "mesos") {
+      Try<Containerizer*> containerizer = MesosContainerizer::create();
+      if (containerizer.isError()) {
+        return Error("Could not create MesosContainerizer: " +
+                     containerizer.error());
+      } else {
+        containerizers.push_back(containerizer.get());
+      }
+    } else if (type == "docker") {
+      Try<Containerizer*> containerizer = DockerContainerizer::create();
+      if (containerizer.isError()) {
+        return Error("Could not create DockerContainerizer: " +
+                     containerizer.error());
+      } else {
+        containerizers.push_back(containerizer.get());
+      }
+    } else {
+      Try<Containerizer*> containerizer =
+        modules::ModuleManager::create<Containerizer>(type);
+      if (containerizer.isError()) {
+        return Error("Cound not create Containerizer for " + type + " : " +
+                     containerizer.error());
+      }
+    }
+  }
+
+  if (containerizers.size() == 1) {
+    return containerizers.front();
+  }
+
+  Try<Containerizer*> containerizer =
+    ComposingContainerizer::create(containerizers);
+
+  return containerizer;
+}
+
 
 // TODO(idownes): Move this to the Containerizer interface to complete
 // the delegation of containerization, i.e., external containerizers should be
@@ -158,80 +210,6 @@ Try<Resources> Containerizer::resources(const Flags& flags)
 }
 
 
-Try<Containerizer*> Containerizer::create(
-    const Flags& flags,
-    bool local,
-    Fetcher* fetcher)
-{
-  if (flags.isolation == "external") {
-    LOG(WARNING) << "The 'external' isolation flag is deprecated, "
-                 << "please update your flags to"
-                 << " '--containerizers=external'.";
-
-    Try<ExternalContainerizer*> containerizer =
-      ExternalContainerizer::create(flags);
-    if (containerizer.isError()) {
-      return Error("Could not create ExternalContainerizer: " +
-                   containerizer.error());
-    }
-
-    return containerizer.get();
-  }
-
-  // TODO(benh): We need to store which containerizer or
-  // containerizers were being used. See MESOS-1663.
-
-  // Create containerizer(s).
-  vector<Containerizer*> containerizers;
-
-  foreach (const string& type, strings::split(flags.containerizers, ",")) {
-    if (type == "mesos") {
-      Try<MesosContainerizer*> containerizer =
-        MesosContainerizer::create(flags, local, fetcher);
-      if (containerizer.isError()) {
-        return Error("Could not create MesosContainerizer: " +
-                     containerizer.error());
-      } else {
-        containerizers.push_back(containerizer.get());
-      }
-    } else if (type == "docker") {
-      Try<DockerContainerizer*> containerizer =
-        DockerContainerizer::create(flags, fetcher);
-      if (containerizer.isError()) {
-        return Error("Could not create DockerContainerizer: " +
-                     containerizer.error());
-      } else {
-        containerizers.push_back(containerizer.get());
-      }
-    } else if (type == "external") {
-      Try<ExternalContainerizer*> containerizer =
-        ExternalContainerizer::create(flags);
-      if (containerizer.isError()) {
-        return Error("Could not create ExternalContainerizer: " +
-                     containerizer.error());
-      } else {
-        containerizers.push_back(containerizer.get());
-      }
-    } else {
-      return Error("Unknown or unsupported containerizer: " + type);
-    }
-  }
-
-  if (containerizers.size() == 1) {
-    return containerizers.front();
-  }
-
-  Try<ComposingContainerizer*> containerizer =
-    ComposingContainerizer::create(containerizers);
-
-  if (containerizer.isError()) {
-    return Error(containerizer.error());
-  }
-
-  return containerizer.get();
-}
-
-
 map<string, string> executorEnvironment(
     const ExecutorInfo& executorInfo,
     const string& directory,
@@ -335,7 +313,6 @@ map<string, string> executorEnvironment(
 
   return environment;
 }
-
 
 } // namespace slave {
 } // namespace internal {

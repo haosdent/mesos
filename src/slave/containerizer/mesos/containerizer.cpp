@@ -38,7 +38,6 @@
 #include "slave/paths.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/launcher.hpp"
@@ -101,10 +100,37 @@ using state::RunState;
 
 const char MESOS_CONTAINERIZER[] = "mesos-containerizer";
 
-Try<MesosContainerizer*> MesosContainerizer::create(
+Try<Containerizer*> MesosContainerizer::create()
+{
+  return new MesosContainerizer();
+}
+
+
+MesosContainerizer::MesosContainerizer()
+{
+}
+
+
+MesosContainerizer::MesosContainerizer(
+    const Owned<MesosContainerizerProcess>& _process)
+  : process(_process)
+{
+  spawn(process.get());
+}
+
+
+MesosContainerizer::~MesosContainerizer()
+{
+  if (process.get() != NULL) {
+    terminate(process.get());
+    process::wait(process.get());
+  }
+}
+
+
+Try<Nothing> MesosContainerizer::initialize(
     const Flags& flags,
-    bool local,
-    Fetcher* fetcher)
+    bool local)
 {
   string isolation;
 
@@ -142,7 +168,7 @@ Try<MesosContainerizer*> MesosContainerizer::create(
 
 #ifdef __linux__
   // The provisioner will be used by the 'filesystem/linux' isolator.
-  Try<Owned<Provisioner>> provisioner = Provisioner::create(flags, fetcher);
+  Try<Owned<Provisioner>> provisioner = Provisioner::create(flags, &fetcher);
   if (provisioner.isError()) {
     return Error("Failed to create provisioner: " + provisioner.error());
   }
@@ -241,50 +267,22 @@ Try<MesosContainerizer*> MesosContainerizer::create(
     return Error("Failed to create launcher: " + launcher.error());
   }
 
-  return new MesosContainerizer(
-      flags_,
-      local,
-      fetcher,
-      Owned<Launcher>(launcher.get()),
-      isolators);
-}
-
-
-MesosContainerizer::MesosContainerizer(
-    const Flags& flags,
-    bool local,
-    Fetcher* fetcher,
-    const Owned<Launcher>& launcher,
-    const vector<Owned<Isolator>>& isolators)
-  : process(new MesosContainerizerProcess(
-      flags,
-      local,
-      fetcher,
-      launcher,
-      isolators))
-{
+  MesosContainerizerProcess* process_ = new MesosContainerizerProcess(
+      flags_, local, &fetcher, Owned<Launcher>(launcher.get()), isolators);
+  process.reset(process_);
   spawn(process.get());
-}
 
-
-MesosContainerizer::MesosContainerizer(
-    const Owned<MesosContainerizerProcess>& _process)
-  : process(_process)
-{
-  spawn(process.get());
-}
-
-
-MesosContainerizer::~MesosContainerizer()
-{
-  terminate(process.get());
-  process::wait(process.get());
+  return Nothing();
 }
 
 
 Future<Nothing> MesosContainerizer::recover(
     const Option<state::SlaveState>& state)
 {
+  if (process.get() == NULL) {
+    return Failure("MesosContainerizer not initialized");
+  }
+
   return dispatch(process.get(), &MesosContainerizerProcess::recover, state);
 }
 
@@ -298,6 +296,10 @@ Future<bool> MesosContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
+  if (process.get() == NULL) {
+    return Failure("MesosContainerizer not initialized");
+  }
+
   return dispatch(process.get(),
                   &MesosContainerizerProcess::launch,
                   containerId,
@@ -321,6 +323,10 @@ Future<bool> MesosContainerizer::launch(
     const PID<Slave>& slavePid,
     bool checkpoint)
 {
+  if (process.get() == NULL) {
+    return Failure("MesosContainerizer not initialized");
+  }
+
   return dispatch(process.get(),
                   &MesosContainerizerProcess::launch,
                   containerId,
@@ -338,6 +344,10 @@ Future<Nothing> MesosContainerizer::update(
     const ContainerID& containerId,
     const Resources& resources)
 {
+  if (process.get() == NULL) {
+    return Failure("MesosContainerizer not initialized");
+  }
+
   return dispatch(process.get(),
                   &MesosContainerizerProcess::update,
                   containerId,
@@ -348,6 +358,10 @@ Future<Nothing> MesosContainerizer::update(
 Future<ResourceStatistics> MesosContainerizer::usage(
     const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    return Failure("MesosContainerizer not initialized");
+  }
+
   return dispatch(
       process.get(),
       &MesosContainerizerProcess::usage,
@@ -358,12 +372,22 @@ Future<ResourceStatistics> MesosContainerizer::usage(
 Future<containerizer::Termination> MesosContainerizer::wait(
     const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    return Failure("MesosContainerizer not initialized");
+  }
+
   return dispatch(process.get(), &MesosContainerizerProcess::wait, containerId);
 }
 
 
 void MesosContainerizer::destroy(const ContainerID& containerId)
 {
+  if (process.get() == NULL) {
+    LOG(ERROR) << "Destroy container '" << containerId << "' failed because "
+               << "MesosContainerizer not initialized";
+    return;
+  }
+
   dispatch(
       process.get(),
       &MesosContainerizerProcess::destroy,
@@ -373,6 +397,10 @@ void MesosContainerizer::destroy(const ContainerID& containerId)
 
 Future<hashset<ContainerID>> MesosContainerizer::containers()
 {
+  if (process.get() == NULL) {
+    return Failure("MesosContainerizer not initialized");
+  }
+
   return dispatch(process.get(), &MesosContainerizerProcess::containers);
 }
 

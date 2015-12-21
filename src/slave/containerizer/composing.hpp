@@ -22,7 +22,7 @@
 #include <mesos/mesos.hpp>
 #include <mesos/resources.hpp>
 
-#include <mesos/containerizer/containerizer.hpp>
+#include <mesos/slave/containerizer.hpp>
 
 #include <process/future.hpp>
 #include <process/process.hpp>
@@ -43,13 +43,17 @@ class ComposingContainerizerProcess;
 class ComposingContainerizer : public Containerizer
 {
 public:
-  static Try<ComposingContainerizer*> create(
+  static Try<Containerizer*> create(
       const std::vector<Containerizer*>& containerizers);
 
   ComposingContainerizer(
-      const std::vector<Containerizer*>& containerizers);
+      const std::vector<Containerizer*>& _containerizers);
 
   virtual ~ComposingContainerizer();
+
+  virtual Try<Nothing> initialize(
+      const Flags& flags,
+      bool local);
 
   virtual process::Future<Nothing> recover(
       const Option<state::SlaveState>& state);
@@ -88,6 +92,7 @@ public:
   virtual process::Future<hashset<ContainerID>> containers();
 
 private:
+  std::vector<Containerizer*> containerizers;
   ComposingContainerizerProcess* process;
 };
 
