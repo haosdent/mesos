@@ -119,6 +119,12 @@
         }
       };
     })
+    .filter('decimalFloat', function() {
+      // This filter convert small float number to decimal string
+      return function(num) {
+        return parseFloat(num.toFixed(4)).toString();
+      }
+    })
     // Defines the 'clipboard' directive, which integrates copying to the user's
     // clipboard with an Adobe Flash object via the ZeroClipboard library.
     //

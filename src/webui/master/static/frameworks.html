@@ -41,9 +41,9 @@
       <td>{{framework.user}}</td>
       <td>{{framework.name}}</td>
       <td>{{framework.tasks.length}}</td>
-      <td>{{framework.resources.cpus | number}}</td>
+      <td>{{framework.resources.cpus | decimalFloat}}</td>
       <td>{{framework.resources.mem * (1024 * 1024) | dataSize}}</td>
-      <td>{{framework.max_share * 100 | number}}%</td>
+      <td>{{framework.max_share * 100 | decimalFloat}}%</td>
       <td>
         <m-timestamp value="{{framework.registered_time * 1000}}"></m-timestamp>
       </td>
