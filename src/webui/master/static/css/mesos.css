@@ -163,3 +163,7 @@ a.badge-type:hover {
   -webkit-box-shadow: none;
   box-shadow: none;
 }
+
+.copy-only {
+  font-size: 0px;
+}
