@@ -114,7 +114,9 @@ Launcher is responsible for forking/destroying containers.
 * Signals the child process to continue (exec’ing) by writing a
   character to the write end of the pipe in the parent process.
 
-###### Posix launcher (TBD)
+###### Posix launcher
+
+* Spawn child process(container process) using `fork` system call.
 
 <a name="Isolators"></a>
 ##### Isolators
