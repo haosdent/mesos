@@ -158,6 +158,10 @@ public:
       const std::string& image,
       bool force = false) const;
 
+  virtual process::Future<std::string> exec(
+      const std::string& containerName,
+      const mesos::CommandInfo& commandInfo) const;
+
   // Validate current docker version is not less than minVersion.
   virtual Try<Nothing> validateVersion(const Version& minVersion) const;
 
@@ -257,6 +261,11 @@ private:
 
   static process::Future<Image> ____pull(
       const std::string& output);
+
+  static process::Future<std::string> _exec(
+      const std::string& cmd,
+      const process::Subprocess& s,
+      process::Future<std::string> output);
 
   static void pullDiscarded(
       const process::Subprocess& s,

@@ -1208,3 +1208,87 @@ Future<Docker::Image> Docker::____pull(
 
   return Failure("Failed to find image");
 }
+
+
+Future<string> Docker::exec(
+  const string& containerName,
+  const CommandInfo& commandInfo) const
+{
+  vector<string> argv;
+  argv.push_back(path);
+  argv.push_back("-H");
+  argv.push_back(socket);
+  argv.push_back("exec");
+  argv.push_back(containerName);
+
+  if (commandInfo.shell()) {
+    if (!commandInfo.has_value()) {
+      return Failure("Shell specified but no command value provided");
+    }
+
+    // Because "docker exec" does not support command which is wrapped in quote:
+    //   docker exec container "command options"
+    // So we add "sh -c" before command to avoid this problem:
+    //   docker exec container sh -c "command options"
+    argv.push_back("sh");
+    argv.push_back("-c");
+    argv.push_back(commandInfo.value());
+  } else {
+    if (commandInfo.has_value()) {
+      argv.push_back(commandInfo.value());
+    }
+
+    foreach (const string& argument, commandInfo.arguments()) {
+      argv.push_back(argument);
+    }
+  }
+
+  string cmd = strings::join(" ", argv);
+
+  VLOG(1) << "Running " << cmd;
+
+  Try<Subprocess> s = subprocess(
+      path,
+      argv,
+      Subprocess::PATH("/dev/null"),
+      Subprocess::PIPE(),
+      Subprocess::PIPE(),
+      None());
+
+  if (s.isError()) {
+    return Failure("Failed to execute '" + cmd + "': " + s.error());
+  }
+
+  // Start reading from stdout so writing to the pipe won't block
+  // to handle cases where the output is larger than the pipe
+  // capacity.
+  const Future<string> output = io::read(s.get().out().get());
+
+  return s.get().status()
+    .then(lambda::bind(&Docker::_exec, cmd, s.get(), output));
+}
+
+
+Future<string> Docker::_exec(
+    const string& cmd,
+    const Subprocess& s,
+    Future<string> output)
+{
+  Option<int> status = s.status().get();
+
+  if (!status.isSome()) {
+    output.discard();
+    return Failure("No status found from '" + cmd + "'");
+  } else if (status.get() != 0) {
+    output.discard();
+    CHECK_SOME(s.err());
+    return io::read(s.err().get())
+      .then(lambda::bind(
+          failure<string>,
+          cmd,
+          status.get(),
+          lambda::_1));
+  }
+
+  return output;
+}

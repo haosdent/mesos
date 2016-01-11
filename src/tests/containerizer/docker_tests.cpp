@@ -250,6 +250,72 @@ TEST_F(DockerTest, ROOT_DOCKER_parsing_version)
 }
 
 
+TEST_F(DockerTest, ROOT_DOCKER_CheckExec)
+{
+  Owned<Docker> docker(Docker::create(tests::flags.docker,
+                                     tests::flags.docker_socket,
+                                     false).get());
+
+  Future<Version> version = docker->version();
+  AWAIT_READY(version);
+
+  Try<Nothing> validateResult = docker->validateVersion(Version(1, 3, 0));
+  ASSERT_SOME(validateResult)
+    << "-------------------------------------------------------------\n"
+    << "We cannot run this test because of 'docker exec' command \n"
+    << "require docker version greater than '1.3.0'. You won't be \n"
+    << "able to use the docker exec method, but feel free to disable\n"
+    << "this test.\n"
+    << "-------------------------------------------------------------";
+
+  const string containerName = NAME_PREFIX + "-test-exec";
+  Resources resources = Resources::parse("cpus:1;mem:512").get();
+
+  ContainerInfo containerInfo;
+  containerInfo.set_type(ContainerInfo::DOCKER);
+
+  ContainerInfo::DockerInfo dockerInfo;
+  dockerInfo.set_image("busybox");
+  containerInfo.mutable_docker()->CopyFrom(dockerInfo);
+
+  CommandInfo commandInfo;
+  commandInfo.set_value("sleep 120");
+
+  CommandInfo echoCmd;
+  echoCmd.set_value("echo -n foo");
+
+  Try<string> directory = environment->mkdtemp();
+  CHECK_SOME(directory) << "Failed to create temporary directory";
+
+  // Start the container.
+  Future<Nothing> status = docker->run(
+      containerInfo,
+      commandInfo,
+      containerName,
+      directory.get(),
+      "/mnt/mesos/sandbox",
+      resources);
+
+  // Wait for container available.
+  Future<Docker::Container> inspect =
+    docker->inspect(containerName, slave::DOCKER_INSPECT_DELAY);
+  AWAIT_READY(inspect);
+
+  // Should be able to call exec command now.
+  Future<string> execOutput = docker->exec(containerName, echoCmd);
+  AWAIT_READY(execOutput);
+  EXPECT_EQ("foo", execOutput.get());
+
+  // Stop the container.
+  status = docker->stop(containerName);
+  AWAIT_READY(status);
+
+  // Call exec command after stop would get error.
+  execOutput = docker->exec(containerName, echoCmd);
+  AWAIT_EXPECT_FAILED(execOutput);
+}
+
+
 TEST_F(DockerTest, ROOT_DOCKER_CheckCommandWithShell)
 {
   Owned<Docker> docker(Docker::create(tests::flags.docker,
