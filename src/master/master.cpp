@@ -25,6 +25,7 @@
 #include <sstream>
 
 #include <mesos/module.hpp>
+#include <mesos/roles.hpp>
 
 #include <mesos/authentication/authenticator.hpp>
 
@@ -628,11 +629,19 @@ void Master::initialize()
                  << "removed in the future. See the Mesos 0.27 upgrade "
                  << "notes for more information";
 
-    vector<string> tokens = strings::tokenize(flags.roles.get(), ",");
+    Try<vector<string>> roles = roles::parse(flags.roles.get());
+    if (roles.isError()) {
+      EXIT(1) << "Failed to parse roles: " << roles.error();
+    }
 
     roleWhitelist = hashset<string>();
-    foreach (const std::string& role, tokens) {
+    foreach (const std::string& role, roles.get()) {
       roleWhitelist.get().insert(role);
+    }
+
+    if (roleWhitelist.get().size() < roles.get().size()) {
+      LOG(WARNING) << "The '--roles' flag value '" << flags.roles.get() << "' "
+                   << "have duplicated role.";
     }
 
     // The default role is always allowed.
