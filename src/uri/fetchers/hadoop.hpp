@@ -40,7 +40,8 @@ public:
   public:
     Flags();
 
-    Option<std::string> hadoop;
+    Option<std::string> hadoop_client;
+    std::string hadoop_client_supported_schemes;
   };
 
   static Try<process::Owned<Fetcher::Plugin>> create(const Flags& flags);
@@ -54,9 +55,14 @@ public:
       const std::string& directory);
 
 private:
-  HadoopFetcherPlugin(process::Owned<HDFS> _hdfs) : hdfs(_hdfs) {}
+  HadoopFetcherPlugin(
+      process::Owned<HDFS> _hdfs,
+      const std::set<std::string>& __schemes)
+    : hdfs(_hdfs),
+      _schemes(__schemes) {}
 
   process::Owned<HDFS> hdfs;
+  std::set<std::string> _schemes;
 };
 
 } // namespace uri {
