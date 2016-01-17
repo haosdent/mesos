@@ -797,7 +797,11 @@ Status MesosExecutorDriver::join()
 Status MesosExecutorDriver::run()
 {
   Status status = start();
-  return status != DRIVER_RUNNING ? status : join();
+  status != DRIVER_RUNNING ? status : join();
+
+  process::finalize();
+
+  return status;
 }
 
 
