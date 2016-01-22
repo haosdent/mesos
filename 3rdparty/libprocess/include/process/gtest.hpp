@@ -54,6 +54,47 @@ private:
 
 namespace internal {
 
+// Returns true if the future becomes ready, discarded, or failed after the
+// wait. This function call `Clock::advance` to make future await quickly.
+template <typename T>
+bool awaitFaster(
+    const process::Future<T>& future,
+    const Duration& duration,
+    const Duration& advanceInterval)
+{
+  if (!process::Clock::paused()) {
+    process::Clock::pause();
+  }
+
+  // If the clock is paused, no new timers will expire.
+  // Future::await(duration) may hang forever because it depends on a timer to
+  // expire after 'duration'. We instead ensure all expired timers are flushed
+  // and check if the future is satisfied.
+  Stopwatch stopwatch;
+  stopwatch.start();
+
+  while (future.isPending() && stopwatch.elapsed() < duration) {
+    process::Clock::advance(advanceInterval);
+    // Settle to make sure all expired timers are executed (not necessarily
+    // finished, see below).
+    process::Clock::settle();
+
+    // Synchronous operations and asynchronous process::Process operations
+    // should finish when the above 'settle()' returns. Other types of async
+    // operations such as io::write() may not. Therefore we wait the specified
+    // duration for it to complete. Note that nothing prevents the operations
+    // to schedule more timeouts for some time in the future. These timeouts
+    // will never be executed due to the paused process::Clock. In this case we
+    // return after the stopwatch (system clock) runs out.
+    os::sleep(Milliseconds(10));
+  }
+
+  process::Clock::resume();
+
+  return !future.isPending();
+}
+
+
 // Returns true if the future becomes ready, discarded, or failed
 // after the wait.
 template <typename T>
@@ -310,6 +351,42 @@ template <typename T1, typename T2>
 
 #define AWAIT_EXPECT_FALSE(actual)               \
   AWAIT_EXPECT_EQ_FOR(false, actual, Seconds(15))
+
+
+template <typename T>
+::testing::AssertionResult AwaitFasterAssertReady(
+    const char* expr,
+    const char*, // Unused string representation of 'duration'.
+    const char*, // Unused string representation of 'advanceInterval'.
+    const process::Future<T>& actual,
+    const Duration& duration,
+    const Duration& advanceInterval)
+{
+  if (!process::internal::awaitFaster(actual, duration, advanceInterval)) {
+    return ::testing::AssertionFailure()
+      << "Failed to wait " << duration << " for " << expr;
+  } else if (actual.isDiscarded()) {
+    return ::testing::AssertionFailure()
+      << expr << " was discarded";
+  } else if (actual.isFailed()) {
+    return ::testing::AssertionFailure()
+      << "(" << expr << ").failure(): " << actual.failure();
+  }
+
+  return ::testing::AssertionSuccess();
+}
+
+
+#define AWAIT_FASTER_ASSERT_READY_FOR(actual, duration, advanceInterval)  \
+  ASSERT_PRED_FORMAT3(AwaitFasterAssertReady, actual, duration, advanceInterval)
+
+
+#define AWAIT_FASTER_ASSERT_READY(actual, advanceInterval)                \
+  AWAIT_FASTER_ASSERT_READY_FOR(actual, Seconds(15), advanceInterval)
+
+
+#define AWAIT_FASTER_READY(actual, advanceInterval)                       \
+  AWAIT_FASTER_ASSERT_READY(actual, advanceInterval)
 
 
 inline ::testing::AssertionResult AwaitAssertResponseStatusEq(
