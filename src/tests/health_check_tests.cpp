@@ -319,6 +319,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
 
   MockDockerContainerizer containerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -671,6 +672,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
 
   MockDockerContainerizer containerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);

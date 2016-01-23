@@ -203,7 +203,7 @@ Try<Containerizer*> Containerizer::create(
       }
     } else if (type == "docker") {
       Try<DockerContainerizer*> containerizer =
-        DockerContainerizer::create(flags, fetcher);
+        DockerContainerizer::create(flags, local, fetcher);
       if (containerizer.isError()) {
         return Error("Could not create DockerContainerizer: " +
                      containerizer.error());

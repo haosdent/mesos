@@ -641,6 +641,7 @@ TEST_F(HookTest, ROOT_DOCKER_VerifySlavePreLaunchDockerHook)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);

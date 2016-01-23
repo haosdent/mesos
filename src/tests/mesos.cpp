@@ -649,10 +649,11 @@ MockDocker::~MockDocker() {}
 
 MockDockerContainerizer::MockDockerContainerizer(
     const slave::Flags& flags,
+    bool local,
     slave::Fetcher* fetcher,
     const process::Owned<ContainerLogger>& logger,
     process::Shared<Docker> docker)
-  : slave::DockerContainerizer(flags, fetcher, logger, docker)
+  : slave::DockerContainerizer(flags, local, fetcher, logger, docker)
 {
   initialize();
 }
@@ -671,10 +672,11 @@ MockDockerContainerizer::~MockDockerContainerizer() {}
 
 MockDockerContainerizerProcess::MockDockerContainerizerProcess(
     const slave::Flags& flags,
+    bool local,
     slave::Fetcher* fetcher,
     const process::Owned<ContainerLogger>& logger,
     const process::Shared<Docker>& docker)
-  : slave::DockerContainerizerProcess(flags, fetcher, logger, docker)
+  : slave::DockerContainerizerProcess(flags, local, fetcher, logger, docker)
 {
   EXPECT_CALL(*this, fetch(_, _))
     .WillRepeatedly(Invoke(this, &MockDockerContainerizerProcess::_fetch));

@@ -58,11 +58,13 @@ class DockerContainerizer : public Containerizer
 public:
   static Try<DockerContainerizer*> create(
       const Flags& flags,
+      bool local,
       Fetcher* fetcher);
 
   // This is only public for tests.
   DockerContainerizer(
       const Flags& flags,
+      bool local,
       Fetcher* fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& logger,
       process::Shared<Docker> docker);
@@ -121,10 +123,12 @@ class DockerContainerizerProcess
 public:
   DockerContainerizerProcess(
       const Flags& _flags,
+      bool _local,
       Fetcher* _fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& _logger,
       process::Shared<Docker> _docker)
     : flags(_flags),
+      local(_local),
       fetcher(_fetcher),
       logger(_logger),
       docker(_docker) {}
@@ -235,6 +239,8 @@ private:
       const Option<std::string>& executor);
 
   const Flags flags;
+
+  const bool local;
 
   Fetcher* fetcher;
 

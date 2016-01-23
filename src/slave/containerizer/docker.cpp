@@ -124,6 +124,7 @@ Option<ContainerID> parse(const Docker::Container& container)
 
 Try<DockerContainerizer*> DockerContainerizer::create(
     const Flags& flags,
+    bool local,
     Fetcher* fetcher)
 {
   // Create and initialize the container logger module.
@@ -156,6 +157,7 @@ Try<DockerContainerizer*> DockerContainerizer::create(
 
   return new DockerContainerizer(
       flags,
+      local,
       fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -172,11 +174,13 @@ DockerContainerizer::DockerContainerizer(
 
 DockerContainerizer::DockerContainerizer(
     const Flags& flags,
+    bool local,
     Fetcher* fetcher,
     const Owned<ContainerLogger>& logger,
     Shared<Docker> docker)
   : process(new DockerContainerizerProcess(
       flags,
+      local,
       fetcher,
       logger,
       docker))
@@ -869,8 +873,10 @@ Future<Docker::Container> DockerContainerizerProcess::launchExecutorContainer(
         flags.sandbox_directory,
         container->resources,
         container->environment,
-        subprocessInfo.out,
-        subprocessInfo.err);
+        (local ? Subprocess::FD(STDOUT_FILENO)
+               : Subprocess::IO(subprocessInfo.out)),
+        (local ? Subprocess::FD(STDERR_FILENO)
+               : Subprocess::IO(subprocessInfo.err)));
 
     Owned<Promise<Docker::Container>> promise(new Promise<Docker::Container>());
     // We like to propogate the run failure when run fails so slave can
@@ -943,8 +949,10 @@ Future<pid_t> DockerContainerizerProcess::launchExecutorProcess(
         path::join(flags.launcher_dir, "mesos-docker-executor"),
         argv,
         Subprocess::PIPE(),
-        subprocessInfo.out,
-        subprocessInfo.err,
+        (local ? Subprocess::FD(STDOUT_FILENO)
+               : Subprocess::IO(subprocessInfo.out)),
+        (local ? Subprocess::FD(STDERR_FILENO)
+               : Subprocess::IO(subprocessInfo.err)),
         dockerFlags(flags, container->name(), container->directory),
         environment,
         lambda::bind(&setup, container->directory));

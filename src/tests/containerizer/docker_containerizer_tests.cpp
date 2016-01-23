@@ -189,6 +189,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch_Executor)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -315,6 +316,7 @@ TEST_F(DockerContainerizerTest, DISABLED_ROOT_DOCKER_Launch_Executor_Bridged)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -433,6 +435,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -573,6 +576,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Kill)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -690,6 +694,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Usage)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -834,6 +839,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Update)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -997,6 +1003,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Recover)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -1123,6 +1130,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SkipRecoverNonDocker)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -1187,6 +1195,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Logs)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -1316,6 +1325,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -1448,6 +1458,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Override)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -1583,6 +1594,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Args)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -1724,6 +1736,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SlaveRecoveryTaskContainer)
   MockDockerContainerizer* dockerContainerizer1 =
     new MockDockerContainerizer(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -1815,6 +1828,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SlaveRecoveryTaskContainer)
   MockDockerContainerizer* dockerContainerizer2 =
     new MockDockerContainerizer(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -1893,6 +1907,7 @@ TEST_F(DockerContainerizerTest,
   MockDockerContainerizer* dockerContainerizer1 =
     new MockDockerContainerizer(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -2009,6 +2024,7 @@ TEST_F(DockerContainerizerTest,
   MockDockerContainerizer* dockerContainerizer2 =
     new MockDockerContainerizer(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -2068,6 +2084,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_NC_PortMapping)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -2220,6 +2237,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_LaunchSandboxWithColon)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
+      false,
       &fetcher,
       Owned<ContainerLogger>(logger.get()),
       docker);
@@ -2326,6 +2344,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhileFetching)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -2442,6 +2461,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhilePulling)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -2565,6 +2585,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_ExecutorCleanupWhenLaunchFailed)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -2674,6 +2695,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_FetchFailure)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -2786,6 +2808,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerPullFailure)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
@@ -2898,6 +2921,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerInspectDiscard)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
+        false,
         &fetcher,
         Owned<ContainerLogger>(logger.get()),
         docker);
