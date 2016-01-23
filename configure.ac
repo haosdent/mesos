@@ -1147,6 +1147,21 @@ set to an older version of Python.
   # Next we ensure we have the Python development libraries.
   AX_PYTHON_DEVEL([>= '2.6'])
 
+  # When clang is being used, make sure that the distutils python-
+  # config cflags extraction does not cause build errors (MESOS-1079).
+  # TODO(tillt): Remove this once Apple distributed an updated Python.
+  PYTHON_CPPFLAGS="$CPPFLAGS"
+  PYTHON_CFLAGS="$CFLAGS $CXXFLAGS" # distutils requires we embed CXXFLAGS.
+  PYTHON_LDFLAGS="$LDFLAGS $GFLAGS_LIBS"
+
+  # -Wp,-D_FORTIFY_SOURCE need match optimize_flags level.
+  PYTHON_CPPFLAGS="$PYTHON_CPPFLAGS -Wp,-D_FORTIFY_SOURCE=${optimize_flags:2}"
+  PYTHON_CFLAGS="$PYTHON_CFLAGS -Wp,-D_FORTIFY_SOURCE=${optimize_flags:2}"]
+
+  AS_IF([test "x$ax_cv_cxx_compiler_vendor" = "xclang"],
+        [PYTHON_CPPFLAGS="$PYTHON_CPPFLAGS -Qunused-arguments"
+            PYTHON_CFLAGS="$PYTHON_CFLAGS -Qunused-arguments"])
+
   # Ensure that we can build a native Python egg linking against a
   # static library that imports from the standard C++ library.
   # This was added due to MESOS-799.
@@ -1207,8 +1222,9 @@ __EOF__
   # settings are propagated to distutils.
   # NOTE: We need to embed our CXXFLAGS in CFLAGS because distutils
   # doesn't pull out CXXFLAGS automagically.
-  CXX="$CXX" CC="$CC" CFLAGS="$CFLAGS $CXXFLAGS" \
-    LDFLAGS="$LDFLAGS" $PYTHON setup.py build_ext --inplace \
+  CXX="$CXX" CC="$CC"  PYTHON_CPPFLAGS="$PYTHON_CPPFLAGS" \
+    PYTHON_CLFAGS="$PYTHON_CFLAGS" PYTHON_LDFLAGS="$PYTHON_LDFLAGS" \
+    $PYTHON setup.py build_ext --inplace \
     --build-temp ./ 2>&1 >/dev/null
 
   # Run a test-script that makes use of the Python egg.
@@ -1306,17 +1322,6 @@ There are two possible workarounds for this issue:
   AC_CONFIG_FILES([src/python/interface/setup.py])
   AC_CONFIG_FILES([src/python/native/ext_modules.py])
   AC_CONFIG_FILES([src/python/native/setup.py])
-
-  # When clang is being used, make sure that the distutils python-
-  # config cflags extraction does not cause build errors (MESOS-1079).
-  # TODO(tillt): Remove this once Apple distributed an updated Python.
-  PYTHON_CPPFLAGS="$CPPFLAGS"
-  PYTHON_CFLAGS="$CFLAGS $CXXFLAGS" # distutils requires we embed CXXFLAGS.
-  PYTHON_LDFLAGS="$LDFLAGS $GFLAGS_LIBS"
-
-  AS_IF([test "x$ax_cv_cxx_compiler_vendor" = "xclang"],
-	[PYTHON_CPPFLAGS="$PYTHON_CPPFLAGS -Qunused-arguments"
-         PYTHON_CFLAGS="$PYTHON_CFLAGS -Qunused-arguments"])
 
   AC_SUBST([PYTHON_CPPFLAGS])
   AC_SUBST([PYTHON_CFLAGS])
