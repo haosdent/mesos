@@ -339,7 +339,6 @@ bool operator==(const SlaveInfo& left, const SlaveInfo& right)
     Resources(left.resources()) == Resources(right.resources()) &&
     Attributes(left.attributes()) == Attributes(right.attributes()) &&
     left.id() == right.id() &&
-    left.checkpoint() == right.checkpoint() &&
     left.port() == right.port();
 }
 

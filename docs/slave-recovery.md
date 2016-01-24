@@ -22,13 +22,7 @@ Slave recovery works by having the slave checkpoint enough information (e.g., Ta
 ## Enabling slave checkpointing
 > NOTE: From Mesos 0.22.0 slave checkpointing will be automatically enabled for all slaves.
 
-As part of this feature, 4 new flags were added to the slave.
-
-* `checkpoint` :  Whether to checkpoint slave and frameworks information
-                  to disk [Default: true].
-    - This enables a restarted slave to recover status updates and reconnect
-      with (--recover=reconnect) or kill (--recover=cleanup) old executors.
-    > NOTE: From Mesos 0.22.0 this flag will be removed as it will be enabled for all slaves.
+As part of this feature, 3 new flags were added to the slave.
 
 * `strict` : Whether to do recovery in strict mode [Default: true].
     - If strict=true, any and all recovery errors are considered fatal.
@@ -45,7 +39,6 @@ As part of this feature, 4 new flags were added to the slave.
 * `recovery_timeout` : Amount of time allotted for the slave to recover [Default: 15 mins].
     - If the slave takes longer than `recovery_timeout` to recover, any executors that are waiting to
       reconnect to the slave will self-terminate.
-    > NOTE: This flag is only applicable when `--checkpoint` is enabled.
 
 > NOTE: If none of the frameworks have enabled checkpointing,
 > executors/tasks of frameworks die when the slave dies and are not recovered.

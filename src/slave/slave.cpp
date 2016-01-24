@@ -470,9 +470,6 @@ void Slave::initialize()
 
   LOG(INFO) << "Slave attributes: " << info.attributes();
 
-  // Checkpointing of slaves is always enabled.
-  info.set_checkpoint(true);
-
   LOG(INFO) << "Slave hostname: " << info.hostname();
 
   statusUpdateManager->initialize(defer(self(), &Slave::forward, lambda::_1));
