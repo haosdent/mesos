@@ -144,6 +144,9 @@ protected:
 
   Try<vector<Task>> launchTasks(const vector<CommandInfo>& commandInfos);
 
+  // We use this method to set framework checkpoint or not.
+  virtual bool checkpoint();
+
   // Promises whose futures indicate that FetcherProcess::_fetch() has been
   // called for a task with a given index.
   vector<Owned<Promise<Nothing>>> fetchContentionWaypoints;
@@ -193,7 +196,7 @@ void FetcherCacheTest::SetUp()
 
   FrameworkInfo frameworkInfo;
   frameworkInfo.set_name("default");
-  frameworkInfo.set_checkpoint(true);
+  frameworkInfo.set_checkpoint(this->checkpoint());
 
   driver = new MesosSchedulerDriver(
     &scheduler, frameworkInfo, master.get(), DEFAULT_CREDENTIAL);
@@ -331,6 +334,11 @@ void FetcherCacheTest::setupArchiveAsset()
   // Make the archive file read-only, so we can tell if it becomes
   // executable by acccident.
   ASSERT_SOME(os::chmod(archivePath, S_IRUSR | S_IRGRP | S_IROTH));
+}
+
+
+bool FetcherCacheTest::checkpoint() {
+  return false;
 }
 
 
@@ -596,28 +604,27 @@ TEST_F(FetcherCacheTest, LocalUncached)
   startSlave();
   driver->start();
 
-  for (size_t i = 0; i < 3; i++) {
-    CommandInfo::URI uri;
-    uri.set_value(commandPath);
-    uri.set_executable(true);
+  const int index = 0;
+  CommandInfo::URI uri;
+  uri.set_value(commandPath);
+  uri.set_executable(true);
 
-    CommandInfo commandInfo;
-    commandInfo.set_value("./" + COMMAND_NAME + " " + taskName(i));
-    commandInfo.add_uris()->CopyFrom(uri);
+  CommandInfo commandInfo;
+  commandInfo.set_value("./" + COMMAND_NAME + " " + taskName(index));
+  commandInfo.add_uris()->CopyFrom(uri);
 
-    const Try<Task> task = launchTask(commandInfo, i);
-    ASSERT_SOME(task);
+  const Try<Task> task = launchTask(commandInfo, index);
+  ASSERT_SOME(task);
 
-    AWAIT_READY(awaitFinished(task.get()));
+  AWAIT_READY(awaitFinished(task.get()));
 
-    EXPECT_EQ(0u, fetcherProcess->cacheSize());
-    ASSERT_SOME(fetcherProcess->cacheFiles(slaveId, flags));
-    EXPECT_EQ(0u, fetcherProcess->cacheFiles(slaveId, flags).get().size());
+  EXPECT_EQ(0u, fetcherProcess->cacheSize());
+  ASSERT_SOME(fetcherProcess->cacheFiles(slaveId, flags));
+  EXPECT_EQ(0u, fetcherProcess->cacheFiles(slaveId, flags).get().size());
 
-    const string path = path::join(task.get().runDirectory.value, COMMAND_NAME);
-    EXPECT_TRUE(isExecutable(path));
-    EXPECT_TRUE(os::exists(path + taskName(i)));
-  }
+  const string path = path::join(task.get().runDirectory.value, COMMAND_NAME);
+  EXPECT_TRUE(isExecutable(path));
+  EXPECT_TRUE(os::exists(path + taskName(index)));
 }
 
 
@@ -629,7 +636,7 @@ TEST_F(FetcherCacheTest, LocalCached)
   startSlave();
   driver->start();
 
-  for (size_t i = 0; i < 3; i++) {
+  for (size_t i = 0; i < 2; i++) {
     CommandInfo::URI uri;
     uri.set_value(commandPath);
     uri.set_executable(true);
@@ -711,34 +718,33 @@ TEST_F(FetcherCacheTest, LocalUncachedExtract)
   startSlave();
   driver->start();
 
-  for (size_t i = 0; i < 3; i++) {
-    CommandInfo::URI uri;
-    uri.set_value(archivePath);
-    uri.set_extract(true);
+  const int index = 0;
+  CommandInfo::URI uri;
+  uri.set_value(archivePath);
+  uri.set_extract(true);
 
-    CommandInfo commandInfo;
-    commandInfo.set_value("./" + ARCHIVED_COMMAND_NAME + " " + taskName(i));
-    commandInfo.add_uris()->CopyFrom(uri);
+  CommandInfo commandInfo;
+  commandInfo.set_value("./" + ARCHIVED_COMMAND_NAME + " " + taskName(index));
+  commandInfo.add_uris()->CopyFrom(uri);
 
-    const Try<Task> task = launchTask(commandInfo, i);
-    ASSERT_SOME(task);
+  const Try<Task> task = launchTask(commandInfo, index);
+  ASSERT_SOME(task);
 
-    AWAIT_READY(awaitFinished(task.get()));
+  AWAIT_READY(awaitFinished(task.get()));
 
-    EXPECT_TRUE(os::exists(
-        path::join(task.get().runDirectory.value, ARCHIVE_NAME)));
-    EXPECT_FALSE(isExecutable(
-        path::join(task.get().runDirectory.value, ARCHIVE_NAME)));
+  EXPECT_TRUE(os::exists(
+      path::join(task.get().runDirectory.value, ARCHIVE_NAME)));
+  EXPECT_FALSE(isExecutable(
+      path::join(task.get().runDirectory.value, ARCHIVE_NAME)));
 
-    const string path =
-      path::join(task.get().runDirectory.value, ARCHIVED_COMMAND_NAME);
-    EXPECT_TRUE(isExecutable(path));
-    EXPECT_TRUE(os::exists(path + taskName(i)));
+  const string path =
+    path::join(task.get().runDirectory.value, ARCHIVED_COMMAND_NAME);
+  EXPECT_TRUE(isExecutable(path));
+  EXPECT_TRUE(os::exists(path + taskName(index)));
 
-    EXPECT_EQ(0u, fetcherProcess->cacheSize());
-    ASSERT_SOME(fetcherProcess->cacheFiles(slaveId, flags));
-    EXPECT_EQ(0u, fetcherProcess->cacheFiles(slaveId, flags).get().size());
-  }
+  EXPECT_EQ(0u, fetcherProcess->cacheSize());
+  ASSERT_SOME(fetcherProcess->cacheFiles(slaveId, flags));
+  EXPECT_EQ(0u, fetcherProcess->cacheFiles(slaveId, flags).get().size());
 }
 
 
@@ -748,7 +754,7 @@ TEST_F(FetcherCacheTest, LocalCachedExtract)
   startSlave();
   driver->start();
 
-  for (size_t i = 0; i < 3; i++) {
+  for (size_t i = 0; i < 2; i++) {
     CommandInfo::URI uri;
     uri.set_value(archivePath);
     uri.set_extract(true);
@@ -1145,11 +1151,20 @@ TEST_F(FetcherCacheHttpTest, HttpMixed)
 }
 
 
+class FetcherCacheHttpRecoveryTest : public FetcherCacheHttpTest
+{
+protected:
+  virtual bool checkpoint() {
+    return true;
+  };
+};
+
+
 // Tests slave recovery of the fetcher cache. The cache must be
 // wiped clean on recovery, causing renewed downloads.
 // TODO(bernd-mesos): Debug flaky behavior reported in MESOS-2871,
 // then reenable this test.
-TEST_F(FetcherCacheHttpTest, DISABLED_HttpCachedRecovery)
+TEST_F(FetcherCacheHttpRecoveryTest, DISABLED_HttpCachedRecovery)
 {
   startSlave();
   driver->start();
