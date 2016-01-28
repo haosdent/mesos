@@ -179,6 +179,7 @@ private:
       const std::list<Docker::Container>& containers);
 
   process::Future<Nothing> __recover(
+      const state::SlaveState& state,
       const std::list<Docker::Container>& containers);
 
   // Starts the executor in a Docker container.

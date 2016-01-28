@@ -84,7 +84,9 @@ const string DOCKER_SYMLINK_DIRECTORY = "docker/links";
 
 // Parse the ContainerID from a Docker container and return None if
 // the container was not launched from Mesos.
-Option<ContainerID> parse(const Docker::Container& container)
+Option<ContainerID> parse(
+    const SlaveID& slaveId,
+    const Docker::Container& container)
 {
   Option<string> name = None();
 
@@ -112,9 +114,15 @@ Option<ContainerID> parse(const Docker::Container& container)
 
     vector<string> parts = strings::split(name.get(), DOCKER_NAME_SEPERATOR);
     if (parts.size() == 2 || parts.size() == 3) {
-      ContainerID id;
-      id.set_value(parts[1]);
-      return id;
+      if (slaveId.value() != parts[0]) {
+        LOG(WARNING) << "Find an exist Docker container '" << container.name
+                     << "' don't match current SlaveId: '" << slaveId << "'.";
+        return None();
+      } else {
+        ContainerID id;
+        id.set_value(parts[1]);
+        return id;
+      }
     }
   }
 
@@ -588,7 +596,7 @@ Future<Nothing> DockerContainerizerProcess::_recover(
   // a docker container.
   hashset<ContainerID> executorContainers;
   foreach (const Docker::Container& container, _containers) {
-    Option<ContainerID> id = parse(container);
+    Option<ContainerID> id = parse(state.id, container);
     if (id.isSome()) {
       existingContainers.insert(id.get());
       if (strings::contains(container.name, ".executor")) {
@@ -713,7 +721,7 @@ Future<Nothing> DockerContainerizerProcess::_recover(
   }
 
   if (flags.docker_kill_orphans) {
-    return __recover(_containers);
+    return __recover(state, _containers);
   }
 
   return Nothing();
@@ -721,13 +729,14 @@ Future<Nothing> DockerContainerizerProcess::_recover(
 
 
 Future<Nothing> DockerContainerizerProcess::__recover(
+    const SlaveState& state,
     const list<Docker::Container>& _containers)
 {
   foreach (const Docker::Container& container, _containers) {
     VLOG(1) << "Checking if Docker container named '"
             << container.name << "' was started by Mesos";
 
-    Option<ContainerID> id = parse(container);
+    Option<ContainerID> id = parse(state.id, container);
 
     // Ignore containers that Mesos didn't start.
     if (id.isNone()) {
