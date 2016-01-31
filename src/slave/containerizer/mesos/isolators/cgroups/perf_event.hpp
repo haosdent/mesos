@@ -114,6 +114,8 @@ private:
 
   // TODO(jieyu): Use Owned<Info>.
   hashmap<ContainerID, Info*> infos;
+
+  process::Future<hashmap<std::string, PerfStatistics>> sampleFuture;
 };
 
 } // namespace slave {

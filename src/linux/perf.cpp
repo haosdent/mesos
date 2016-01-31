@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <iostream>
 #include <list>
 #include <sstream>
 #include <tuple>
@@ -101,7 +102,7 @@ protected:
   virtual void initialize()
   {
     // Stop when no one cares.
-    promise.future().onDiscard(lambda::bind(
+    promise.future().onAny(lambda::bind(
         static_cast<void(*)(const UPID&, bool)>(terminate), self(), true));
 
     execute();
@@ -109,6 +110,7 @@ protected:
 
   virtual void finalize()
   {
+    LOG(INFO) << "Call finalize:" << perf->pid();
     // Kill the perf process (if it's still running) by sending
     // SIGTERM to the signal handler which will then SIGKILL the
     // perf process group created by setupChild.
@@ -214,11 +216,15 @@ private:
     }
     perf = _perf.get();
 
+    LOG(INFO) << "execute pid:" << perf.get().pid();
+
     // Wait for the process to exit.
-    await(perf->status(),
+    auto f = await(perf->status(),
           io::read(perf->out().get()),
-          io::read(perf->err().get()))
-      .onReady(defer(self(), [this](const tuple<
+          io::read(perf->err().get()));
+      f.onDiscard(defer(self(), &Self::finalize));
+      f.onFailed(defer(self(), &Self::finalize));
+      f.onReady(defer(self(), [this](const tuple<
           Future<Option<int>>,
           Future<string>,
           Future<string>>& results) {
@@ -420,16 +426,13 @@ struct Sample
       if ((tokens.size() == 4) || (tokens.size() == 6)) {
         return Sample({tokens[0], internal::normalize(tokens[2]), tokens[3]});
       }
-    } else if (version >= Version(3, 13, 0)) {
-      // Unit was added in Linux v3.13, making the format:
+    } else {
+      // In Linux v3.0, the output format of perf may be one of below:
       //   value,unit,event,cgroup
+      //   value,event,cgroup
       if (tokens.size() == 4) {
         return Sample({tokens[0], internal::normalize(tokens[2]), tokens[3]});
-      }
-    } else {
-      // Expected format for Linux kernel <= 3.12 is:
-      //   value,event,cgroup
-      if (tokens.size() == 3) {
+      } else if (tokens.size() == 3) {
         return Sample({tokens[0], internal::normalize(tokens[1]), tokens[2]});
       }
     }
