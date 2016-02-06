@@ -420,16 +420,13 @@ struct Sample
       if ((tokens.size() == 4) || (tokens.size() == 6)) {
         return Sample({tokens[0], internal::normalize(tokens[2]), tokens[3]});
       }
-    } else if (version >= Version(3, 13, 0)) {
-      // Unit was added in Linux v3.13, making the format:
+    } else {
+      // In Linux v3.0, the output format of perf may be one of below:
       //   value,unit,event,cgroup
+      //   value,event,cgroup
       if (tokens.size() == 4) {
         return Sample({tokens[0], internal::normalize(tokens[2]), tokens[3]});
-      }
-    } else {
-      // Expected format for Linux kernel <= 3.12 is:
-      //   value,event,cgroup
-      if (tokens.size() == 3) {
+      } else if (tokens.size() == 3) {
         return Sample({tokens[0], internal::normalize(tokens[1]), tokens[2]});
       }
     }
