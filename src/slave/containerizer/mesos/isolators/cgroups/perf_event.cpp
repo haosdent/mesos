@@ -127,6 +127,14 @@ void CgroupsPerfEventIsolatorProcess::initialize()
 }
 
 
+void CgroupsPerfEventIsolatorProcess::finalize()
+{
+  if (sampleFuture.isSome()) {
+    sampleFuture.get().await();
+  }
+}
+
+
 Future<Nothing> CgroupsPerfEventIsolatorProcess::recover(
     const list<ContainerState>& states,
     const hashset<ContainerID>& orphans)
@@ -384,7 +392,7 @@ void CgroupsPerfEventIsolatorProcess::sample()
   // reaper interval to ensure we see the perf process exit.
   Duration timeout = flags.perf_duration + process::MAX_REAP_INTERVAL() * 2;
 
-  perf::sample(events, cgroups, flags.perf_duration)
+  sampleFuture = perf::sample(events, cgroups, flags.perf_duration)
     .after(timeout,
            lambda::bind(&discardSample,
                         lambda::_1,

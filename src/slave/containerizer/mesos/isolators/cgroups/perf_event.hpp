@@ -67,6 +67,8 @@ public:
 protected:
   virtual void initialize();
 
+  virtual void finalize();
+
 private:
   CgroupsPerfEventIsolatorProcess(
       const Flags& _flags,
@@ -114,6 +116,8 @@ private:
 
   // TODO(jieyu): Use Owned<Info>.
   hashmap<ContainerID, Info*> infos;
+
+  Option<process::Future<hashmap<std::string, PerfStatistics>>> sampleFuture;
 };
 
 } // namespace slave {
