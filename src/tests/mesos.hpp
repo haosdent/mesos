@@ -344,6 +344,13 @@ protected:
   {
     master::Flags flags = MesosTest::CreateMasterFlags();
 
+    // Use the replicated log (without ZooKeeper).
+    flags.registry = "replicated_log";
+    flags.registry_strict = true;
+
+    // On many test VMs, this default is too small.
+    flags.registry_store_timeout = flags.registry_store_timeout * 5;
+
     // NOTE: Since we are using the replicated log with ZooKeeper
     // (default storage in MesosTest), we need to specify the quorum.
     flags.quorum = 1;

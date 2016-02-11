@@ -1704,6 +1704,13 @@ TEST_F(MasterTest, RecoveredSlaveDoesNotReregister)
 {
   // Step 1: Start a master.
   master::Flags masterFlags = CreateMasterFlags();
+
+  // Use the replicated log (without ZooKeeper).
+  masterFlags.registry = "replicated_log";
+  masterFlags.registry_strict = true;
+  // On many test VMs, this default is too small.
+  masterFlags.registry_store_timeout *= 5;
+
   Try<PID<Master>> master = StartMaster(masterFlags);
   ASSERT_SOME(master);
 
@@ -1861,6 +1868,13 @@ TEST_F(MasterTest, RateLimitRecoveredSlaveRemoval)
 {
   // Start a master.
   master::Flags masterFlags = CreateMasterFlags();
+
+  // Use the replicated log (without ZooKeeper).
+  masterFlags.registry = "replicated_log";
+  masterFlags.registry_strict = true;
+  // On many test VMs, this default is too small.
+  masterFlags.registry_store_timeout *= 5;
+
   Try<PID<Master>> master = StartMaster(masterFlags);
   ASSERT_SOME(master);
 
@@ -1936,6 +1950,13 @@ TEST_F(MasterTest, CancelRecoveredSlaveRemoval)
 {
   // Start a master.
   master::Flags masterFlags = CreateMasterFlags();
+
+  // Use the replicated log (without ZooKeeper).
+  masterFlags.registry = "replicated_log";
+  masterFlags.registry_strict = true;
+  // On many test VMs, this default is too small.
+  masterFlags.registry_store_timeout *= 5;
+
   Try<PID<Master>> master = StartMaster(masterFlags);
   ASSERT_SOME(master);
 

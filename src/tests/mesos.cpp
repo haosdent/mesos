@@ -129,12 +129,8 @@ master::Flags MesosTest::CreateMasterFlags()
   // Set default ACLs.
   flags.acls = ACLs();
 
-  // Use the replicated log (without ZooKeeper) by default.
-  flags.registry = "replicated_log";
-  flags.registry_strict = true;
-
-  // On many test VMs, this default is too small.
-  flags.registry_store_timeout = flags.registry_store_timeout * 5;
+  // Use the in_memory by default.
+  flags.registry = "in_memory";
 
   flags.authenticators = tests::flags.authenticators;
 
