@@ -2593,6 +2593,11 @@ TEST_F(MasterTest, OfferTimeout)
 
   AWAIT_READY(recoverResources);
 
+  // Don't wait around for the allocation interval.
+  Clock::pause();
+  Clock::advance(masterFlags.allocation_interval);
+  Clock::resume();
+
   // Expect that the resources are re-offered to the framework after
   // the rescind.
   AWAIT_READY(offers2);
