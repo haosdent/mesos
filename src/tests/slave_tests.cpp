@@ -1142,7 +1142,9 @@ TEST_F(SlaveTest, MetricsSlaveLaunchErrors)
   EXPECT_CALL(containerizer, launch(_, _, _, _, _, _, _))
     .WillOnce(Return(Failure("Injected failure")));
 
-  EXPECT_CALL(sched, statusUpdate(&driver, _));
+  Future<TaskStatus> status;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&status));
 
   // The above injected containerizer failure also triggers executorLost.
   EXPECT_CALL(sched, executorLost(&driver, DEFAULT_EXECUTOR_ID, _, _));
@@ -1155,6 +1157,15 @@ TEST_F(SlaveTest, MetricsSlaveLaunchErrors)
       DEFAULT_EXECUTOR_ID);
 
   driver.launchTasks(offer.id(), {task});
+
+  AWAIT_READY(status);
+  EXPECT_EQ(TASK_FAILED, status.get().state());
+
+  Clock::pause();
+  Clock::settle();
+  // Advance time to avoid Metrics rate limit.
+  Clock::advance(Seconds(1));
+  Clock::resume();
 
   // After failure injection, metrics should report a single failure.
   snapshot = Metrics();
