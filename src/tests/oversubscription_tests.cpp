@@ -1034,8 +1034,9 @@ TEST_F(OversubscriptionTest, UpdateAllocatorOnSchedulerFailover)
 
 TEST_F(OversubscriptionTest, RemoveCapabilitiesOnSchedulerFailover)
 {
+  master::Flags masterFlags = MesosTest::CreateMasterFlags();
   // Start the master.
-  Try<Owned<cluster::Master>> master = StartMaster();
+  Try<Owned<cluster::Master>> master = StartMaster(masterFlags);
   ASSERT_SOME(master);
 
   // Start the slave with mock executor and test resource estimator.
@@ -1124,6 +1125,11 @@ TEST_F(OversubscriptionTest, RemoveCapabilitiesOnSchedulerFailover)
     .WillRepeatedly(Return());
 
   driver2.start();
+
+  // Don't wait around for the allocation interval.
+  Clock::pause();
+  Clock::advance(masterFlags.allocation_interval);
+  Clock::resume();
 
   AWAIT_READY(offers3);
   EXPECT_NE(0u, offers3.get().size());
