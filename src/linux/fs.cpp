@@ -44,6 +44,27 @@ namespace internal {
 namespace fs {
 
 
+Try<bool> supported(const std::string& fsname)
+{
+  Try<string> lines = os::read("/proc/filesystems");
+  if (lines.isError()) {
+    return Error("Failed to read supported filesystems info: " + lines.error());
+  }
+
+  foreach (const string& line, strings::tokenize(lines.get(), "\n")) {
+    vector<string> tokens = strings::tokenize(line, "\t");
+    if (tokens.size() != 1 && tokens.size() != 2) {
+      continue;
+    }
+    if (fsname == tokens[tokens.size() - 1]) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
 Try<MountInfoTable> MountInfoTable::read(const Option<pid_t>& pid)
 {
   MountInfoTable table;

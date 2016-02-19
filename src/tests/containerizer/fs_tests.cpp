@@ -42,6 +42,16 @@ namespace tests {
 class FsTest : public TemporaryDirectoryTest {};
 
 
+TEST_F(FsTest, SupportedFS)
+{
+  EXPECT_SOME_TRUE(fs::supported("ext2"));
+  EXPECT_SOME_TRUE(fs::supported("ext3"));
+  EXPECT_SOME_TRUE(fs::supported("ext4"));
+
+  EXPECT_SOME_FALSE(fs::supported("nonexistingfs"));
+}
+
+
 TEST_F(FsTest, MountTableRead)
 {
   Try<MountTable> table = MountTable::read(_PATH_MOUNTED);
