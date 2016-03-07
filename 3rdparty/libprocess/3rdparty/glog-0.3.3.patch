@@ -18,7 +18,7 @@ index 30836de..3e90573 100644
 @@ -50,10 +50,13 @@
  #include <utility>
  #include <vector>
- 
+
 -#ifdef __GNUC__
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
  # include <ext/hash_set>
@@ -28,7 +28,7 @@ index 30836de..3e90573 100644
 +# include <unordered_map>
 +# include <unordered_set>
  #endif
- 
+
  // Forward declare these two, and define them after all the container streams
 @@ -80,7 +83,7 @@ inline std::ostream& operator<<(std::ostream& out, \
  OUTPUT_TWO_ARG_CONTAINER(std::vector)
@@ -38,9 +38,9 @@ index 30836de..3e90573 100644
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
  OUTPUT_TWO_ARG_CONTAINER(__gnu_cxx::slist)
  #endif
- 
+
 @@ -109,9 +112,12 @@ inline std::ostream& operator<<(std::ostream& out, \
- 
+
  OUTPUT_FOUR_ARG_CONTAINER(std::map)
  OUTPUT_FOUR_ARG_CONTAINER(std::multimap)
 -#ifdef __GNUC__
@@ -51,12 +51,12 @@ index 30836de..3e90573 100644
 +OUTPUT_FOUR_ARG_CONTAINER(std::unordered_set)
 +OUTPUT_FOUR_ARG_CONTAINER(std::unordered_multiset)
  #endif
- 
+
  #undef OUTPUT_FOUR_ARG_CONTAINER
 @@ -124,9 +130,12 @@ inline std::ostream& operator<<(std::ostream& out, \
    return out; \
  }
- 
+
 -#ifdef __GNUC__
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
  OUTPUT_FIVE_ARG_CONTAINER(__gnu_cxx::hash_map)
@@ -65,7 +65,7 @@ index 30836de..3e90573 100644
 +OUTPUT_FIVE_ARG_CONTAINER(std::unordered_map)
 +OUTPUT_FIVE_ARG_CONTAINER(std::unordered_multimap)
  #endif
- 
+
  #undef OUTPUT_FIVE_ARG_CONTAINER
 diff --git a/src/stl_logging_unittest.cc b/src/stl_logging_unittest.cc
 index 5dcbc44..ee344ca 100644
@@ -74,7 +74,7 @@ index 5dcbc44..ee344ca 100644
 @@ -39,7 +39,7 @@
  #include <string>
  #include <vector>
- 
+
 -#ifdef __GNUC__
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
  # include <ext/hash_map>
@@ -82,17 +82,17 @@ index 5dcbc44..ee344ca 100644
  #endif
 @@ -48,7 +48,7 @@
  #include "googletest.h"
- 
+
  using namespace std;
 -#ifdef __GNUC__
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
  using namespace __gnu_cxx;
  #endif
- 
+
 @@ -83,7 +83,7 @@ void TestSTLLogging() {
      CHECK_EQ(m, copied_m);  // This must compile.
    }
- 
+
 -#ifdef __GNUC__
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
    {
@@ -101,7 +101,7 @@ index 5dcbc44..ee344ca 100644
 @@ -98,7 +98,7 @@ void TestSTLLogging() {
    }
  #endif
- 
+
 -#ifdef __GNUC__
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
    {
@@ -110,7 +110,7 @@ index 5dcbc44..ee344ca 100644
 @@ -145,7 +145,7 @@ void TestSTLLogging() {
      CHECK_EQ(m, copied_m);  // This must compile.
    }
- 
+
 -#ifdef __GNUC__
 +#if defined (__GNUC__) && !defined(_LIBCPP_VERSION)
    {
@@ -138,3 +138,30 @@ index 0daf308..1136e0d 100644
      return false;
    }
    const char *p = char_class;
+diff --git a/src/stacktrace_powerpc-inl.h b/src/stacktrace_powerpc-inl.h
+index 1090dde..03b9108 100644
+--- a/src/stacktrace_powerpc-inl.h
++++ b/src/stacktrace_powerpc-inl.h
+@@ -111,7 +111,7 @@ int GetStackTrace(void** result, int max_depth, int skip_count) {
+       result[n++] = *(sp+2);
+ #elif defined(_CALL_SYSV)
+       result[n++] = *(sp+1);
+-#elif defined(__APPLE__) || (defined(__linux) && defined(__PPC64__))
++#elif defined(__APPLE__) || ((defined(__linux) || defined(__linux__)) && defined(__PPC64__))
+       // This check is in case the compiler doesn't define _CALL_AIX/etc.
+       result[n++] = *(sp+2);
+ #elif defined(__linux)
+diff --git a/config.guess b/config.guess
+index 278f9e9..f048baa 100755
+--- a/config.guess
++++ b/config.guess
+@@ -911,6 +911,9 @@ EOF
+     ppc64:Linux:*:*)
+	echo powerpc64-unknown-linux-gnu
+	exit ;;
++    ppc64le:Linux:*:*)
++	echo powerpc64le-unknown-linux-gnu
++	exit ;;
+     alpha:Linux:*:*)
+	case `sed -n '/^cpu model/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo` in
+	  EV5)   UNAME_MACHINE=alphaev5 ;;
