@@ -14,6 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <atomic>
+
 #include <process/delay.hpp>
 #include <process/process.hpp>
 #include <process/timer.hpp>
@@ -139,7 +141,7 @@ private:
       const FrameworkID& frameworkId);
 
   const Flags flags;
-  bool paused;
+  std::atomic_bool paused;
 
   function<void(StatusUpdate)> forward_;
 
@@ -178,6 +180,10 @@ void StatusUpdateManagerProcess::pause()
 
 void StatusUpdateManagerProcess::resume()
 {
+  if (!paused) {
+    return;
+  }
+
   LOG(INFO) << "Resuming sending status updates";
   paused = false;
 
