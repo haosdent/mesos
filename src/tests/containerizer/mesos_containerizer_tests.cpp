@@ -1023,6 +1023,11 @@ TEST_F(MesosContainerizerRecoverTest, SkipRecoverNonMesosContainers)
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
 
+  SlaveID slaveId;
+
+  FrameworkID frameworkId;
+  frameworkId.set_value(UUID::random().toString());
+
   ExecutorID executorId;
   executorId.set_value(UUID::random().toString());
 
@@ -1031,24 +1036,26 @@ TEST_F(MesosContainerizerRecoverTest, SkipRecoverNonMesosContainers)
 
   ExecutorInfo executorInfo;
   executorInfo.mutable_container()->set_type(ContainerInfo::DOCKER);
+  executorInfo.mutable_executor_id()->set_value(executorId.value());
+  executorInfo.mutable_framework_id()->set_value(frameworkId.value());
 
-  ExecutorState executorState;
-  executorState.info = executorInfo;
-  executorState.latest = containerId;
+  const string sandboxDirectory = slave::paths::getExecutorRunPath(
+      flags.work_dir,
+      slaveId,
+      frameworkId,
+      executorId,
+      containerId);
 
-  RunState runState;
-  runState.id = containerId;
-  executorState.runs.put(containerId, runState);
+  list<ContainerState> recoverables;
+  ContainerState executorRunState =
+    protobuf::slave::createContainerState(
+        executorInfo,
+        containerId,
+        0,
+        sandboxDirectory);
+  recoverables.push_back(executorRunState);
 
-  FrameworkState frameworkState;
-  frameworkState.executors.put(executorId, executorState);
-
-  SlaveState slaveState;
-  FrameworkID frameworkId;
-  frameworkId.set_value(UUID::random().toString());
-  slaveState.frameworks.put(frameworkId, frameworkState);
-
-  Future<Nothing> recover = containerizer.get()->recover(slaveState);
+  Future<Nothing> recover = containerizer.get()->recover(slaveId, recoverables);
   AWAIT_READY(recover);
 
   Future<hashset<ContainerID>> containers = containerizer.get()->containers();

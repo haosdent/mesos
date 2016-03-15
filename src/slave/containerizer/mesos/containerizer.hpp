@@ -70,7 +70,8 @@ public:
   virtual ~MesosContainerizer();
 
   virtual process::Future<Nothing> recover(
-      const Option<state::SlaveState>& state);
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables);
 
   virtual process::Future<bool> launch(
       const ContainerID& containerId,
@@ -136,7 +137,8 @@ public:
   virtual ~MesosContainerizerProcess() {}
 
   virtual process::Future<Nothing> recover(
-      const Option<state::SlaveState>& state);
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables);
 
   virtual process::Future<bool> launch(
       const ContainerID& containerId,
@@ -176,15 +178,15 @@ public:
 
 private:
   process::Future<Nothing> _recover(
-      const std::list<mesos::slave::ContainerState>& recoverable,
+      const std::list<mesos::slave::ContainerState>& recoverables,
       const hashset<ContainerID>& orphans);
 
   process::Future<std::list<Nothing>> recoverIsolators(
-      const std::list<mesos::slave::ContainerState>& recoverable,
+      const std::list<mesos::slave::ContainerState>& recoverables,
       const hashset<ContainerID>& orphans);
 
   process::Future<Nothing> recoverProvisioner(
-      const std::list<mesos::slave::ContainerState>& recoverable,
+      const std::list<mesos::slave::ContainerState>& recoverables,
       const hashset<ContainerID>& orphans);
 
   process::Future<Nothing> __recover(

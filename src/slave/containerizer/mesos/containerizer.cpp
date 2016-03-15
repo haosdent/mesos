@@ -112,11 +112,6 @@ using mesos::slave::ContainerLogger;
 using mesos::slave::ContainerState;
 using mesos::slave::Isolator;
 
-using state::SlaveState;
-using state::FrameworkState;
-using state::ExecutorState;
-using state::RunState;
-
 const char MESOS_CONTAINERIZER[] = "mesos-containerizer";
 
 Try<MesosContainerizer*> MesosContainerizer::create(
@@ -306,9 +301,14 @@ MesosContainerizer::~MesosContainerizer()
 
 
 Future<Nothing> MesosContainerizer::recover(
-    const Option<state::SlaveState>& state)
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables)
 {
-  return dispatch(process.get(), &MesosContainerizerProcess::recover, state);
+  return dispatch(
+      process.get(),
+      &MesosContainerizerProcess::recover,
+      slaveId,
+      recoverables);
 }
 
 
@@ -411,118 +411,63 @@ Future<hashset<ContainerID>> MesosContainerizer::containers()
 
 
 Future<Nothing> MesosContainerizerProcess::recover(
-    const Option<state::SlaveState>& state)
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables)
 {
   LOG(INFO) << "Recovering containerizer";
 
-  // Gather the executor run states that we will attempt to recover.
-  list<ContainerState> recoverable;
-  if (state.isSome()) {
-    foreachvalue (const FrameworkState& framework, state.get().frameworks) {
-      foreachvalue (const ExecutorState& executor, framework.executors) {
-        if (executor.info.isNone()) {
-          LOG(WARNING) << "Skipping recovery of executor '" << executor.id
-                       << "' of framework " << framework.id
-                       << " because its info could not be recovered";
-          continue;
-        }
+  list<ContainerState> filterRecoverables;
+  foreach (const ContainerState& recoverable, recoverables) {
+    const ExecutorInfo& executorInfo = recoverable.executor_info();
+    const ContainerID& containerId = recoverable.container_id();
+    const FrameworkID& frameworkId = executorInfo.framework_id();
+    const ExecutorID& executorId = executorInfo.executor_id();
 
-        if (executor.latest.isNone()) {
-          LOG(WARNING) << "Skipping recovery of executor '" << executor.id
-                       << "' of framework " << framework.id
-                       << " because its latest run could not be recovered";
-          continue;
-        }
-
-        // We are only interested in the latest run of the executor!
-        const ContainerID& containerId = executor.latest.get();
-        Option<RunState> run = executor.runs.get(containerId);
-        CHECK_SOME(run);
-        CHECK_SOME(run.get().id);
-
-        // We need the pid so the reaper can monitor the executor so skip this
-        // executor if it's not present. This is not an error because the slave
-        // will try to wait on the container which will return a failed
-        // Termination and everything will get cleaned up.
-        if (!run.get().forkedPid.isSome()) {
-          continue;
-        }
-
-        if (run.get().completed) {
-          VLOG(1) << "Skipping recovery of executor '" << executor.id
-                  << "' of framework " << framework.id
-                  << " because its latest run "
-                  << containerId << " is completed";
-          continue;
-        }
-
-        // Note that MesosContainerizer will also recover executors
-        // launched by the DockerContainerizer as before 0.23 the
-        // slave doesn't checkpoint container information.
-        const ExecutorInfo& executorInfo = executor.info.get();
-        if (executorInfo.has_container() &&
-            executorInfo.container().type() != ContainerInfo::MESOS) {
-          LOG(INFO) << "Skipping recovery of executor '" << executor.id
-                    << "' of framework " << framework.id
-                    << " because it was not launched from mesos containerizer";
-          continue;
-        }
-
-        LOG(INFO) << "Recovering container '" << containerId
-                  << "' for executor '" << executor.id
-                  << "' of framework " << framework.id;
-
-        // NOTE: We create the executor directory before checkpointing
-        // the executor. Therefore, it's not possible for this
-        // directory to be non-existent.
-        const string& directory = paths::getExecutorRunPath(
-            flags.work_dir,
-            state.get().id,
-            framework.id,
-            executor.id,
-            containerId);
-
-        CHECK(os::exists(directory));
-
-        ContainerState executorRunState =
-          protobuf::slave::createContainerState(
-              executorInfo,
-              run.get().id.get(),
-              run.get().forkedPid.get(),
-              directory);
-
-        recoverable.push_back(executorRunState);
-      }
+    // Note that MesosContainerizer will also recover executors
+    // launched by the DockerContainerizer as before 0.23 the
+    // slave doesn't checkpoint container information.
+    if (executorInfo.has_container() &&
+        executorInfo.container().type() != ContainerInfo::MESOS) {
+      LOG(INFO) << "Skipping recovery of executor '" << executorId
+                << "' of framework " << frameworkId
+                << " because it was not launched from mesos containerizer";
+      continue;
     }
+
+    LOG(INFO) << "Recovering container '" << containerId
+              << "' for executor '" << executorId
+              << "' of framework " << frameworkId;
+
+    filterRecoverables.push_back(recoverable);
   }
 
   // Try to recover the launcher first.
-  return launcher->recover(recoverable)
-    .then(defer(self(), &Self::_recover, recoverable, lambda::_1));
+  return launcher->recover(filterRecoverables)
+    .then(defer(self(), &Self::_recover, filterRecoverables, lambda::_1));
 }
 
 
 Future<Nothing> MesosContainerizerProcess::_recover(
-    const list<ContainerState>& recoverable,
+    const list<ContainerState>& recoverables,
     const hashset<ContainerID>& orphans)
 {
   // Recover isolators first then recover the provisioner, because of
   // possible cleanups on unknown containers.
-  return recoverIsolators(recoverable, orphans)
-    .then(defer(self(), &Self::recoverProvisioner, recoverable, orphans))
-    .then(defer(self(), &Self::__recover, recoverable, orphans));
+  return recoverIsolators(recoverables, orphans)
+    .then(defer(self(), &Self::recoverProvisioner, recoverables, orphans))
+    .then(defer(self(), &Self::__recover, recoverables, orphans));
 }
 
 
 Future<list<Nothing>> MesosContainerizerProcess::recoverIsolators(
-    const list<ContainerState>& recoverable,
+    const list<ContainerState>& recoverables,
     const hashset<ContainerID>& orphans)
 {
   list<Future<Nothing>> futures;
 
   // Then recover the isolators.
   foreach (const Owned<Isolator>& isolator, isolators) {
-    futures.push_back(isolator->recover(recoverable, orphans));
+    futures.push_back(isolator->recover(recoverables, orphans));
   }
 
   // If all isolators recover then continue.
@@ -531,10 +476,10 @@ Future<list<Nothing>> MesosContainerizerProcess::recoverIsolators(
 
 
 Future<Nothing> MesosContainerizerProcess::recoverProvisioner(
-    const list<ContainerState>& recoverable,
+    const list<ContainerState>& recoverables,
     const hashset<ContainerID>& orphans)
 {
-  return provisioner->recover(recoverable, orphans);
+  return provisioner->recover(recoverables, orphans);
 }
 
 
