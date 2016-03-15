@@ -62,10 +62,7 @@ namespace mesos {
 namespace internal {
 namespace slave {
 
-using state::ExecutorState;
-using state::FrameworkState;
-using state::RunState;
-using state::SlaveState;
+using mesos::slave::ContainerState;
 
 Try<ExternalContainerizer*> ExternalContainerizer::create(const Flags& flags)
 {
@@ -143,11 +140,13 @@ ExternalContainerizer::~ExternalContainerizer()
 
 
 Future<Nothing> ExternalContainerizer::recover(
-    const Option<state::SlaveState>& state)
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables)
 {
   return dispatch(process.get(),
                   &ExternalContainerizerProcess::recover,
-                  state);
+                  slaveId,
+                  recoverables);
 }
 
 
@@ -245,7 +244,8 @@ ExternalContainerizerProcess::ExternalContainerizerProcess(
 
 
 Future<Nothing> ExternalContainerizerProcess::recover(
-    const Option<state::SlaveState>& state)
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables)
 {
   LOG(INFO) << "Recovering containerizer";
 
@@ -260,13 +260,15 @@ Future<Nothing> ExternalContainerizerProcess::recover(
     .then(defer(
         PID<ExternalContainerizerProcess>(this),
         &ExternalContainerizerProcess::_recover,
-        state,
+        slaveId,
+        recoverables,
         lambda::_1));
 }
 
 
 Future<Nothing> ExternalContainerizerProcess::_recover(
-    const Option<state::SlaveState>& state,
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables,
     const Future<Option<int>>& future)
 {
   VLOG(1) << "Recover validation callback triggered";
@@ -282,13 +284,15 @@ Future<Nothing> ExternalContainerizerProcess::_recover(
     .then(defer(
         PID<ExternalContainerizerProcess>(this),
         &ExternalContainerizerProcess::__recover,
-        state,
+        slaveId,
+        recoverables,
         lambda::_1));
 }
 
 
 Future<Nothing> ExternalContainerizerProcess::__recover(
-    const Option<state::SlaveState>& state,
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables,
     const hashset<ContainerID>& containers)
 {
   VLOG(1) << "Recover continuation triggered";
@@ -297,88 +301,36 @@ Future<Nothing> ExternalContainerizerProcess::__recover(
   // not to the slave, thus not recoverable but pending.
   hashset<ContainerID> orphaned = containers;
 
-  if (state.isSome()) {
-    foreachvalue (const FrameworkState& framework, state.get().frameworks) {
-      foreachvalue (const ExecutorState& executor, framework.executors) {
-        if (executor.info.isNone()) {
-          LOG(WARNING) << "Skipping recovery of executor '" << executor.id
-                       << "' of framework " << framework.id
-                       << " because its info could not be recovered";
-          continue;
-        }
+  foreach (const ContainerState& recoverable, recoverables) {
+    const ExecutorInfo executorInfo = recoverable.executor_info();
+    const ContainerID containerId = recoverable.container_id();
+    const FrameworkID frameworkId = executorInfo.framework_id();
+    const ExecutorID executorId = executorInfo.executor_id();
 
-        if (executor.latest.isNone()) {
-          LOG(WARNING) << "Skipping recovery of executor '" << executor.id
-                       << "' of framework " << framework.id
-                       << " because its latest run could not be recovered";
-          continue;
-        }
-
-        // We are only interested in the latest run of the executor!
-        const ContainerID& containerId = executor.latest.get();
-        Option<RunState> run = executor.runs.get(containerId);
-        CHECK_SOME(run);
-
-        if (run.get().completed) {
-          VLOG(1) << "Skipping recovery of executor '" << executor.id
-                  << "' of framework " << framework.id
-                  << " because its latest run "
-                  << containerId << " is completed";
-          continue;
-        }
-
-        // Containers the external containerizer does not have
-        // information on, should be skipped as their state is not
-        // recoverable.
-        if (!containers.contains(containerId)) {
-          LOG(WARNING) << "Skipping recovery of executor '" << executor.id
-                       << "' of framework " << framework.id
-                       << " because the external containerizer has not "
-                       << " identified " << containerId << " as active";
-          continue;
-        }
-
-        LOG(INFO) << "Recovering container '" << containerId
-                  << "' for executor '" << executor.id
-                  << "' of framework " << framework.id;
-
-        Option<string> user = None();
-        if (flags.switch_user) {
-          // The command (either in form of task or executor command)
-          // can define a specific user to run as. If present, this
-          // precedes the framework user value.
-          if (executor.info.isSome() &&
-              executor.info.get().command().has_user()) {
-            user = executor.info.get().command().user();
-          } else if (framework.info.isSome()) {
-            user = framework.info.get().user();
-          }
-        }
-
-        // Re-create the sandbox for this container.
-        const string directory = paths::createExecutorDirectory(
-            flags.work_dir,
-            state.get().id,
-            framework.id,
-            executor.id,
-            containerId,
-            user);
-
-        Sandbox sandbox(directory, user);
-
-        // Collect this container as being active.
-        actives.put(containerId, Owned<Container>(new Container(sandbox)));
-
-        // Assume that this container had been launched, if this proves
-        // to be wrong, the containerizer::Termination delivered by the
-        // subsequent wait invocation will tell us.
-        actives[containerId]->launched.set(Nothing());
-
-        // Remove this container from the orphan collection as it is not
-        // orphaned.
-        orphaned.erase(containerId);
+    Option<string> user = None();
+    if (flags.switch_user) {
+      // The command (either in form of task or executor command)
+      // can define a specific user to run as. If present, this
+      // precedes the framework user value.
+      if (executorInfo.command().has_user()) {
+        user = executorInfo.command().user();
+      // TODO(haosong): Here did't handle frameworkInfo.user() correctly.
       }
     }
+
+    Sandbox sandbox(recoverable.directory(), user);
+
+    // Collect this container as being active.
+    actives.put(containerId, Owned<Container>(new Container(sandbox)));
+
+    // Assume that this container had been launched, if this proves
+    // to be wrong, the containerizer::Termination delivered by the
+    // subsequent wait invocation will tell us.
+    actives[containerId]->launched.set(Nothing());
+
+    // Remove this container from the orphan collection as it is not
+    // orphaned.
+    orphaned.erase(containerId);
   }
 
   // Done when we got no orphans to take care of.

@@ -80,7 +80,8 @@ public:
   virtual ~ExternalContainerizer();
 
   virtual process::Future<Nothing> recover(
-      const Option<state::SlaveState>& state);
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables);
 
   virtual process::Future<bool> launch(
       const ContainerID& containerId,
@@ -126,9 +127,10 @@ class ExternalContainerizerProcess
 public:
   ExternalContainerizerProcess(const Flags& flags);
 
-  // Recover containerized executors as specified by state. See
-  // containerizer.hpp:recover for more.
-  process::Future<Nothing> recover(const Option<state::SlaveState>& state);
+  // Recover containerized executors. See containerizer.hpp:recover for more.
+  process::Future<Nothing> recover(
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables);
 
   // Start the containerized executor.
   process::Future<bool> launch(
@@ -211,11 +213,13 @@ private:
   hashmap<ContainerID, process::Owned<Container>> actives;
 
   process::Future<Nothing> _recover(
-      const Option<state::SlaveState>& state,
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables,
       const process::Future<Option<int>>& future);
 
   process::Future<Nothing> __recover(
-      const Option<state::SlaveState>& state,
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables,
       const hashset<ContainerID>& containers);
 
   process::Future<Nothing> ___recover();
