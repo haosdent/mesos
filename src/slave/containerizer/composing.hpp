@@ -52,7 +52,8 @@ public:
   virtual ~ComposingContainerizer();
 
   virtual process::Future<Nothing> recover(
-      const Option<state::SlaveState>& state);
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables);
 
   virtual process::Future<bool> launch(
       const ContainerID& containerId,

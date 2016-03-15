@@ -51,10 +51,11 @@ class ComposingContainerizerTest : public MesosTest {};
 class MockContainerizer : public slave::Containerizer
 {
 public:
-  MOCK_METHOD1(
+  MOCK_METHOD2(
       recover,
       process::Future<Nothing>(
-          const Option<slave::state::SlaveState>&));
+          const SlaveID& slaveId,
+          const std::list<mesos::slave::ContainerState>& recoverables));
 
   MOCK_METHOD7(
       launch,
