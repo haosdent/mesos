@@ -68,12 +68,8 @@ using mesos::internal::slave::PosixLauncher;
 using mesos::internal::slave::Provisioner;
 using mesos::internal::slave::Slave;
 
-using mesos::internal::slave::state::ExecutorState;
-using mesos::internal::slave::state::FrameworkState;
-using mesos::internal::slave::state::RunState;
-using mesos::internal::slave::state::SlaveState;
-
 using mesos::slave::ContainerLogger;
+using mesos::slave::ContainerState;
 using mesos::slave::Isolator;
 
 using std::list;
@@ -113,46 +109,45 @@ TEST_F(ContainerLoggerTest, MesosContainerizerRecover)
   ASSERT_SOME(provisioner);
 
   // Launch a quick task so that we have a valid PID to put in our
-  // mock `SlaveState`.  This is necessary as the containerizer will
+  // mock `ContainerState`.  This is necessary as the containerizer will
   // try to reap the PID.
   Try<Subprocess> s = subprocess("exit 0");
   ASSERT_SOME(s);
   AWAIT(s->status());
 
-  // Construct a mock `SlaveState`.
+  // Construct a mock `ContainerState`.
+  SlaveID slaveId;
+  slaveId.set_value(UUID::random().toString());
+
   ExecutorID executorId;
   executorId.set_value(UUID::random().toString());
+
+  FrameworkID frameworkId;
+  frameworkId.set_value(UUID::random().toString());
 
   ContainerID containerId;
   containerId.set_value(UUID::random().toString());
 
   ExecutorInfo executorInfo;
   executorInfo.mutable_container()->set_type(ContainerInfo::MESOS);
-
-  ExecutorState executorState;
-  executorState.id = executorId;
-  executorState.info = executorInfo;
-  executorState.latest = containerId;
-
-  RunState runState;
-  runState.id = containerId;
-  runState.forkedPid = s->pid();
-  executorState.runs.put(containerId, runState);
-
-  FrameworkState frameworkState;
-  frameworkState.executors.put(executorId, executorState);
-
-  SlaveState slaveState;
-  FrameworkID frameworkId;
-  frameworkId.set_value(UUID::random().toString());
-  slaveState.frameworks.put(frameworkId, frameworkState);
+  executorInfo.mutable_executor_id()->set_value(executorId.value());
+  executorInfo.mutable_framework_id()->set_value(frameworkId.value());
 
   const string sandboxDirectory = slave::paths::getExecutorRunPath(
       flags.work_dir,
-      slaveState.id,
-      frameworkState.id,
+      slaveId,
+      frameworkId,
       executorId,
       containerId);
+
+  list<ContainerState> recoverables;
+  ContainerState executorRunState =
+    protobuf::slave::createContainerState(
+        executorInfo,
+        containerId,
+        s->pid(),
+        sandboxDirectory);
+  recoverables.push_back(executorRunState);
 
   // This is the crux of the test.  The logger's `recover` method
   // should be called with this specific set of arguments when
@@ -173,7 +168,7 @@ TEST_F(ContainerLoggerTest, MesosContainerizerRecover)
   // the MesosContainerizer's recovery validation logic.
   ASSERT_SOME(os::mkdir(sandboxDirectory));
 
-  Future<Nothing> recover = containerizer.recover(slaveState);
+  Future<Nothing> recover = containerizer.recover(slaveId, recoverables);
   AWAIT_READY(recover);
 }
 
@@ -195,46 +190,45 @@ TEST_F(ContainerLoggerTest, ROOT_DOCKER_ContainerizerRecover)
   MockContainerLogger* logger = new MockContainerLogger();
 
   // Launch a quick task so that we have a valid PID to put in our
-  // mock `SlaveState`.  This is necessary as the containerizer will
+  // mock `ContainerState`.  This is necessary as the containerizer will
   // try to reap the PID.
   Try<Subprocess> s = subprocess("exit 0");
   ASSERT_SOME(s);
   AWAIT(s->status());
 
-  // Construct a mock `SlaveState`.
+  // Construct a mock `ContainerState`.
+  SlaveID slaveId;
+  slaveId.set_value(UUID::random().toString());
+
   ExecutorID executorId;
   executorId.set_value(UUID::random().toString());
+
+  FrameworkID frameworkId;
+  frameworkId.set_value(UUID::random().toString());
 
   ContainerID containerId;
   containerId.set_value(UUID::random().toString());
 
   ExecutorInfo executorInfo;
   executorInfo.mutable_container()->set_type(ContainerInfo::DOCKER);
-
-  ExecutorState executorState;
-  executorState.id = executorId;
-  executorState.info = executorInfo;
-  executorState.latest = containerId;
-
-  RunState runState;
-  runState.id = containerId;
-  runState.forkedPid = s->pid();
-  executorState.runs.put(containerId, runState);
-
-  FrameworkState frameworkState;
-  frameworkState.executors.put(executorId, executorState);
-
-  SlaveState slaveState;
-  FrameworkID frameworkId;
-  frameworkId.set_value(UUID::random().toString());
-  slaveState.frameworks.put(frameworkId, frameworkState);
+  executorInfo.mutable_executor_id()->set_value(executorId.value());
+  executorInfo.mutable_framework_id()->set_value(frameworkId.value());
 
   const string sandboxDirectory = slave::paths::getExecutorRunPath(
       flags.work_dir,
-      slaveState.id,
-      frameworkState.id,
+      slaveId,
+      frameworkId,
       executorId,
       containerId);
+
+  list<ContainerState> recoverables;
+  ContainerState executorRunState =
+    protobuf::slave::createContainerState(
+        executorInfo,
+        containerId,
+        s->pid(),
+        sandboxDirectory);
+  recoverables.push_back(executorRunState);
 
   // This is the crux of the test.  The logger's `recover` method
   // should be called with this specific set of arguments when
@@ -270,7 +264,7 @@ TEST_F(ContainerLoggerTest, ROOT_DOCKER_ContainerizerRecover)
   EXPECT_CALL(*mockDocker, ps(_, _))
     .WillOnce(Return(containers));
 
-  Future<Nothing> recover = containerizer.recover(slaveState);
+  Future<Nothing> recover = containerizer.recover(slaveId, recoverables);
   AWAIT_READY(recover);
 }
 
