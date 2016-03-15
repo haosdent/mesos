@@ -1202,36 +1202,38 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Recover)
   Future<Docker::Container> inspect = docker->inspect(container2);
   AWAIT_READY(inspect);
 
-  SlaveState slaveState;
-  slaveState.id = slaveId;
-  FrameworkState frameworkState;
-
   ExecutorID execId;
   execId.set_value("e1");
 
-  ExecutorState execState;
+  FrameworkID frameworkId;
+
   ExecutorInfo execInfo;
-  execState.info = execInfo;
-  execState.latest = containerId;
+  execInfo.mutable_container()->set_type(ContainerInfo::DOCKER);
+  execInfo.mutable_executor_id()->set_value(execId.value());
+  execInfo.mutable_framework_id()->set_value(frameworkId.value());
 
   Try<process::Subprocess> wait =
     process::subprocess(tests::flags.docker + " wait " + container1);
 
   ASSERT_SOME(wait);
 
-  FrameworkID frameworkId;
+  const string sandboxDirectory = slave::paths::getExecutorRunPath(
+      flags.work_dir,
+      slaveId,
+      frameworkId,
+      execId,
+      containerId);
 
-  RunState runState;
-  runState.id = containerId;
-  runState.forkedPid = wait.get().pid();
+  list<mesos::slave::ContainerState> recoverables;
+  mesos::slave::ContainerState executorRunState =
+    protobuf::slave::createContainerState(
+        execInfo,
+        containerId,
+        wait.get().pid(),
+        sandboxDirectory);
+  recoverables.push_back(executorRunState);
 
-  execState.runs.put(containerId, runState);
-  frameworkState.executors.put(execId, execState);
-
-  slaveState.frameworks.put(frameworkId, frameworkState);
-
-  Future<Nothing> recover = dockerContainerizer.recover(slaveState);
-
+  Future<Nothing> recover = dockerContainerizer.recover(slaveId, recoverables);
   AWAIT_READY(recover);
 
   Future<containerizer::Termination> termination =
@@ -1269,32 +1271,39 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SkipRecoverNonDocker)
       Owned<ContainerLogger>(logger.get()),
       docker);
 
+  SlaveID slaveId;
+
   ContainerID containerId;
   containerId.set_value(UUID::random().toString());
 
   ExecutorID executorId;
   executorId.set_value(UUID::random().toString());
 
-  ExecutorInfo executorInfo;
-  executorInfo.mutable_container()->set_type(ContainerInfo::MESOS);
-
-  ExecutorState executorState;
-  executorState.info = executorInfo;
-  executorState.latest = containerId;
-
-  RunState runState;
-  runState.id = containerId;
-  executorState.runs.put(containerId, runState);
-
-  FrameworkState frameworkState;
-  frameworkState.executors.put(executorId, executorState);
-
-  SlaveState slaveState;
   FrameworkID frameworkId;
   frameworkId.set_value(UUID::random().toString());
-  slaveState.frameworks.put(frameworkId, frameworkState);
 
-  Future<Nothing> recover = dockerContainerizer.recover(slaveState);
+  ExecutorInfo executorInfo;
+  executorInfo.mutable_container()->set_type(ContainerInfo::MESOS);
+  executorInfo.mutable_executor_id()->set_value(executorId.value());
+  executorInfo.mutable_framework_id()->set_value(frameworkId.value());
+
+  const string sandboxDirectory = slave::paths::getExecutorRunPath(
+      flags.work_dir,
+      slaveId,
+      frameworkId,
+      executorId,
+      containerId);
+
+  list<mesos::slave::ContainerState> recoverables;
+  mesos::slave::ContainerState executorRunState =
+    protobuf::slave::createContainerState(
+        executorInfo,
+        containerId,
+        0,
+        sandboxDirectory);
+  recoverables.push_back(executorRunState);
+
+  Future<Nothing> recover = dockerContainerizer.recover(slaveId, recoverables);
   AWAIT_READY(recover);
 
   Future<hashset<ContainerID>> containers = dockerContainerizer.containers();

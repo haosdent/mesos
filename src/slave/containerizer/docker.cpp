@@ -65,17 +65,12 @@ using std::vector;
 
 using namespace process;
 
-using mesos::slave::ContainerLogger;
-
 namespace mesos {
 namespace internal {
 namespace slave {
 
-using state::SlaveState;
-using state::FrameworkState;
-using state::ExecutorState;
-using state::RunState;
-
+using mesos::slave::ContainerLogger;
+using mesos::slave::ContainerState;
 
 // Declared in header, see explanation there.
 const string DOCKER_NAME_PREFIX = "mesos-";
@@ -633,12 +628,14 @@ Try<Nothing> DockerContainerizerProcess::checkpoint(
 
 
 Future<Nothing> DockerContainerizer::recover(
-    const Option<SlaveState>& state)
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables)
 {
   return dispatch(
       process.get(),
       &DockerContainerizerProcess::recover,
-      state);
+      slaveId,
+      recoverables);
 }
 
 
@@ -738,25 +735,23 @@ Future<hashset<ContainerID>> DockerContainerizer::containers()
 
 
 Future<Nothing> DockerContainerizerProcess::recover(
-    const Option<SlaveState>& state)
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables)
 {
   LOG(INFO) << "Recovering Docker containers";
 
-  if (state.isSome()) {
-    // Get the list of all Docker containers (running and exited) in
-    // order to remove any orphans and reconcile checkpointed executors.
-    // TODO(tnachen): Remove this when we expect users to have already
-    // upgraded to 0.23.
-    return docker->ps(true, DOCKER_NAME_PREFIX + state.get().id.value())
-      .then(defer(self(), &Self::_recover, state.get(), lambda::_1));
-  }
-
-  return Nothing();
+  // Get the list of all Docker containers (running and exited) in
+  // order to remove any orphans and reconcile checkpointed executors.
+  // TODO(tnachen): Remove this when we expect users to have already
+  // upgraded to 0.23.
+  return docker->ps(true, DOCKER_NAME_PREFIX + slaveId.value())
+    .then(defer(self(), &Self::_recover, slaveId, recoverables, lambda::_1));
 }
 
 
 Future<Nothing> DockerContainerizerProcess::_recover(
-    const SlaveState& state,
+    const SlaveID& slaveId,
+    const list<ContainerState>& recoverables,
     const list<Docker::Container>& _containers)
 {
   // Although the slave checkpoints executor pids, before 0.23
@@ -786,116 +781,74 @@ Future<Nothing> DockerContainerizerProcess::_recover(
   // detect very unlikely duplicate scenario (see below).
   hashmap<ContainerID, pid_t> pids;
 
-  foreachvalue (const FrameworkState& framework, state.frameworks) {
-    foreachvalue (const ExecutorState& executor, framework.executors) {
-      if (executor.info.isNone()) {
-        LOG(WARNING) << "Skipping recovery of executor '" << executor.id
-                     << "' of framework '" << framework.id
-                     << "' because its info could not be recovered";
-        continue;
-      }
+  foreach (const ContainerState& recoverable, recoverables) {
+    const ExecutorInfo& executorInfo = recoverable.executor_info();
+    const ContainerID& containerId = recoverable.container_id();
+    const FrameworkID& frameworkId = executorInfo.framework_id();
+    const ExecutorID& executorId = executorInfo.executor_id();
 
-      if (executor.latest.isNone()) {
-        LOG(WARNING) << "Skipping recovery of executor '" << executor.id
-                     << "' of framework '" << framework.id
-                     << "' because its latest run could not be recovered";
-        continue;
-      }
-
-      // We are only interested in the latest run of the executor!
-      const ContainerID& containerId = executor.latest.get();
-      Option<RunState> run = executor.runs.get(containerId);
-      CHECK_SOME(run);
-      CHECK_SOME(run.get().id);
-      CHECK_EQ(containerId, run.get().id.get());
-
-      // We need the pid so the reaper can monitor the executor so
-      // skip this executor if it's not present. This is not an
-      // error because the slave will try to wait on the container
-      // which will return a failed Termination and everything will
-      // get cleaned up.
-      if (!run.get().forkedPid.isSome()) {
-        continue;
-      }
-
-      if (run.get().completed) {
-        VLOG(1) << "Skipping recovery of executor '" << executor.id
-                << "' of framework '" << framework.id
-                << "' because its latest run "
-                << containerId << " is completed";
-        continue;
-      }
-
-      const ExecutorInfo executorInfo = executor.info.get();
-      if (executorInfo.has_container() &&
-          executorInfo.container().type() != ContainerInfo::DOCKER) {
-        LOG(INFO) << "Skipping recovery of executor '" << executor.id
-                  << "' of framework '" << framework.id
-                  << "' because it was not launched from docker containerizer";
-        continue;
-      }
-
-      if (!executorInfo.has_container() &&
-          !existingContainers.contains(containerId)) {
-        LOG(INFO) << "Skipping recovery of executor '" << executor.id
-                  << "' of framework '" << framework.id
-                  << "' because its executor is not marked as docker "
-                  << "and the docker container doesn't exist";
-        continue;
-      }
-
-      LOG(INFO) << "Recovering container '" << containerId
-                << "' for executor '" << executor.id
-                << "' of framework '" << framework.id << "'";
-
-      // Create and store a container.
-      Container* container = new Container(containerId);
-      containers_[containerId] = container;
-      container->slaveId = state.id;
-      container->state = Container::RUNNING;
-      container->launchesExecutorContainer =
-        executorContainers.contains(containerId);
-
-      pid_t pid = run.get().forkedPid.get();
-
-      container->status.set(process::reap(pid));
-
-      container->status.future().get()
-        .onAny(defer(self(), &Self::reaped, containerId));
-
-      if (pids.containsValue(pid)) {
-        // This should (almost) never occur. There is the
-        // possibility that a new executor is launched with the same
-        // pid as one that just exited (highly unlikely) and the
-        // slave dies after the new executor is launched but before
-        // it hears about the termination of the earlier executor
-        // (also unlikely).
-        return Failure(
-            "Detected duplicate pid " + stringify(pid) +
-            " for container " + stringify(containerId));
-      }
-
-      pids.put(containerId, pid);
-
-      const string sandboxDirectory = paths::getExecutorRunPath(
-          flags.work_dir,
-          state.id,
-          framework.id,
-          executor.id,
-          containerId);
-      container->directory = sandboxDirectory;
-
-      // Pass recovered containers to the container logger.
-      // NOTE: The current implementation of the container logger only
-      // outputs a warning and does not have any other consequences.
-      // See `ContainerLogger::recover` for more information.
-      logger->recover(executorInfo, sandboxDirectory)
-        .onFailed(defer(self(), [executorInfo](const string& message) {
-          LOG(WARNING) << "Container logger failed to recover executor '"
-                       << executorInfo.executor_id() << "': "
-                       << message;
-        }));
+    if (!executorInfo.has_container() &&
+        !existingContainers.contains(containerId)) {
+      LOG(INFO) << "Skipping recovery of executor '" << executorId
+                << "' of framework '" << frameworkId
+                << "' because its executor is not marked as docker "
+                << "and the docker container doesn't exist";
+      continue;
     }
+
+    if (executorInfo.has_container() &&
+        executorInfo.container().type() != ContainerInfo::DOCKER) {
+      LOG(INFO) << "Skipping recovery of executor '" << executorId
+                << "' of framework " << frameworkId
+                << " because it was not launched from docker containerizer";
+      continue;
+    }
+
+    LOG(INFO) << "Recovering container '" << containerId
+              << "' for executor '" << executorId
+              << "' of framework '" << frameworkId << "'";
+
+    // Create and store a container.
+    Container* container = new Container(containerId);
+    containers_[containerId] = container;
+    container->slaveId = slaveId;
+    container->state = Container::RUNNING;
+    container->launchesExecutorContainer =
+      executorContainers.contains(containerId);
+
+    pid_t pid = recoverable.pid();
+
+    container->status.set(process::reap(pid));
+
+    container->status.future().get()
+      .onAny(defer(self(), &Self::reaped, containerId));
+
+    if (pids.containsValue(pid)) {
+      // This should (almost) never occur. There is the
+      // possibility that a new executor is launched with the same
+      // pid as one that just exited (highly unlikely) and the
+      // slave dies after the new executor is launched but before
+      // it hears about the termination of the earlier executor
+      // (also unlikely).
+      return Failure(
+          "Detected duplicate pid " + stringify(pid) +
+          " for container " + stringify(containerId));
+    }
+
+    pids.put(containerId, pid);
+
+    container->directory = recoverable.directory();
+
+    // Pass recovered containers to the container logger.
+    // NOTE: The current implementation of the container logger only
+    // outputs a warning and does not have any other consequences.
+    // See `ContainerLogger::recover` for more information.
+    logger->recover(executorInfo, container->directory)
+      .onFailed(defer(self(), [executorInfo](const string& message) {
+        LOG(WARNING) << "Container logger failed to recover executor '"
+                     << executorInfo.executor_id() << "': "
+                     << message;
+      }));
   }
 
   if (flags.docker_kill_orphans) {
