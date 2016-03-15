@@ -73,9 +73,10 @@ public:
 
   virtual process::Future<hashset<ContainerID>> containers();
 
-  MOCK_METHOD1(
+  MOCK_METHOD2(
       recover,
-      process::Future<Nothing>(const Option<slave::state::SlaveState>&));
+      process::Future<Nothing>(
+          const SlaveID&, const std::list<mesos::slave::ContainerState>&));
 
   MOCK_METHOD7(
       launch,

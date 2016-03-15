@@ -291,7 +291,7 @@ void TestContainerizer::setup()
   // 'DoDefault', without requiring each test to put expectations in
   // place.
 
-  EXPECT_CALL(*this, recover(_))
+  EXPECT_CALL(*this, recover(_, _))
     .WillRepeatedly(Return(Nothing()));
 
   EXPECT_CALL(*this, usage(_))
