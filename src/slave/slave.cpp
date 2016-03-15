@@ -94,6 +94,7 @@
 
 using mesos::executor::Call;
 
+using mesos::slave::ContainerState;
 using mesos::slave::QoSController;
 using mesos::slave::QoSCorrection;
 using mesos::slave::ResourceEstimator;
@@ -4686,7 +4687,75 @@ Future<Nothing> Slave::recover(const Result<state::State>& state)
 Future<Nothing> Slave::_recoverContainerizer(
     const Option<state::SlaveState>& state)
 {
-  return containerizer->recover(state);
+  if (state.isNone()) {
+    return Nothing();
+  }
+
+  // Gather the executor run-time states that we will attempt to recover.
+  list<ContainerState> recoverables;
+  foreachvalue (const FrameworkState& framework, state.get().frameworks) {
+    foreachvalue (const ExecutorState& executor, framework.executors) {
+      if (executor.info.isNone()) {
+        LOG(WARNING) << "Skipping recovery of executor '" << executor.id
+                     << "' of framework " << framework.id
+                     << " because its info could not be recovered";
+        continue;
+      }
+
+      if (executor.latest.isNone()) {
+        LOG(WARNING) << "Skipping recovery of executor '" << executor.id
+                     << "' of framework " << framework.id
+                     << " because its latest run could not be recovered";
+        continue;
+      }
+
+      // We are only interested in the latest run of the executor!
+      const ContainerID& containerId = executor.latest.get();
+      Option<RunState> run = executor.runs.get(containerId);
+      CHECK_SOME(run);
+      CHECK_SOME(run.get().id);
+      CHECK_EQ(containerId, run.get().id.get());
+
+      // We need the pid so the reaper can monitor the executor so skip this
+      // executor if it's not present. This is not an error because the slave
+      // will try to wait on the container which will return a failed
+      // Termination and everything will get cleaned up.
+      if (!run.get().forkedPid.isSome()) {
+        continue;
+      }
+
+      if (run.get().completed) {
+        VLOG(1) << "Skipping recovery of executor '" << executor.id
+                << "' of framework " << framework.id
+                << " because its latest run "
+                << containerId << " is completed";
+        continue;
+      }
+
+      // NOTE: We create the executor directory before checkpointing
+      // the executor. Therefore, it's not possible for this
+      // directory to be non-existent.
+      const string& directory = paths::getExecutorRunPath(
+          flags.work_dir,
+          state.get().id,
+          framework.id,
+          executor.id,
+          containerId);
+
+      CHECK(os::exists(directory));
+
+      ContainerState executorRunState =
+        protobuf::slave::createContainerState(
+            executor.info.get(),
+            run.get().id.get(),
+            run.get().forkedPid.get(),
+            directory);
+
+      recoverables.push_back(executorRunState);
+    }
+  }
+
+  return containerizer->recover(state.get().id, recoverables);
 }
 
 

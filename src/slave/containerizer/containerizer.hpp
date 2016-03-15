@@ -17,12 +17,16 @@
 #ifndef __CONTAINERIZER_HPP__
 #define __CONTAINERIZER_HPP__
 
+#include <list>
 #include <map>
 
 #include <mesos/mesos.hpp>
 #include <mesos/resources.hpp>
 
 #include <mesos/containerizer/containerizer.hpp>
+
+// ONLY USEFUL AFTER RUNNING PROTOC.
+#include <mesos/slave/isolator.pb.h>
 
 #include <process/future.hpp>
 #include <process/owned.hpp>
@@ -42,11 +46,6 @@ namespace slave {
 // Forward declaration.
 class Slave;
 class Flags;
-
-namespace state {
-// Forward declaration.
-struct SlaveState;
-} // namespace state {
 
 
 // An abstraction of a Containerizer that will contain an executor and
@@ -71,11 +70,10 @@ public:
 
   virtual ~Containerizer() {}
 
-  // Recover all containerized executors specified in state. Any
-  // containerized executors present on the system but not included in
-  // state (or state is None) will be terminated and cleaned up.
+  // Recover all containerized executors.
   virtual process::Future<Nothing> recover(
-      const Option<state::SlaveState>& state) = 0;
+      const SlaveID& slaveId,
+      const std::list<mesos::slave::ContainerState>& recoverables) = 0;
 
   // Launch a containerized executor. Returns true if launching this
   // ExecutorInfo is supported and it has been launched, otherwise
