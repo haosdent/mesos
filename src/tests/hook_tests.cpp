@@ -277,10 +277,9 @@ TEST_F(HookTest, MasterSlaveLostHookTest)
 TEST_F(HookTest, VerifySlaveExecutorEnvironmentDecorator)
 {
   const string& directory = os::getcwd(); // We're inside a temporary sandbox.
-  Fetcher fetcher;
 
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(CreateSlaveFlags(), false, &fetcher);
+    MesosContainerizer::create(CreateSlaveFlags(), false);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -622,8 +621,6 @@ TEST_F(HookTest, ROOT_DOCKER_VerifySlavePreLaunchDockerHook)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -631,7 +628,7 @@ TEST_F(HookTest, ROOT_DOCKER_VerifySlavePreLaunchDockerHook)
 
   MockDockerContainerizer containerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
