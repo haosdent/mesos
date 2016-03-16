@@ -591,7 +591,7 @@ MockDocker::~MockDocker() {}
 
 MockDockerContainerizer::MockDockerContainerizer(
     const slave::Flags& flags,
-    slave::Fetcher* fetcher,
+    const process::Owned<slave::Fetcher>& fetcher,
     const process::Owned<ContainerLogger>& logger,
     process::Shared<Docker> docker)
   : slave::DockerContainerizer(flags, fetcher, logger, docker)
@@ -613,7 +613,7 @@ MockDockerContainerizer::~MockDockerContainerizer() {}
 
 MockDockerContainerizerProcess::MockDockerContainerizerProcess(
     const slave::Flags& flags,
-    slave::Fetcher* fetcher,
+    const process::Owned<slave::Fetcher>& fetcher,
     const process::Owned<ContainerLogger>& logger,
     const process::Shared<Docker>& docker)
   : slave::DockerContainerizerProcess(flags, fetcher, logger, docker)
