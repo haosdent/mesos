@@ -94,7 +94,6 @@ public:
   // Construct a MesosContainerizer with TestIsolator(s) which use the provided
   // 'prepare' command(s).
   Try<Owned<MesosContainerizer>> CreateContainerizer(
-      Fetcher* fetcher,
       const vector<Option<ContainerLaunchInfo>>& launchInfos)
   {
     vector<Owned<Isolator>> isolators;
@@ -132,7 +131,7 @@ public:
     return Owned<MesosContainerizer>(new MesosContainerizer(
         flags,
         false,
-        fetcher,
+        Owned<Fetcher>(new Fetcher()),
         Owned<ContainerLogger>(logger.get()),
         Owned<Launcher>(launcher.get()),
         provisioner.get(),
@@ -140,13 +139,12 @@ public:
   }
 
   Try<Owned<MesosContainerizer>> CreateContainerizer(
-      Fetcher* fetcher,
       const Option<ContainerLaunchInfo>& launchInfo)
   {
     vector<Option<ContainerLaunchInfo>> launchInfos;
     launchInfos.push_back(launchInfo);
 
-    return CreateContainerizer(fetcher, launchInfos);
+    return CreateContainerizer(launchInfos);
   }
 };
 
@@ -157,13 +155,10 @@ TEST_F(MesosContainerizerIsolatorPreparationTest, ScriptSucceeds)
   string directory = os::getcwd(); // We're inside a temporary sandbox.
   string file = path::join(directory, "child.script.executed");
 
-  Fetcher fetcher;
-
   ContainerLaunchInfo launchInfo;
   launchInfo.add_commands()->set_value("touch " + file);
 
   Try<Owned<MesosContainerizer>> containerizer = CreateContainerizer(
-      &fetcher,
       launchInfo);
   ASSERT_SOME(containerizer);
 
@@ -206,13 +201,10 @@ TEST_F(MesosContainerizerIsolatorPreparationTest, ScriptFails)
   string directory = os::getcwd(); // We're inside a temporary sandbox.
   string file = path::join(directory, "child.script.executed");
 
-  Fetcher fetcher;
-
   ContainerLaunchInfo launchInfo;
   launchInfo.add_commands()->set_value("touch " + file + " && exit 1");
 
   Try<Owned<MesosContainerizer>> containerizer = CreateContainerizer(
-      &fetcher,
       launchInfo);
   ASSERT_SOME(containerizer);
 
@@ -271,10 +263,8 @@ TEST_F(MesosContainerizerIsolatorPreparationTest, MultipleScripts)
   launch2.add_commands()->set_value("touch " + file2 + " && exit 1");
   launchInfos.push_back(launch2);
 
-  Fetcher fetcher;
-
   Try<Owned<MesosContainerizer>> containerizer =
-    CreateContainerizer(&fetcher, launchInfos);
+    CreateContainerizer(launchInfos);
 
   ASSERT_SOME(containerizer);
 
@@ -324,8 +314,6 @@ TEST_F(MesosContainerizerIsolatorPreparationTest, ExecutorEnvironmentVariable)
   string directory = os::getcwd(); // We're inside a temporary sandbox.
   string file = path::join(directory, "child.script.executed");
 
-  Fetcher fetcher;
-
   ContainerLaunchInfo launchInfo;
 
   Environment::Variable* variable =
@@ -335,7 +323,6 @@ TEST_F(MesosContainerizerIsolatorPreparationTest, ExecutorEnvironmentVariable)
   variable->set_value(file);
 
   Try<Owned<MesosContainerizer>> containerizer = CreateContainerizer(
-      &fetcher,
       launchInfo);
 
   ASSERT_SOME(containerizer);
@@ -396,11 +383,9 @@ TEST_F(MesosContainerizerExecuteTest, IoRedirection)
   slave::Flags flags;
   flags.launcher_dir = getLauncherDir();
 
-  Fetcher fetcher;
-
   // Use local=false so std{err,out} are redirected to files.
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -455,7 +440,7 @@ public:
   MockMesosContainerizerProcess(
       const slave::Flags& flags,
       bool local,
-      Fetcher* fetcher,
+      const Owned<Fetcher>& fetcher,
       const Owned<ContainerLogger>& logger,
       const Owned<Launcher>& launcher,
       const Owned<Provisioner>& provisioner,
@@ -563,8 +548,6 @@ TEST_F(MesosContainerizerDestroyTest, DestroyWhileFetching)
   Try<Launcher*> launcher = PosixLauncher::create(flags);
   ASSERT_SOME(launcher);
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -576,7 +559,7 @@ TEST_F(MesosContainerizerDestroyTest, DestroyWhileFetching)
   MockMesosContainerizerProcess* process = new MockMesosContainerizerProcess(
       flags,
       true,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       Owned<Launcher>(launcher.get()),
       provisioner.get(),
@@ -639,8 +622,6 @@ TEST_F(MesosContainerizerDestroyTest, DestroyWhilePreparing)
     .WillOnce(DoAll(FutureSatisfy(&prepare),
                     Return(promise.future())));
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -652,7 +633,7 @@ TEST_F(MesosContainerizerDestroyTest, DestroyWhilePreparing)
   MockMesosContainerizerProcess* process = new MockMesosContainerizerProcess(
       flags,
       true,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       Owned<Launcher>(launcher.get()),
       provisioner.get(),
@@ -747,8 +728,6 @@ TEST_F(MesosContainerizerProvisionerTest, ProvisionFailed)
   EXPECT_CALL(*provisioner, destroy(_))
     .WillOnce(Return(true));
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -757,7 +736,7 @@ TEST_F(MesosContainerizerProvisionerTest, ProvisionFailed)
   MesosContainerizerProcess* process = new MesosContainerizerProcess(
       flags,
       true,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       Owned<Launcher>(launcher),
       Owned<Provisioner>(provisioner),
@@ -842,8 +821,6 @@ TEST_F(MesosContainerizerProvisionerTest, DestroyWhileProvisioning)
   EXPECT_CALL(*provisioner, destroy(_))
     .WillOnce(Return(true));
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -852,7 +829,7 @@ TEST_F(MesosContainerizerProvisionerTest, DestroyWhileProvisioning)
   MesosContainerizerProcess* process = new MesosContainerizerProcess(
       flags,
       true,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       Owned<Launcher>(launcher),
       Owned<Provisioner>(provisioner),
@@ -936,8 +913,6 @@ TEST_F(MesosContainerizerDestroyTest, LauncherDestroyFailure)
 
   TestLauncher* launcher = new TestLauncher(Owned<Launcher>(launcher_.get()));
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -949,7 +924,7 @@ TEST_F(MesosContainerizerDestroyTest, LauncherDestroyFailure)
   MesosContainerizerProcess* process = new MesosContainerizerProcess(
       flags,
       true,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       Owned<Launcher>(launcher),
       provisioner.get(),
@@ -1015,10 +990,8 @@ class MesosContainerizerRecoverTest : public MesosTest {};
 TEST_F(MesosContainerizerRecoverTest, SkipRecoverNonMesosContainers)
 {
   slave::Flags flags = CreateSlaveFlags();
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
