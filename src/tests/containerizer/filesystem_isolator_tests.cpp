@@ -181,7 +181,7 @@ protected:
         new MesosContainerizer(
             flags,
             true,
-            &fetcher,
+            Owned<Fetcher>(new Fetcher()),
             Owned<ContainerLogger>(logger.get()),
             Owned<Launcher>(launcher.get()),
             provisioner,
