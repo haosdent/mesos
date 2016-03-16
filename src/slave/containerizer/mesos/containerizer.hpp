@@ -53,13 +53,12 @@ class MesosContainerizer : public Containerizer
 public:
   static Try<MesosContainerizer*> create(
       const Flags& flags,
-      bool local,
-      Fetcher* fetcher);
+      bool local);
 
   MesosContainerizer(
       const Flags& flags,
       bool local,
-      Fetcher* fetcher,
+      const process::Owned<Fetcher>& fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& logger,
       const process::Owned<Launcher>& launcher,
       const process::Owned<Provisioner>& provisioner,
@@ -122,7 +121,7 @@ public:
   MesosContainerizerProcess(
       const Flags& _flags,
       bool _local,
-      Fetcher* _fetcher,
+      const process::Owned<Fetcher>& _fetcher,
       const process::Owned<mesos::slave::ContainerLogger>& _logger,
       const process::Owned<Launcher>& _launcher,
       const process::Owned<Provisioner>& _provisioner,
@@ -280,7 +279,7 @@ private:
 
   const Flags flags;
   const bool local;
-  Fetcher* fetcher;
+  process::Owned<Fetcher> fetcher;
   process::Owned<mesos::slave::ContainerLogger> logger;
   const process::Owned<Launcher> launcher;
   const process::Owned<Provisioner> provisioner;

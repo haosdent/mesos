@@ -116,8 +116,7 @@ const char MESOS_CONTAINERIZER[] = "mesos-containerizer";
 
 Try<MesosContainerizer*> MesosContainerizer::create(
     const Flags& flags,
-    bool local,
-    Fetcher* fetcher)
+    bool local)
 {
   // Modify `flags` based on the deprecated `isolation` flag (and then
   // use `flags_` in the rest of this function).
@@ -256,7 +255,7 @@ Try<MesosContainerizer*> MesosContainerizer::create(
   return new MesosContainerizer(
       flags_,
       local,
-      fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       Owned<Launcher>(launcher.get()),
       provisioner.get(),
@@ -267,7 +266,7 @@ Try<MesosContainerizer*> MesosContainerizer::create(
 MesosContainerizer::MesosContainerizer(
     const Flags& flags,
     bool local,
-    Fetcher* fetcher,
+    const Owned<Fetcher>& fetcher,
     const Owned<ContainerLogger>& logger,
     const Owned<Launcher>& launcher,
     const Owned<Provisioner>& provisioner,

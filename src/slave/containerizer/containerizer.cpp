@@ -230,7 +230,7 @@ Try<Containerizer*> Containerizer::create(
   foreach (const string& type, strings::split(flags.containerizers, ",")) {
     if (type == "mesos") {
       Try<MesosContainerizer*> containerizer =
-        MesosContainerizer::create(flags, local, fetcher);
+        MesosContainerizer::create(flags, local);
       if (containerizer.isError()) {
         return Error("Could not create MesosContainerizer: " +
                      containerizer.error());
