@@ -37,8 +37,6 @@
 #include "slave/flags.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/fetcher.hpp"
-
 #include "slave/containerizer/mesos/isolators/posix/disk.hpp"
 
 #include "slave/containerizer/mesos/containerizer.hpp"
@@ -57,7 +55,6 @@ using testing::Return;
 using mesos::internal::master::Master;
 
 using mesos::internal::slave::DiskUsageCollector;
-using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::Slave;
 
@@ -344,10 +341,8 @@ TEST_F(DiskQuotaTest, NoQuotaEnforcement)
   flags.container_disk_watch_interval = Milliseconds(1);
   flags.enforce_container_disk_quota = false;
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -441,10 +436,8 @@ TEST_F(DiskQuotaTest, ResourceStatistics)
   // the 'du' subprocess.
   flags.container_disk_watch_interval = Milliseconds(1);
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -534,10 +527,8 @@ TEST_F(DiskQuotaTest, SlaveRecovery)
   flags.isolation = "posix/cpu,posix/mem,posix/disk";
   flags.container_disk_watch_interval = Milliseconds(1);
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -603,7 +594,7 @@ TEST_F(DiskQuotaTest, SlaveRecovery)
 
   Future<Nothing> _recover = FUTURE_DISPATCH(_, &Slave::_recover);
 
-  _containerizer = MesosContainerizer::create(flags, true, &fetcher);
+  _containerizer = MesosContainerizer::create(flags, true);
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
 
