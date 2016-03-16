@@ -171,10 +171,8 @@ TEST_F(HealthCheckTest, HealthyTask)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -323,8 +321,6 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -332,7 +328,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
 
   MockDockerContainerizer containerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -427,10 +423,8 @@ TEST_F(HealthCheckTest, HealthyTaskNonShell)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -496,10 +490,8 @@ TEST_F(HealthCheckTest, HealthStatusChange)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -715,8 +707,6 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -724,7 +714,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
 
   MockDockerContainerizer containerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -850,10 +840,8 @@ TEST_F(HealthCheckTest, ConsecutiveFailures)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -940,10 +928,8 @@ TEST_F(HealthCheckTest, EnvironmentSetup)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -1007,10 +993,8 @@ TEST_F(HealthCheckTest, DISABLED_GracePeriod)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -1080,10 +1064,8 @@ TEST_F(HealthCheckTest, CheckCommandTimeout)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
