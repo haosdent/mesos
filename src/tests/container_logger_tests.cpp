@@ -101,8 +101,6 @@ TEST_F(ContainerLoggerTest, MesosContainerizerRecover)
   Try<Launcher*> launcher = PosixLauncher::create(flags);
   ASSERT_SOME(launcher);
 
-  Fetcher fetcher;
-
   MockContainerLogger* logger = new MockContainerLogger();
 
   Try<Owned<Provisioner>> provisioner = Provisioner::create(flags);
@@ -158,7 +156,7 @@ TEST_F(ContainerLoggerTest, MesosContainerizerRecover)
   MesosContainerizer containerizer(
       flags,
       true,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger),
       Owned<Launcher>(launcher.get()),
       provisioner.get(),
@@ -184,8 +182,6 @@ TEST_F(ContainerLoggerTest, ROOT_DOCKER_ContainerizerRecover)
   Shared<Docker> docker(mockDocker);
 
   slave::Flags flags = CreateSlaveFlags();
-
-  Fetcher fetcher;
 
   MockContainerLogger* logger = new MockContainerLogger();
 
@@ -238,7 +234,7 @@ TEST_F(ContainerLoggerTest, ROOT_DOCKER_ContainerizerRecover)
 
   MockDockerContainerizer containerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger),
       docker);
 
@@ -282,11 +278,9 @@ TEST_F(ContainerLoggerTest, DefaultToSandbox)
   // We'll need access to these flags later.
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   // We use an actual containerizer + executor since we want something to run.
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -381,11 +375,9 @@ TEST_F(ContainerLoggerTest, LOGROTATE_RotateInSandbox)
   // Use the non-default container logger that rotates logs.
   flags.container_logger = LOGROTATE_CONTAINER_LOGGER_NAME;
 
-  Fetcher fetcher;
-
   // We use an actual containerizer + executor since we want something to run.
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -531,11 +523,9 @@ TEST_F(ContainerLoggerTest, LOGROTATE_ModuleFDOwnership)
   // Use the non-default container logger that rotates logs.
   flags.container_logger = LOGROTATE_CONTAINER_LOGGER_NAME;
 
-  Fetcher fetcher;
-
   // We use an actual containerizer + executor since we want something to run.
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
