@@ -121,9 +121,7 @@ Option<ContainerID> parse(const Docker::Container& container)
 }
 
 
-Try<DockerContainerizer*> DockerContainerizer::create(
-    const Flags& flags,
-    Fetcher* fetcher)
+Try<DockerContainerizer*> DockerContainerizer::create(const Flags& flags)
 {
   // Create and initialize the container logger module.
   Try<ContainerLogger*> logger =
@@ -158,7 +156,7 @@ Try<DockerContainerizer*> DockerContainerizer::create(
 
   return new DockerContainerizer(
       flags,
-      fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 }
@@ -174,7 +172,7 @@ DockerContainerizer::DockerContainerizer(
 
 DockerContainerizer::DockerContainerizer(
     const Flags& flags,
-    Fetcher* fetcher,
+    const Owned<Fetcher>& fetcher,
     const Owned<ContainerLogger>& logger,
     Shared<Docker> docker)
   : process(new DockerContainerizerProcess(
