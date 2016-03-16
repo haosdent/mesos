@@ -84,7 +84,6 @@ using mesos::internal::master::Registrar;
 using mesos::internal::master::Repairer;
 
 using mesos::internal::slave::Containerizer;
-using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::GarbageCollector;
 using mesos::internal::slave::Slave;
 using mesos::internal::slave::StatusUpdateManager;
@@ -126,7 +125,6 @@ static Option<Authorizer*> authorizer_ = None();
 static Files* files = NULL;
 static vector<GarbageCollector*>* garbageCollectors = NULL;
 static vector<StatusUpdateManager*>* statusUpdateManagers = NULL;
-static vector<Fetcher*>* fetchers = NULL;
 static vector<ResourceEstimator*>* resourceEstimators = NULL;
 static vector<QoSController*>* qosControllers = NULL;
 
@@ -322,7 +320,6 @@ PID<Master> launch(const Flags& flags, Allocator* _allocator)
 
   garbageCollectors = new vector<GarbageCollector*>();
   statusUpdateManagers = new vector<StatusUpdateManager*>();
-  fetchers = new vector<Fetcher*>();
   resourceEstimators = new vector<ResourceEstimator*>();
   qosControllers = new vector<QoSController*>();
 
@@ -343,7 +340,6 @@ PID<Master> launch(const Flags& flags, Allocator* _allocator)
 
     garbageCollectors->push_back(new GarbageCollector());
     statusUpdateManagers->push_back(new StatusUpdateManager(flags));
-    fetchers->push_back(new Fetcher());
 
     Try<ResourceEstimator*> resourceEstimator =
       ResourceEstimator::create(flags.resource_estimator);
@@ -371,7 +367,7 @@ PID<Master> launch(const Flags& flags, Allocator* _allocator)
     }
 
     Try<Containerizer*> containerizer =
-      Containerizer::create(flags, true, fetchers->back());
+      Containerizer::create(flags, true);
 
     if (containerizer.isError()) {
       EXIT(EXIT_FAILURE)
@@ -451,13 +447,6 @@ void shutdown()
 
     delete statusUpdateManagers;
     statusUpdateManagers = NULL;
-
-    foreach (Fetcher* fetcher, *fetchers) {
-      delete fetcher;
-    }
-
-    delete fetchers;
-    fetchers = NULL;
 
     foreach (ResourceEstimator* estimator, *resourceEstimators) {
       delete estimator;

@@ -197,8 +197,7 @@ Try<Resources> Containerizer::resources(const Flags& flags)
 
 Try<Containerizer*> Containerizer::create(
     const Flags& flags,
-    bool local,
-    Fetcher* fetcher)
+    bool local)
 {
   if (flags.isolation == "external") {
     LOG(WARNING) << "The 'external' isolation flag is deprecated, "

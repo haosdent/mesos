@@ -232,8 +232,6 @@ int main(int argc, char** argv)
     LOG(INFO) << "Git SHA: " << build::GIT_SHA.get();
   }
 
-  Fetcher fetcher;
-
 #ifdef __linux__
   // Initialize systemd if it exists.
   if (systemd::exists() && flags.systemd_enable_support) {
@@ -252,8 +250,7 @@ int main(int argc, char** argv)
   }
 #endif // __linux__
 
-  Try<Containerizer*> containerizer =
-    Containerizer::create(flags, false, &fetcher);
+  Try<Containerizer*> containerizer = Containerizer::create(flags, false);
 
   if (containerizer.isError()) {
     EXIT(EXIT_FAILURE)

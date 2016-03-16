@@ -57,8 +57,7 @@ public:
   // flags.
   static Try<Containerizer*> create(
       const Flags& flags,
-      bool local,
-      Fetcher* fetcher);
+      bool local);
 
   // Determine slave resources from flags, probing the system or
   // querying a delegate.

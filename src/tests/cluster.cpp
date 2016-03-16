@@ -355,11 +355,8 @@ Try<process::Owned<Slave>> Slave::start(
   if (containerizer.isSome()) {
     slave->containerizer = containerizer.get();
   } else {
-    // Create a new fetcher.
-    slave->fetcher.reset(new slave::Fetcher());
-
     Try<slave::Containerizer*> _containerizer =
-      slave::Containerizer::create(flags, true, slave->fetcher.get());
+      slave::Containerizer::create(flags, true);
 
     if (_containerizer.isError()) {
       return Error("Failed to create containerizer: " + _containerizer.error());

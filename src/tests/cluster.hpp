@@ -56,7 +56,6 @@
 #include "slave/status_update_manager.hpp"
 
 #include "slave/containerizer/containerizer.hpp"
-#include "slave/containerizer/fetcher.hpp"
 
 #include "state/in_memory.hpp"
 #include "state/log.hpp"
@@ -195,7 +194,6 @@ private:
 
   // Dependencies that are created by the factory method.
   process::Owned<slave::Containerizer> ownedContainerizer;
-  process::Owned<slave::Fetcher> fetcher;
   process::Owned<slave::GarbageCollector> gc;
   process::Owned<mesos::slave::QoSController> qosController;
   process::Owned<mesos::slave::ResourceEstimator> resourceEstimator;
