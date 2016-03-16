@@ -178,8 +178,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch_Executor)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -187,7 +185,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch_Executor)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -305,8 +303,6 @@ TEST_F(DockerContainerizerTest, DISABLED_ROOT_DOCKER_Launch_Executor_Bridged)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -314,7 +310,7 @@ TEST_F(DockerContainerizerTest, DISABLED_ROOT_DOCKER_Launch_Executor_Bridged)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -424,8 +420,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -433,7 +427,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -575,8 +569,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Kill)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -584,7 +576,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Kill)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -693,8 +685,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_TaskKillingCapability)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -702,7 +692,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_TaskKillingCapability)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -822,8 +812,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Usage)
 
   Shared<Docker> docker(mockDocker);
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -831,7 +819,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Usage)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -967,8 +955,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Update)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -976,7 +962,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Update)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -1131,8 +1117,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Recover)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -1140,7 +1124,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Recover)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -1258,8 +1242,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SkipRecoverNonDocker)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -1267,7 +1249,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SkipRecoverNonDocker)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -1331,8 +1313,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_LaunchWithPersistentVolumes)
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpu:2;mem:2048;disk(role1):2048";
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -1340,7 +1320,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_LaunchWithPersistentVolumes)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -1481,8 +1461,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverPersistentVolumes)
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpu:2;mem:2048;disk(role1):2048";
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -1491,7 +1469,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverPersistentVolumes)
   Owned<MockDockerContainerizer> dockerContainerizer(
       new MockDockerContainerizer(
           flags,
-          &fetcher,
+          Owned<Fetcher>(new Fetcher()),
           Owned<ContainerLogger>(logger.get()),
           docker));
 
@@ -1593,7 +1571,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverPersistentVolumes)
 
   dockerContainerizer.reset(new MockDockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker));
 
@@ -1642,8 +1620,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverOrphanedPersistentVolumes)
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpu:2;mem:2048;disk(role1):2048";
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -1652,7 +1628,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverOrphanedPersistentVolumes)
   Owned<MockDockerContainerizer> dockerContainerizer(
       new MockDockerContainerizer(
           flags,
-          &fetcher,
+          Owned<Fetcher>(new Fetcher()),
           Owned<ContainerLogger>(logger.get()),
           docker));
 
@@ -1762,7 +1738,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverOrphanedPersistentVolumes)
 
   dockerContainerizer.reset(new MockDockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker));
 
@@ -1806,8 +1782,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Logs)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -1815,7 +1789,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Logs)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -1944,8 +1918,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -1953,7 +1925,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -2077,8 +2049,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Override)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -2086,7 +2056,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Override)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -2213,8 +2183,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Args)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -2222,7 +2190,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Args)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -2351,8 +2319,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SlaveRecoveryTaskContainer)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   // This is owned by the containerizer, so we'll need one per containerizer.
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
@@ -2362,7 +2328,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SlaveRecoveryTaskContainer)
   Owned<MockDockerContainerizer> dockerContainerizer(
       new MockDockerContainerizer(
           flags,
-          &fetcher,
+          Owned<Fetcher>(new Fetcher()),
           Owned<ContainerLogger>(logger.get()),
           docker));
 
@@ -2453,7 +2419,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SlaveRecoveryTaskContainer)
 
   dockerContainerizer.reset(new MockDockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker));
 
@@ -2514,8 +2480,6 @@ TEST_F(DockerContainerizerTest,
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   // This is owned by the containerizer, so we'll need one per containerizer.
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
@@ -2525,7 +2489,7 @@ TEST_F(DockerContainerizerTest,
   Owned<MockDockerContainerizer> dockerContainerizer(
       new MockDockerContainerizer(
           flags,
-          &fetcher,
+          Owned<Fetcher>(new Fetcher()),
           Owned<ContainerLogger>(logger.get()),
           docker));
 
@@ -2641,7 +2605,7 @@ TEST_F(DockerContainerizerTest,
 
   dockerContainerizer.reset(new MockDockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker));
 
@@ -2689,8 +2653,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_NC_PortMapping)
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpus:1;mem:1024;ports:[10000-10000]";
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -2698,7 +2660,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_NC_PortMapping)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -2842,8 +2804,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_LaunchSandboxWithColon)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -2851,7 +2811,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_LaunchSandboxWithColon)
 
   MockDockerContainerizer dockerContainerizer(
       flags,
-      &fetcher,
+      Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
       docker);
 
@@ -2946,8 +2906,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhileFetching)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -2958,7 +2916,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhileFetching)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
-        &fetcher,
+        Owned<Fetcher>(new Fetcher()),
         Owned<ContainerLogger>(logger.get()),
         docker);
 
@@ -3063,8 +3021,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhilePulling)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -3075,7 +3031,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhilePulling)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
-        &fetcher,
+        Owned<Fetcher>(new Fetcher()),
         Owned<ContainerLogger>(logger.get()),
         docker);
 
@@ -3187,8 +3143,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_ExecutorCleanupWhenLaunchFailed)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -3199,7 +3153,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_ExecutorCleanupWhenLaunchFailed)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
-        &fetcher,
+        Owned<Fetcher>(new Fetcher()),
         Owned<ContainerLogger>(logger.get()),
         docker);
 
@@ -3295,8 +3249,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_FetchFailure)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -3307,7 +3259,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_FetchFailure)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
-        &fetcher,
+        Owned<Fetcher>(new Fetcher()),
         Owned<ContainerLogger>(logger.get()),
         docker);
 
@@ -3406,8 +3358,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerPullFailure)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -3418,7 +3368,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerPullFailure)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
-        &fetcher,
+        Owned<Fetcher>(new Fetcher()),
         Owned<ContainerLogger>(logger.get()),
         docker);
 
@@ -3517,8 +3467,6 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerInspectDiscard)
 
   slave::Flags flags = CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
 
@@ -3529,7 +3477,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerInspectDiscard)
   MockDockerContainerizerProcess* process =
     new MockDockerContainerizerProcess(
         flags,
-        &fetcher,
+        Owned<Fetcher>(new Fetcher()),
         Owned<ContainerLogger>(logger.get()),
         docker);
 
