@@ -33,6 +33,7 @@
 #include "slave/state.hpp"
 
 #include "slave/containerizer/containerizer.hpp"
+#include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/launcher.hpp"
 

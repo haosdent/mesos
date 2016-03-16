@@ -29,6 +29,7 @@
 #include "docker/executor.hpp"
 
 #include "slave/containerizer/containerizer.hpp"
+#include "slave/containerizer/fetcher.hpp"
 
 namespace mesos {
 namespace internal {

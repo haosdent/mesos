@@ -92,6 +92,8 @@
 #include "slave/slave.hpp"
 #include "slave/status_update_manager.hpp"
 
+#include "slave/containerizer/fetcher.hpp"
+
 using mesos::executor::Call;
 
 using mesos::slave::ContainerState;

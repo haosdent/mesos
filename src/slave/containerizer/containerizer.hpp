@@ -37,8 +37,6 @@
 #include <stout/option.hpp>
 #include <stout/try.hpp>
 
-#include "slave/containerizer/fetcher.hpp"
-
 namespace mesos {
 namespace internal {
 namespace slave {
