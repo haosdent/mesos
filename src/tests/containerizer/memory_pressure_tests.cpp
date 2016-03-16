@@ -31,7 +31,6 @@
 #include "slave/slave.hpp"
 
 #include "slave/containerizer/containerizer.hpp"
-#include "slave/containerizer/fetcher.hpp"
 
 #include "messages/messages.hpp"
 
@@ -41,7 +40,6 @@ using namespace process;
 
 using mesos::internal::master::Master;
 
-using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::MesosContainerizerProcess;
 using mesos::internal::slave::Slave;
@@ -81,10 +79,8 @@ TEST_F(MemoryPressureMesosTest, CGROUPS_ROOT_Statistics)
   flags.isolation = "cgroups/mem";
   flags.slave_subsystems = None();
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -199,10 +195,8 @@ TEST_F(MemoryPressureMesosTest, CGROUPS_ROOT_SlaveRecovery)
   flags.isolation = "cgroups/mem";
   flags.slave_subsystems = None();
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -269,7 +263,7 @@ TEST_F(MemoryPressureMesosTest, CGROUPS_ROOT_SlaveRecovery)
     FUTURE_DISPATCH(_, &MesosContainerizerProcess::update);
 
   // Use the same flags.
-  _containerizer = MesosContainerizer::create(flags, true, &fetcher);
+  _containerizer = MesosContainerizer::create(flags, true);
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
 
