@@ -64,7 +64,6 @@
 
 #include "slave/containerizer/mesos/launcher.hpp"
 #ifdef __linux__
-#include "slave/containerizer/fetcher.hpp"
 #include "slave/containerizer/mesos/containerizer.hpp"
 #include "slave/containerizer/mesos/launch.hpp"
 #include "slave/containerizer/mesos/linux_launcher.hpp"
@@ -86,7 +85,6 @@ using mesos::internal::slave::CgroupsMemIsolatorProcess;
 using mesos::internal::slave::CgroupsNetClsIsolatorProcess;
 using mesos::internal::slave::CgroupsPerfEventIsolatorProcess;
 using mesos::internal::slave::CPU_SHARES_PER_CPU_REVOCABLE;
-using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::LinuxLauncher;
 using mesos::internal::slave::NetClsHandle;
 using mesos::internal::slave::NetClsHandleManager;
@@ -1015,10 +1013,8 @@ TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_NetClsIsolate)
   flags.cgroups_net_cls_primary_handle = stringify(primary);
   flags.cgroups_net_cls_secondary_handles = "0xffff,0xffff";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -1135,10 +1131,8 @@ TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_ContainerStatus)
   flags.cgroups_net_cls_primary_handle = stringify(0x0012);
   flags.cgroups_net_cls_secondary_handles = "0x0011,0x0012";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -1504,10 +1498,8 @@ TEST_F(NamespacesPidIsolatorTest, ROOT_PidNamespace)
 
   string directory = os::getcwd(); // We're inside a temporary sandbox.
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
