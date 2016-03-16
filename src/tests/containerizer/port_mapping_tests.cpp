@@ -55,8 +55,6 @@
 #include "slave/flags.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/fetcher.hpp"
-
 #include "slave/containerizer/mesos/containerizer.hpp"
 #include "slave/containerizer/mesos/launch.hpp"
 #include "slave/containerizer/mesos/launcher.hpp"
@@ -1835,8 +1833,6 @@ public:
     ContainerizerTest<MesosContainerizer>::TearDown();
   }
 
-  Fetcher fetcher;
-
   // Name of the host eth0 and lo.
   string eth0;
   string lo;
@@ -1862,7 +1858,7 @@ TEST_F(PortMappingMesosTest, CGROUPS_ROOT_RecoverMixedContainers)
   slaveFlags.isolation = "cgroups/cpu,cgroups/mem";
 
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(slaveFlags, true, &fetcher);
+    MesosContainerizer::create(slaveFlags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -1932,7 +1928,7 @@ TEST_F(PortMappingMesosTest, CGROUPS_ROOT_RecoverMixedContainers)
   // Restart the slave with the network isolator.
   slaveFlags.isolation += ",network/port_mapping";
 
-  _containerizer = MesosContainerizer::create(slaveFlags, true, &fetcher);
+  _containerizer = MesosContainerizer::create(slaveFlags, true);
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
 
@@ -1981,7 +1977,7 @@ TEST_F(PortMappingMesosTest, CGROUPS_ROOT_RecoverMixedContainers)
   // Restart the slave with the network isolator. This is to verify
   // the slave recovery case where one task is running with the
   // network isolator and another task is running without it.
-  _containerizer = MesosContainerizer::create(slaveFlags, true, &fetcher);
+  _containerizer = MesosContainerizer::create(slaveFlags, true);
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
 
@@ -2136,7 +2132,7 @@ TEST_F(PortMappingMesosTest, ROOT_NetworkNamespaceHandleSymlink)
   flags.isolation = "network/port_mapping";
 
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -2222,7 +2218,7 @@ TEST_F(PortMappingMesosTest, CGROUPS_ROOT_RecoverMixedKnownAndUnKnownOrphans)
   flags.isolation = "network/port_mapping";
 
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
