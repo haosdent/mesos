@@ -52,8 +52,6 @@
 #include "slave/flags.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/fetcher.hpp"
-
 #include "slave/containerizer/mesos/containerizer.hpp"
 
 #include "tests/containerizer.hpp"
@@ -168,10 +166,8 @@ TEST_F(SlaveTest, ShutdownUnregisteredExecutor)
   // be created.
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -476,10 +472,8 @@ TEST_F(SlaveTest, ComamndTaskWithArguments)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -729,10 +723,8 @@ TEST_F(SlaveTest, LaunchTaskInfoWithContainerInfo)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -808,10 +800,8 @@ TEST_F(SlaveTest, ROOT_RunTaskWithCommandInfoWithoutUser)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -907,10 +897,8 @@ TEST_F(SlaveTest, DISABLED_ROOT_RunTaskWithCommandInfoWithUser)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, false);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -3191,10 +3179,8 @@ TEST_F(SlaveTest, HTTPSchedulerSlaveRestart)
 
   slave::Flags flags = this->CreateSlaveFlags();
 
-  Fetcher fetcher;
-
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher);
+    MesosContainerizer::create(flags, true);
 
   ASSERT_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -3268,7 +3254,7 @@ TEST_F(SlaveTest, HTTPSchedulerSlaveRestart)
   // Restart the slave.
   slave.get()->terminate();
 
-  _containerizer = MesosContainerizer::create(flags, true, &fetcher);
+  _containerizer = MesosContainerizer::create(flags, true);
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
 
