@@ -62,12 +62,18 @@ using mesos::fetcher::FetcherInfo;
 
 using mesos::internal::master::Master;
 
-using mesos::internal::slave::Slave;
 using mesos::internal::slave::Containerizer;
-using mesos::internal::slave::MesosContainerizer;
-using mesos::internal::slave::MesosContainerizerProcess;
 using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::FetcherProcess;
+using mesos::internal::slave::Launcher;
+using mesos::internal::slave::MesosContainerizer;
+using mesos::internal::slave::MesosContainerizerProcess;
+using mesos::internal::slave::PosixLauncher;
+using mesos::internal::slave::Provisioner;
+using mesos::internal::slave::Slave;
+
+using mesos::slave::ContainerLogger;
+using mesos::slave::Isolator;
 
 using process::Future;
 using process::HttpEvent;
@@ -253,6 +259,38 @@ static void logSandbox(const Path& path)
 }
 
 
+static Try<MesosContainerizer*> createMesosContainerizer(
+    const slave::Flags& flags, const Owned<Fetcher>& fetcher)
+{
+  Try<Launcher*> launcher = PosixLauncher::create(flags);
+  if (launcher.isError()) {
+    return Error(launcher.error());
+  }
+
+  // Create and initialize a new container logger.
+  Try<ContainerLogger*> logger =
+    ContainerLogger::create(flags.container_logger);
+
+  if (logger.isError()) {
+    return Error("Failed to create container logger: " + logger.error());
+  }
+
+  Try<Owned<Provisioner>> provisioner = Provisioner::create(flags);
+  if (provisioner.isError()) {
+    return Error("Failed to create provisioner: " + provisioner.error());
+  }
+
+  return new MesosContainerizer(
+      flags,
+      true,
+      fetcher,
+      Owned<ContainerLogger>(logger.get()),
+      Owned<Launcher>(launcher.get()),
+      provisioner.get(),
+      vector<Owned<Isolator>>());
+}
+
+
 void FetcherCacheTest::TearDown()
 {
   if (HasFatalFailure()) {
@@ -281,9 +319,7 @@ void FetcherCacheTest::TearDown()
 // available for all testing as possible.
 void FetcherCacheTest::startSlave()
 {
-  Try<MesosContainerizer*> create = MesosContainerizer::create(
-      flags, true, fetcher.get());
-
+  Try<MesosContainerizer*> create = createMesosContainerizer(flags, fetcher);
   ASSERT_SOME(create);
   containerizer.reset(create.get());
 
@@ -1239,7 +1275,7 @@ TEST_F(FetcherCacheHttpTest, DISABLED_HttpCachedRecovery)
   Fetcher fetcher2;
 
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true, &fetcher2);
+    createMesosContainerizer(flags, Owned<Fetcher>(new Fetcher()));
 
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
