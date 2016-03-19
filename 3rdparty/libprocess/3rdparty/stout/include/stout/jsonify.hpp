@@ -486,6 +486,21 @@ public:
   static constexpr bool value = decltype(test<T>(Prefer()))::value;
 };
 
+
+template <typename T>
+struct HasCustomJsonify
+{
+private:
+  template <typename U, typename = typename U::custom_jsonify>
+  static std::true_type test(Prefer);
+
+  template <typename U>
+  static std::false_type test(LessPrefer);
+
+public:
+  static constexpr bool value = decltype(test<T>(Prefer()))::value;
+};
+
 }  // namespace internal {
 
 // `json` function for iterables (e.g., std::vector).
@@ -496,6 +511,7 @@ public:
 template <
     typename Iterable,
     typename std::enable_if<
+        !internal::HasCustomJsonify<Iterable>::value &&
         internal::IsSequence<Iterable>::value &&
         !(std::is_array<Iterable>::value &&
           std::rank<Iterable>::value == 1 &&
@@ -517,6 +533,7 @@ void json(ArrayWriter* writer, const Iterable& iterable)
 template <
     typename Dictionary,
     typename std::enable_if<
+        !internal::HasCustomJsonify<Dictionary>::value &&
         internal::IsSequence<Dictionary>::value &&
         internal::HasMappedType<Dictionary>::value, int>::type = 0>
 void json(ObjectWriter* writer, const Dictionary& dictionary)
