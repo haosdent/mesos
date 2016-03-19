@@ -26,6 +26,7 @@
 #include <stout/exit.hpp>
 #include <stout/foreach.hpp>
 #include <stout/lambda.hpp>
+#include <stout/jsonify.hpp>
 #include <stout/none.hpp>
 #include <stout/nothing.hpp>
 #include <stout/option.hpp>
@@ -129,6 +130,8 @@ public:
   {
     usageMessage_ = Some(message);
   }
+
+  typedef bool custom_jsonify;
 
   typedef std::map<std::string, Flag>::const_iterator const_iterator;
 
@@ -849,6 +852,21 @@ inline std::ostream& operator<<(std::ostream& stream, const FlagsBase& flags)
   }
 
   return stream << strings::join(" ", _flags);
+}
+
+
+template <
+    typename FlagsTypes,
+    typename std::enable_if<
+        std::is_base_of<FlagsBase, FlagsTypes>::value, int>::type = 0>
+void json(JSON::ObjectWriter* writer, const FlagsTypes& flags)
+{
+  foreachvalue (const flags::Flag& flag, flags) {
+    const Option<std::string> value = flag.stringify(flags);
+    if (value.isSome()) {
+      writer->field(flag.name, value.get());
+    }
+  }
 }
 
 } // namespace flags {
