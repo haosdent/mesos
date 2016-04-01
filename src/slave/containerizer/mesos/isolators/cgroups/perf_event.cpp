@@ -66,6 +66,106 @@ namespace mesos {
 namespace internal {
 namespace slave {
 
+PerfEventHandleManager::PerfEventHandleManager(
+    const Flags& _flags,
+    const set<string>& _events)
+  : flags(_flags),
+    events(_events) {}
+
+
+void PerfEventHandleManager::addCgroup(const string& cgroup)
+{
+  if (cgroups.count(cgroup) > 0) {
+    return;
+  }
+
+  cgroups.insert(cgroup);
+}
+
+
+void PerfEventHandleManager::removeCgroup(const string& cgroup)
+{
+  if (cgroups.count(cgroup) == 0) {
+    return;
+  }
+
+  cgroups.erase(cgroup);
+}
+
+
+Option<PerfStatistics> PerfEventHandleManager::getStatistics(
+    const std::string& cgroup)
+{
+  return statistics.get(cgroup);
+}
+
+
+void PerfEventHandleManager::initialize()
+{
+  // Start sampling.
+  sample();
+}
+
+
+Future<hashmap<string, PerfStatistics>> discardSample(
+    Future<hashmap<string, PerfStatistics>> future,
+    const Duration& duration,
+    const Duration& timeout)
+{
+  LOG(ERROR) << "Perf sample of " << stringify(duration)
+             << " failed to complete within " << stringify(timeout)
+             << "; sampling will be halted";
+
+  future.discard();
+
+  return future;
+}
+
+
+void PerfEventHandleManager::sample()
+{
+  // The discard timeout includes an allowance of twice the reaper interval to
+  // ensure we see the perf process exit.
+  Duration timeout = flags.perf_duration + process::MAX_REAP_INTERVAL() * 2;
+
+  perf::sample(events, cgroups, flags.perf_duration)
+    .after(timeout,
+           lambda::bind(&discardSample,
+                        lambda::_1,
+                        flags.perf_duration,
+                        timeout))
+    .onAny(defer(self(),
+                 &Self::_sample,
+                 Clock::now() + flags.perf_interval,
+                 lambda::_1));
+}
+
+
+void PerfEventHandleManager::_sample(
+    const Time& next,
+    const Future<hashmap<string, PerfStatistics>>& _statistics)
+{
+  if (!_statistics.isReady()) {
+    // In case the failure is transient or this is due to a timeout,
+    // we continue sampling. Note that since sampling is done on an
+    // interval, it should be ok if this is a non-transient failure.
+    LOG(ERROR) << "Failed to get perf sample: "
+               << (_statistics.isFailed()
+                   ? _statistics.failure()
+                   : "discarded due to timeout");
+  } else {
+    // Store the latest statistics, note that cgroups added in the
+    // interim will be picked up by the next sample.
+    statistics = _statistics.get();
+  }
+
+  // Schedule sample for the next time.
+  delay(next - Clock::now(),
+        self(),
+        &Self::sample);
+}
+
+
 Try<Isolator*> CgroupsPerfEventIsolatorProcess::create(const Flags& flags)
 {
   LOG(INFO) << "Creating PerfEvent isolator";
@@ -117,13 +217,23 @@ Try<Isolator*> CgroupsPerfEventIsolatorProcess::create(const Flags& flags)
 }
 
 
-CgroupsPerfEventIsolatorProcess::~CgroupsPerfEventIsolatorProcess() {}
-
-
-void CgroupsPerfEventIsolatorProcess::initialize()
+CgroupsPerfEventIsolatorProcess::CgroupsPerfEventIsolatorProcess(
+    const Flags& _flags,
+    const string& _hierarchy,
+    const set<string>& _events)
+  : ProcessBase(process::ID::generate("cgroups-perf-event-isolator")),
+    flags(_flags),
+    hierarchy(_hierarchy),
+    handleManager(new PerfEventHandleManager(_flags, _events))
 {
-  // Start sampling.
-  sample();
+  spawn(handleManager.get());
+}
+
+
+CgroupsPerfEventIsolatorProcess::~CgroupsPerfEventIsolatorProcess()
+{
+  terminate(handleManager.get());
+  wait(handleManager.get());
 }
 
 
@@ -138,6 +248,7 @@ Future<Nothing> CgroupsPerfEventIsolatorProcess::recover(
     Try<bool> exists = cgroups::exists(hierarchy, cgroup);
     if (exists.isError()) {
       foreachvalue (Info* info, infos) {
+        handleManager->removeCgroup(info->cgroup);
         delete info;
       }
 
@@ -162,12 +273,16 @@ Future<Nothing> CgroupsPerfEventIsolatorProcess::recover(
     }
 
     infos[containerId] = new Info(containerId, cgroup);
+
+    handleManager->addCgroup(cgroup);
   }
 
   // Remove orphan cgroups.
   Try<vector<string>> cgroups = cgroups::get(hierarchy, flags.cgroups_root);
   if (cgroups.isError()) {
     foreachvalue (Info* info, infos) {
+      handleManager->removeCgroup(info->cgroup);
+
       delete info;
     }
     infos.clear();
@@ -253,6 +368,8 @@ Future<Option<ContainerLaunchInfo>> CgroupsPerfEventIsolatorProcess::prepare(
     }
   }
 
+  handleManager->addCgroup(info->cgroup);
+
   return None();
 }
 
@@ -290,6 +407,18 @@ Future<ResourceStatistics> CgroupsPerfEventIsolatorProcess::usage(
 
   CHECK_NOTNULL(infos[containerId]);
 
+  Option<PerfStatistics> perfStatistics =
+    handleManager->getStatistics(infos[containerId]->cgroup);
+
+  if (perfStatistics.isSome()) {
+    infos[containerId]->statistics = perfStatistics.get();
+  } else {
+    LOG(WARNING) << "Couldn't find the PerfStatistics of cgroup '"
+                 << infos[containerId]->cgroup
+                 << "' in PerfEventHandleManager for container '"
+                 << containerId << "'";
+  }
+
   ResourceStatistics statistics;
   statistics.mutable_perf()->CopyFrom(infos[containerId]->statistics);
 
@@ -310,7 +439,7 @@ Future<Nothing> CgroupsPerfEventIsolatorProcess::cleanup(
 
   Info* info = CHECK_NOTNULL(infos[containerId]);
 
-  info->destroying = true;
+  handleManager->removeCgroup(info->cgroup);
 
   return cgroups::destroy(hierarchy, info->cgroup)
     .then(defer(PID<CgroupsPerfEventIsolatorProcess>(this),
@@ -330,84 +459,6 @@ Future<Nothing> CgroupsPerfEventIsolatorProcess::_cleanup(
   infos.erase(containerId);
 
   return Nothing();
-}
-
-
-Future<hashmap<string, PerfStatistics>> discardSample(
-    Future<hashmap<string, PerfStatistics>> future,
-    const Duration& duration,
-    const Duration& timeout)
-{
-  LOG(ERROR) << "Perf sample of " << stringify(duration)
-             << " failed to complete within " << stringify(timeout)
-             << "; sampling will be halted";
-
-  future.discard();
-
-  return future;
-}
-
-
-void CgroupsPerfEventIsolatorProcess::sample()
-{
-  // Collect a perf sample for all cgroups that are not being
-  // destroyed. Since destroyal is asynchronous, 'perf stat' may
-  // fail if the cgroup is destroyed before running perf.
-  set<string> cgroups;
-
-  foreachvalue (Info* info, infos) {
-    CHECK_NOTNULL(info);
-
-    if (!info->destroying) {
-      cgroups.insert(info->cgroup);
-    }
-  }
-
-  // The discard timeout includes an allowance of twice the
-  // reaper interval to ensure we see the perf process exit.
-  Duration timeout = flags.perf_duration + process::MAX_REAP_INTERVAL() * 2;
-
-  perf::sample(events, cgroups, flags.perf_duration)
-    .after(timeout,
-           lambda::bind(&discardSample,
-                        lambda::_1,
-                        flags.perf_duration,
-                        timeout))
-    .onAny(defer(PID<CgroupsPerfEventIsolatorProcess>(this),
-                 &CgroupsPerfEventIsolatorProcess::_sample,
-                 Clock::now() + flags.perf_interval,
-                 lambda::_1));
-}
-
-
-void CgroupsPerfEventIsolatorProcess::_sample(
-    const Time& next,
-    const Future<hashmap<string, PerfStatistics>>& statistics)
-{
-  if (!statistics.isReady()) {
-    // In case the failure is transient or this is due to a timeout,
-    // we continue sampling. Note that since sampling is done on an
-    // interval, it should be ok if this is a non-transient failure.
-    LOG(ERROR) << "Failed to get perf sample: "
-               << (statistics.isFailed()
-                   ? statistics.failure()
-                   : "discarded due to timeout");
-  } else {
-    // Store the latest statistics, note that cgroups added in the
-    // interim will be picked up by the next sample.
-    foreachvalue (Info* info, infos) {
-      CHECK_NOTNULL(info);
-
-      if (statistics->contains(info->cgroup)) {
-        info->statistics = statistics->get(info->cgroup).get();
-      }
-    }
-  }
-
-  // Schedule sample for the next time.
-  delay(next - Clock::now(),
-        PID<CgroupsPerfEventIsolatorProcess>(this),
-        &CgroupsPerfEventIsolatorProcess::sample);
 }
 
 } // namespace slave {

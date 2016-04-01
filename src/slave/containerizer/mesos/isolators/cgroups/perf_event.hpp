@@ -20,6 +20,7 @@
 #include <set>
 
 #include <process/id.hpp>
+#include <process/owned.hpp>
 #include <process/time.hpp>
 
 #include <stout/hashmap.hpp>
@@ -32,6 +33,40 @@
 namespace mesos {
 namespace internal {
 namespace slave {
+
+class PerfEventHandleManager : public process::Process<PerfEventHandleManager>
+{
+public:
+  PerfEventHandleManager(
+      const Flags& _flags,
+      const std::set<std::string>& _events);
+
+  virtual void addCgroup(const std::string& cgroup);
+
+  virtual void removeCgroup(const std::string& cgroup);
+
+  virtual Option<PerfStatistics> getStatistics(const std::string& cgroup);
+
+protected:
+  virtual void initialize();
+
+private:
+  void sample();
+
+  void _sample(
+      const process::Time& next,
+      const process::Future<hashmap<std::string, PerfStatistics>>& _statistics);
+
+  Flags flags;
+
+  // Set of events to sample.
+  std::set<std::string> events;
+
+  std::set<std::string> cgroups;
+
+  hashmap<std::string, PerfStatistics> statistics;
+};
+
 
 class CgroupsPerfEventIsolatorProcess : public MesosIsolatorProcess
 {
@@ -58,31 +93,18 @@ public:
   virtual process::Future<Nothing> cleanup(
       const ContainerID& containerId);
 
-protected:
-  virtual void initialize();
-
 private:
   CgroupsPerfEventIsolatorProcess(
       const Flags& _flags,
       const std::string& _hierarchy,
-      const std::set<std::string>& _events)
-    : ProcessBase(process::ID::generate("cgroups-perf-event-isolator")),
-      flags(_flags),
-      hierarchy(_hierarchy),
-      events(_events) {}
-
-  void sample();
-
-  void _sample(
-      const process::Time& next,
-      const process::Future<hashmap<std::string, PerfStatistics>>& statistics);
+      const std::set<std::string>& _events);
 
   virtual process::Future<Nothing> _cleanup(const ContainerID& containerId);
 
   struct Info
   {
     Info(const ContainerID& _containerId, const std::string& _cgroup)
-      : containerId(_containerId), cgroup(_cgroup), destroying(false)
+      : containerId(_containerId), cgroup(_cgroup)
     {
       // Ensure the initial statistics include the required fields.
       // Note the duration is set to zero to indicate no sampling has
@@ -95,8 +117,6 @@ private:
     const ContainerID containerId;
     const std::string cgroup;
     PerfStatistics statistics;
-    // Mark a container when we start destruction so we stop sampling it.
-    bool destroying;
   };
 
   const Flags flags;
@@ -104,11 +124,10 @@ private:
   // The path to the cgroups subsystem hierarchy root.
   const std::string hierarchy;
 
-  // Set of events to sample.
-  std::set<std::string> events;
-
   // TODO(jieyu): Use Owned<Info>.
   hashmap<ContainerID, Info*> infos;
+
+  process::Owned<PerfEventHandleManager> handleManager;
 };
 
 } // namespace slave {
