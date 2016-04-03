@@ -255,8 +255,8 @@ Try<Containerizer*> Containerizer::create(const Parameters& parameters)
           " set along with '--container_logger=...'");
     }
 
-    Try<ExternalContainerizer*> containerizer =
-      ExternalContainerizer::create(flags);
+    Try<Containerizer*> containerizer =
+      ExternalContainerizer::create(parameters);
     if (containerizer.isError()) {
       return Error("Could not create ExternalContainerizer: " +
                    containerizer.error());
@@ -298,8 +298,8 @@ Try<Containerizer*> Containerizer::create(const Parameters& parameters)
             "set along with '--container_logger=...'");
       }
 
-      Try<ExternalContainerizer*> containerizer =
-        ExternalContainerizer::create(flags);
+      Try<Containerizer*> containerizer =
+        ExternalContainerizer::create(parameters);
       if (containerizer.isError()) {
         return Error("Could not create ExternalContainerizer: " +
                      containerizer.error());

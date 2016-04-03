@@ -64,8 +64,32 @@ namespace slave {
 
 using mesos::slave::ContainerState;
 
-Try<ExternalContainerizer*> ExternalContainerizer::create(const Flags& flags)
+Try<Containerizer*> ExternalContainerizer::create(const Parameters& parameters)
 {
+  Flags flags;
+
+  foreach (const Parameter& parameter, parameters.parameter()) {
+    if (parameter.key() == "flags") {
+      Try<map<string, string>> values =
+        flags::parse<map<string, string>>(parameter.value());
+
+      if (values.isError()) {
+        LOG(ERROR) << "Failed to parse 'flags' parameter in '"
+                   << jsonify(JSON::Protobuf(parameters)) << "': "
+                   << values.error();
+        return Error("Failed to parse 'flags' parameter:" + values.error());
+      }
+
+      // Unkown flag is forbidden.
+      Try<Nothing> load = flags.load(values.get(), false);
+      if (load.isError()) {
+        LOG(ERROR) << "Failed to load flags '" << stringify(values.get())
+                   << "': " << load.error();
+        return Error("Failed to load flags: " + load.error());
+      }
+    }
+  }
+
   return new ExternalContainerizer(flags);
 }
 
