@@ -135,7 +135,7 @@ private:
 };
 
 
-Try<ComposingContainerizer*> ComposingContainerizer::create(
+Try<Containerizer*> ComposingContainerizer::create(
     const vector<Containerizer*>& containerizers)
 {
   return new ComposingContainerizer(containerizers);

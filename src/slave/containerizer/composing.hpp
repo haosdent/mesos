@@ -43,7 +43,7 @@ class ComposingContainerizerProcess;
 class ComposingContainerizer : public Containerizer
 {
 public:
-  static Try<ComposingContainerizer*> create(
+  static Try<Containerizer*> create(
       const std::vector<Containerizer*>& containerizers);
 
   ComposingContainerizer(

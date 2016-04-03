@@ -315,7 +315,7 @@ Try<Containerizer*> Containerizer::create(const Parameters& parameters)
     return containerizers.front();
   }
 
-  Try<ComposingContainerizer*> containerizer =
+  Try<Containerizer*> containerizer =
     ComposingContainerizer::create(containerizers);
 
   if (containerizer.isError()) {
