@@ -57,8 +57,7 @@ class DockerContainerizerProcess;
 class DockerContainerizer : public Containerizer
 {
 public:
-  static Try<DockerContainerizer*> create(
-      const Flags& flags);
+  static Try<Containerizer*> create(const Parameters& parameters);
 
   // This is only public for tests.
   DockerContainerizer(

@@ -121,8 +121,32 @@ Option<ContainerID> parse(const Docker::Container& container)
 }
 
 
-Try<DockerContainerizer*> DockerContainerizer::create(const Flags& flags)
+Try<Containerizer*> DockerContainerizer::create(const Parameters& parameters)
 {
+  Flags flags;
+
+  foreach (const Parameter& parameter, parameters.parameter()) {
+    if (parameter.key() == "flags") {
+      Try<map<string, string>> values =
+        flags::parse<map<string, string>>(parameter.value());
+
+      if (values.isError()) {
+        LOG(ERROR) << "Failed to parse 'flags' parameter in '"
+                   << jsonify(JSON::Protobuf(parameters)) << "': "
+                   << values.error();
+        return Error("Failed to parse 'flags' parameter:" + values.error());
+      }
+
+      // Unkown flag is forbidden.
+      Try<Nothing> load = flags.load(values.get(), false);
+      if (load.isError()) {
+        LOG(ERROR) << "Failed to load flags '" << stringify(values.get())
+                   << "': " << load.error();
+        return Error("Failed to load flags: " + load.error());
+      }
+    }
+  }
+
   // Create and initialize the container logger module.
   Try<ContainerLogger*> logger =
     ContainerLogger::create(flags.container_logger);
