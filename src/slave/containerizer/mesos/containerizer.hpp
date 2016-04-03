@@ -30,9 +30,10 @@
 #include <mesos/slave/container_logger.hpp>
 #include <mesos/slave/isolator.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include "slave/state.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/launcher.hpp"

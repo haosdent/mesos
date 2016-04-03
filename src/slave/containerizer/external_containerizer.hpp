@@ -21,6 +21,8 @@
 #include <string>
 #include <tuple>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/owned.hpp>
 #include <process/subprocess.hpp>
 
@@ -29,8 +31,6 @@
 #include <stout/try.hpp>
 
 #include "slave/state.hpp"
-
-#include "slave/containerizer/containerizer.hpp"
 
 #include "slave/containerizer/mesos/launcher.hpp"
 

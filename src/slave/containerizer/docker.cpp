@@ -21,6 +21,8 @@
 
 #include <mesos/slave/container_logger.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/check.hpp>
 #include <process/collect.hpp>
 #include <process/defer.hpp>
@@ -49,7 +51,6 @@
 #include "slave/paths.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/docker.hpp"
 #include "slave/containerizer/fetcher.hpp"
 

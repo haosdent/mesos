@@ -19,6 +19,8 @@
 
 #include <mesos/slave/container_logger.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/owned.hpp>
 #include <process/shared.hpp>
 
@@ -28,7 +30,6 @@
 #include "docker/docker.hpp"
 #include "docker/executor.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/containerizer_utils.hpp"
 #include "slave/containerizer/fetcher.hpp"
 

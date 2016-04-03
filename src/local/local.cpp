@@ -30,6 +30,8 @@
 
 #include <mesos/slave/resource_estimator.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/limiter.hpp>
 #include <process/owned.hpp>
 #include <process/pid.hpp>
@@ -63,8 +65,6 @@
 #include "slave/gc.hpp"
 #include "slave/slave.hpp"
 #include "slave/status_update_manager.hpp"
-
-#include "slave/containerizer/containerizer.hpp"
 
 #include "state/in_memory.hpp"
 #include "state/log.hpp"

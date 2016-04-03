@@ -17,6 +17,8 @@
 #include <map>
 #include <vector>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/dispatch.hpp>
 #include <process/owned.hpp>
 
@@ -34,7 +36,6 @@
 #include "slave/slave.hpp"
 
 #include "slave/containerizer/composing.hpp"
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/docker.hpp"
 #include "slave/containerizer/external_containerizer.hpp"
 

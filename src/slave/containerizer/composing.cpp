@@ -17,6 +17,8 @@
 #include <list>
 #include <vector>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/collect.hpp>
 #include <process/defer.hpp>
 #include <process/dispatch.hpp>
@@ -28,7 +30,6 @@
 
 #include "slave/state.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/composing.hpp"
 
 using std::list;

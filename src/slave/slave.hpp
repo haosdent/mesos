@@ -37,6 +37,8 @@
 #include <mesos/slave/qos_controller.hpp>
 #include <mesos/slave/resource_estimator.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <mesos/v1/executor/executor.hpp>
 
 #include <process/http.hpp>
@@ -67,7 +69,6 @@
 #include "messages/messages.hpp"
 
 #include "slave/constants.hpp"
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/flags.hpp"
 #include "slave/gc.hpp"
 #include "slave/metrics.hpp"
