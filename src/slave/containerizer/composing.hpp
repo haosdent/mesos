@@ -40,14 +40,14 @@ namespace slave {
 // Forward declaration.
 class ComposingContainerizerProcess;
 
-class ComposingContainerizer : public Containerizer
+class ComposingContainerizer : public mesos::slave::Containerizer
 {
 public:
-  static Try<Containerizer*> create(
-      const std::vector<Containerizer*>& containerizers);
+  static Try<mesos::slave::Containerizer*> create(
+      const std::vector<mesos::slave::Containerizer*>& containerizers);
 
   ComposingContainerizer(
-      const std::vector<Containerizer*>& containerizers);
+      const std::vector<mesos::slave::Containerizer*>& containerizers);
 
   virtual ~ComposingContainerizer();
 

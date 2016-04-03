@@ -48,10 +48,10 @@ extern const char MESOS_CONTAINERIZER[];
 // Forward declaration.
 class MesosContainerizerProcess;
 
-class MesosContainerizer : public Containerizer
+class MesosContainerizer : public mesos::slave::Containerizer
 {
 public:
-  static Try<Containerizer*> create(const Parameters& parameters);
+  static Try<mesos::slave::Containerizer*> create(const Parameters& parameters);
 
   MesosContainerizer(
       const Flags& flags,

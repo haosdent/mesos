@@ -55,10 +55,10 @@ extern const std::string DOCKER_SYMLINK_DIRECTORY;
 class DockerContainerizerProcess;
 
 
-class DockerContainerizer : public Containerizer
+class DockerContainerizer : public mesos::slave::Containerizer
 {
 public:
-  static Try<Containerizer*> create(const Parameters& parameters);
+  static Try<mesos::slave::Containerizer*> create(const Parameters& parameters);
 
   // This is only public for tests.
   DockerContainerizer(

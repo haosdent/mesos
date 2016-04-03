@@ -70,10 +70,10 @@ namespace slave {
 
 class ExternalContainerizerProcess;
 
-class ExternalContainerizer : public Containerizer
+class ExternalContainerizer : public mesos::slave::Containerizer
 {
 public:
-  static Try<Containerizer*> create(const Parameters& parameters);
+  static Try<mesos::slave::Containerizer*> create(const Parameters& parameters);
 
   ExternalContainerizer(const Flags& flags);
 

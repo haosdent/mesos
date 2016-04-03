@@ -70,6 +70,7 @@ namespace internal {
 namespace slave {
 
 using mesos::slave::ContainerLogger;
+using mesos::slave::Containerizer;
 using mesos::slave::ContainerState;
 
 // Declared in header, see explanation there.

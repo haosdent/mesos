@@ -64,6 +64,7 @@ using namespace mesos::internal::slave;
 using mesos::modules::Anonymous;
 using mesos::modules::ModuleManager;
 
+using mesos::slave::Containerizer;
 using mesos::slave::QoSController;
 using mesos::slave::ResourceEstimator;
 

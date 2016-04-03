@@ -107,6 +107,7 @@ namespace slave {
 using mesos::modules::ModuleManager;
 
 using mesos::slave::ContainerConfig;
+using mesos::slave::Containerizer;
 using mesos::slave::ContainerLaunchInfo;
 using mesos::slave::ContainerLimitation;
 using mesos::slave::ContainerLogger;

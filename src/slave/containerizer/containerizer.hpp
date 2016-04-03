@@ -39,7 +39,6 @@
 #include <stout/try.hpp>
 
 namespace mesos {
-namespace internal {
 namespace slave {
 
 // An abstraction of a Containerizer that will contain an executor and
@@ -126,7 +125,6 @@ public:
 };
 
 } // namespace slave {
-} // namespace internal {
 } // namespace mesos {
 
 #endif // __CONTAINERIZER_HPP__

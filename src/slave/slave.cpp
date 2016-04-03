@@ -97,6 +97,7 @@
 
 using mesos::executor::Call;
 
+using mesos::slave::Containerizer;
 using mesos::slave::ContainerState;
 using mesos::slave::QoSController;
 using mesos::slave::QoSCorrection;

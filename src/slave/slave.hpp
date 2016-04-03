@@ -102,7 +102,7 @@ public:
   Slave(const std::string& id,
         const Flags& flags,
         MasterDetector* detector,
-        Containerizer* containerizer,
+        mesos::slave::Containerizer* containerizer,
         Files* files,
         GarbageCollector* gc,
         StatusUpdateManager* statusUpdateManager,
@@ -514,7 +514,7 @@ private:
 
   MasterDetector* detector;
 
-  Containerizer* containerizer;
+  mesos::slave::Containerizer* containerizer;
 
   Files* files;
 

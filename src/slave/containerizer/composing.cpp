@@ -41,6 +41,7 @@ namespace mesos {
 namespace internal {
 namespace slave {
 
+using mesos::slave::Containerizer;
 using mesos::slave::ContainerState;
 
 

@@ -46,6 +46,12 @@
 
 using flags::FlagsBase;
 
+using mesos::internal::slave::Flags;
+using mesos::internal::slave::ComposingContainerizer;
+using mesos::internal::slave::DockerContainerizer;
+using mesos::internal::slave::ExternalContainerizer;
+using mesos::internal::slave::MesosContainerizer;
+
 using std::map;
 using std::string;
 using std::vector;
@@ -53,7 +59,6 @@ using std::vector;
 using namespace process;
 
 namespace mesos {
-namespace internal {
 namespace slave {
 
 Parameters Containerizer::parameterize(
@@ -185,5 +190,4 @@ Try<Containerizer*> Containerizer::create(const Parameters& parameters)
 }
 
 } // namespace slave {
-} // namespace internal {
 } // namespace mesos {
