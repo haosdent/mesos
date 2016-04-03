@@ -366,7 +366,7 @@ PID<Master> launch(const Flags& flags, Allocator* _allocator)
     }
 
     Try<Containerizer*> containerizer =
-      Containerizer::create(flags, true);
+      Containerizer::create(Containerizer::parameterize(flags, true));
 
     if (containerizer.isError()) {
       EXIT(EXIT_FAILURE)

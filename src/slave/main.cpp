@@ -250,7 +250,8 @@ int main(int argc, char** argv)
   }
 #endif // __linux__
 
-  Try<Containerizer*> containerizer = Containerizer::create(flags, false);
+  Try<Containerizer*> containerizer =
+    Containerizer::create(Containerizer::parameterize(flags, false));
 
   if (containerizer.isError()) {
     EXIT(EXIT_FAILURE)

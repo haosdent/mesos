@@ -54,9 +54,7 @@ class Containerizer
 public:
   // Attempts to create a containerizer as specified by 'isolation' in
   // flags.
-  static Try<Containerizer*> create(
-      const Flags& flags,
-      bool local);
+  static Try<Containerizer*> create(const Parameters& parameters);
 
   static Parameters parameterize(
       const flags::FlagsBase& flags,
