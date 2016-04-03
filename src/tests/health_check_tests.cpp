@@ -171,11 +171,11 @@ TEST_F(HealthCheckTest, HealthyTask)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -423,11 +423,11 @@ TEST_F(HealthCheckTest, HealthyTaskNonShell)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -490,11 +490,11 @@ TEST_F(HealthCheckTest, HealthStatusChange)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -840,11 +840,11 @@ TEST_F(HealthCheckTest, ConsecutiveFailures)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -928,11 +928,11 @@ TEST_F(HealthCheckTest, EnvironmentSetup)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -993,11 +993,11 @@ TEST_F(HealthCheckTest, DISABLED_GracePeriod)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1064,11 +1064,11 @@ TEST_F(HealthCheckTest, CheckCommandTimeout)
   slave::Flags flags = CreateSlaveFlags();
   flags.isolation = "posix/cpu,posix/mem";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
