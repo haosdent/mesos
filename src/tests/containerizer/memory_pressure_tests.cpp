@@ -40,6 +40,7 @@ using namespace process;
 
 using mesos::internal::master::Master;
 
+using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::MesosContainerizerProcess;
 using mesos::internal::slave::Slave;
@@ -79,11 +80,11 @@ TEST_F(MemoryPressureMesosTest, CGROUPS_ROOT_Statistics)
   flags.isolation = "cgroups/mem";
   flags.slave_subsystems = None();
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -195,11 +196,11 @@ TEST_F(MemoryPressureMesosTest, CGROUPS_ROOT_SlaveRecovery)
   flags.isolation = "cgroups/mem";
   flags.slave_subsystems = None();
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -263,7 +264,8 @@ TEST_F(MemoryPressureMesosTest, CGROUPS_ROOT_SlaveRecovery)
     FUTURE_DISPATCH(_, &MesosContainerizerProcess::update);
 
   // Use the same flags.
-  _containerizer = MesosContainerizer::create(flags, true);
+  _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
 
