@@ -36,6 +36,8 @@ using namespace mesos::internal::slave;
 
 using namespace process;
 
+using mesos::slave::Containerizer;
+
 using std::vector;
 
 using testing::_;
@@ -48,7 +50,7 @@ namespace tests {
 
 class ComposingContainerizerTest : public MesosTest {};
 
-class MockContainerizer : public slave::Containerizer
+class MockContainerizer : public Containerizer
 {
 public:
   MOCK_METHOD2(

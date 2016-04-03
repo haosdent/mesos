@@ -54,10 +54,11 @@ using testing::Return;
 
 using mesos::internal::master::Master;
 
-using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::DiskUsageCollector;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::Slave;
+
+using mesos::slave::Containerizer;
 
 namespace mesos {
 namespace internal {

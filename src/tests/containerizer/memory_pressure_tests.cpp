@@ -40,10 +40,11 @@ using namespace process;
 
 using mesos::internal::master::Master;
 
-using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::MesosContainerizerProcess;
 using mesos::internal::slave::Slave;
+
+using mesos::slave::Containerizer;
 
 using std::vector;
 

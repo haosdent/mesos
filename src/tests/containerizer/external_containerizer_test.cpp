@@ -45,8 +45,9 @@
 using namespace process;
 
 using mesos::internal::master::Master;
-using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Slave;
+
+using mesos::slave::Containerizer;
 
 using std::string;
 using std::vector;

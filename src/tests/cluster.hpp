@@ -141,7 +141,7 @@ public:
       MasterDetector* detector,
       const slave::Flags& flags = slave::Flags(),
       const Option<std::string>& id = None(),
-      const Option<slave::Containerizer*>& containerizer = None(),
+      const Option<mesos::slave::Containerizer*>& containerizer = None(),
       const Option<slave::GarbageCollector*>& gc = None(),
       const Option<slave::StatusUpdateManager*>& statusUpdateManager = None(),
       const Option<mesos::slave::ResourceEstimator*>& resourceEstimator =
@@ -190,10 +190,10 @@ private:
   // or by `ownedContainerizer`.  We keep a copy of this pointer
   // because the cleanup logic acts upon the containerizer (regardless
   // of who created it).
-  slave::Containerizer* containerizer;
+  mesos::slave::Containerizer* containerizer;
 
   // Dependencies that are created by the factory method.
-  process::Owned<slave::Containerizer> ownedContainerizer;
+  process::Owned<mesos::slave::Containerizer> ownedContainerizer;
   process::Owned<slave::GarbageCollector> gc;
   process::Owned<mesos::slave::QoSController> qosController;
   process::Owned<mesos::slave::ResourceEstimator> resourceEstimator;

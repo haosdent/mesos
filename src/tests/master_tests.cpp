@@ -74,8 +74,9 @@ using mesos::internal::protobuf::createLabel;
 
 using mesos::internal::slave::GarbageCollectorProcess;
 using mesos::internal::slave::Slave;
-using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::MesosContainerizerProcess;
+
+using mesos::slave::Containerizer;
 
 using process::Clock;
 using process::Future;

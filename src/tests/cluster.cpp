@@ -338,7 +338,7 @@ Try<process::Owned<Slave>> Slave::start(
     MasterDetector* detector,
     const slave::Flags& flags,
     const Option<std::string>& id,
-    const Option<slave::Containerizer*>& containerizer,
+    const Option<mesos::slave::Containerizer*>& containerizer,
     const Option<slave::GarbageCollector*>& gc,
     const Option<slave::StatusUpdateManager*>& statusUpdateManager,
     const Option<mesos::slave::ResourceEstimator*>& resourceEstimator,
@@ -355,9 +355,10 @@ Try<process::Owned<Slave>> Slave::start(
   if (containerizer.isSome()) {
     slave->containerizer = containerizer.get();
   } else {
-    Parameters parameters = slave::Containerizer::parameterize(flags, true);
-    Try<slave::Containerizer*> _containerizer =
-      slave::Containerizer::create(parameters);
+    Parameters parameters =
+      mesos::slave::Containerizer::parameterize(flags, true);
+    Try<mesos::slave::Containerizer*> _containerizer =
+      mesos::slave::Containerizer::create(parameters);
 
     if (_containerizer.isError()) {
       return Error("Failed to create containerizer: " + _containerizer.error());

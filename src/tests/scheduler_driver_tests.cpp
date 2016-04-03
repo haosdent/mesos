@@ -50,8 +50,9 @@ using mesos::internal::master::allocator::MesosAllocatorProcess;
 
 using mesos::internal::master::Master;
 
-using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Slave;
+
+using mesos::slave::Containerizer;
 
 using process::Clock;
 using process::Future;

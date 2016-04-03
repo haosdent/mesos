@@ -52,7 +52,6 @@ using namespace process;
 
 using mesos::internal::master::Master;
 
-using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::Launcher;
 using mesos::internal::slave::MesosContainerizer;
@@ -68,6 +67,7 @@ using mesos::internal::slave::state::RunState;
 using mesos::internal::slave::state::SlaveState;
 
 using mesos::slave::ContainerConfig;
+using mesos::slave::Containerizer;
 using mesos::slave::ContainerLaunchInfo;
 using mesos::slave::ContainerLimitation;
 using mesos::slave::ContainerLogger;

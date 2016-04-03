@@ -90,7 +90,6 @@ using mesos::internal::slave::NetClsHandle;
 using mesos::internal::slave::NetClsHandleManager;
 using mesos::internal::slave::SharedFilesystemIsolatorProcess;
 #endif // __linux__
-using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Launcher;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::PosixLauncher;
@@ -99,6 +98,7 @@ using mesos::internal::slave::PosixMemIsolatorProcess;
 using mesos::internal::slave::Slave;
 
 using mesos::slave::ContainerConfig;
+using mesos::slave::Containerizer;
 using mesos::slave::ContainerLaunchInfo;
 using mesos::slave::Isolator;
 

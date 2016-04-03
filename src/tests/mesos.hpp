@@ -162,13 +162,13 @@ protected:
   // Starts a slave with the specified detector, containerizer, and flags.
   virtual Try<process::Owned<cluster::Slave>> StartSlave(
       MasterDetector* detector,
-      slave::Containerizer* containerizer,
+      mesos::slave::Containerizer* containerizer,
       const Option<slave::Flags>& flags = None());
 
   // Starts a slave with the specified detector, containerizer, id, and flags.
   virtual Try<process::Owned<cluster::Slave>> StartSlave(
       MasterDetector* detector,
-      slave::Containerizer* containerizer,
+      mesos::slave::Containerizer* containerizer,
       const std::string& id,
       const Option<slave::Flags>& flags = None());
 
@@ -188,7 +188,7 @@ protected:
   // resource estimator, and flags.
   virtual Try<process::Owned<cluster::Slave>> StartSlave(
       MasterDetector* detector,
-      slave::Containerizer* containerizer,
+      mesos::slave::Containerizer* containerizer,
       mesos::slave::ResourceEstimator* resourceEstimator,
       const Option<slave::Flags>& flags = None());
 
@@ -202,7 +202,7 @@ protected:
   // QoS Controller, and flags.
   virtual Try<process::Owned<cluster::Slave>> StartSlave(
       MasterDetector* detector,
-      slave::Containerizer* containerizer,
+      mesos::slave::Containerizer* containerizer,
       mesos::slave::QoSController* qosController,
       const Option<slave::Flags>& flags = None());
 
@@ -1245,7 +1245,7 @@ public:
   MockSlave(
       const slave::Flags& flags,
       MasterDetector* detector,
-      slave::Containerizer* containerizer,
+      mesos::slave::Containerizer* containerizer,
       const Option<mesos::slave::QoSController*>& qosController = None());
 
   virtual ~MockSlave();

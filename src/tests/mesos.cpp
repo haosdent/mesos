@@ -273,7 +273,7 @@ Try<Owned<cluster::Slave>> MesosTest::StartSlave(
 
 Try<Owned<cluster::Slave>> MesosTest::StartSlave(
     MasterDetector* detector,
-    slave::Containerizer* containerizer,
+    mesos::slave::Containerizer* containerizer,
     const Option<slave::Flags>& flags)
 {
   return cluster::Slave::start(
@@ -286,7 +286,7 @@ Try<Owned<cluster::Slave>> MesosTest::StartSlave(
 
 Try<Owned<cluster::Slave>> MesosTest::StartSlave(
     MasterDetector* detector,
-    slave::Containerizer* containerizer,
+    mesos::slave::Containerizer* containerizer,
     const std::string& id,
     const Option<slave::Flags>& flags)
 {
@@ -330,7 +330,7 @@ Try<Owned<cluster::Slave>> MesosTest::StartSlave(
 
 Try<Owned<cluster::Slave>> MesosTest::StartSlave(
     MasterDetector* detector,
-    slave::Containerizer* containerizer,
+    mesos::slave::Containerizer* containerizer,
     mesos::slave::ResourceEstimator* resourceEstimator,
     const Option<slave::Flags>& flags)
 {
@@ -364,7 +364,7 @@ Try<Owned<cluster::Slave>> MesosTest::StartSlave(
 
 Try<Owned<cluster::Slave>> MesosTest::StartSlave(
     MasterDetector* detector,
-    slave::Containerizer* containerizer,
+    mesos::slave::Containerizer* containerizer,
     mesos::slave::QoSController* qoSController,
     const Option<slave::Flags>& flags)
 {
@@ -451,7 +451,7 @@ MockQoSController::~MockQoSController() {}
 MockSlave::MockSlave(
     const slave::Flags& flags,
     MasterDetector* detector,
-    slave::Containerizer* containerizer,
+    mesos::slave::Containerizer* containerizer,
     const Option<mesos::slave::QoSController*>& _qosController)
   : slave::Slave(
         process::ID::generate("slave"),

@@ -66,6 +66,8 @@ using mesos::internal::master::Master;
 
 using mesos::internal::protobuf::createLabel;
 
+using mesos::slave::Containerizer;
+
 using process::Clock;
 using process::Future;
 using process::Owned;

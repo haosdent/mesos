@@ -72,6 +72,8 @@ using google::protobuf::RepeatedPtrField;
 
 using mesos::internal::master::Master;
 
+using mesos::slave::Containerizer;
+
 using mesos::v1::executor::Call;
 
 using std::map;
@@ -164,7 +166,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverSlaveState)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -343,7 +345,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverStatusUpdateManager)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -427,7 +429,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconnectHTTPExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   // Start the slave with a static process ID. This allows the executor to
   // reconnect with the slave upon a process restart.
@@ -532,7 +534,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconnectExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -625,7 +627,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverUnregisteredExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -738,7 +740,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverTerminatedExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -866,7 +868,7 @@ TYPED_TEST(SlaveRecoveryTest, DISABLED_RecoveryTimeout)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -958,7 +960,7 @@ TYPED_TEST(SlaveRecoveryTest, RecoverCompletedExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1047,7 +1049,7 @@ TYPED_TEST(SlaveRecoveryTest, CleanupHTTPExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   // Start the slave with a static process ID. This allows the executor to
   // reconnect with the slave upon a process restart.
@@ -1164,7 +1166,7 @@ TYPED_TEST(SlaveRecoveryTest, CleanupExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1262,7 +1264,7 @@ TYPED_TEST(SlaveRecoveryTest, RemoveNonCheckpointingFramework)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1367,7 +1369,7 @@ TYPED_TEST(SlaveRecoveryTest, NonCheckpointingFramework)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1451,7 +1453,7 @@ TYPED_TEST(SlaveRecoveryTest, KillTask)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1571,7 +1573,7 @@ TYPED_TEST(SlaveRecoveryTest, Reboot)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1705,7 +1707,7 @@ TYPED_TEST(SlaveRecoveryTest, GCExecutor)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1842,7 +1844,7 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlave)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1962,7 +1964,7 @@ TYPED_TEST(SlaveRecoveryTest, ShutdownSlaveSIGUSR1)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -2064,7 +2066,7 @@ TYPED_TEST(SlaveRecoveryTest, RegisterDisconnectedSlave)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -2170,7 +2172,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconcileKillTask)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -2270,7 +2272,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconcileShutdownFramework)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -2374,7 +2376,7 @@ TYPED_TEST(SlaveRecoveryTest, ReconcileTasksMissingFromSlave)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -2537,7 +2539,7 @@ TYPED_TEST(SlaveRecoveryTest, SchedulerFailover)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -2699,7 +2701,7 @@ TYPED_TEST(SlaveRecoveryTest, PartitionedSlave)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -2828,7 +2830,7 @@ TYPED_TEST(SlaveRecoveryTest, MasterFailover)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<StandaloneMasterDetector> detector(
       new StandaloneMasterDetector(master.get()->pid));
@@ -2967,7 +2969,7 @@ TYPED_TEST(SlaveRecoveryTest, MultipleFrameworks)
   Try<Containerizer*> _containerizer =
     TypeParam::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -3164,7 +3166,7 @@ TYPED_TEST(SlaveRecoveryTest, MultipleSlaves)
   Try<Containerizer*> _containerizer1 =
     TypeParam::create(Containerizer::parameterize(flags1, true));
   ASSERT_SOME(_containerizer1);
-  Owned<slave::Containerizer> containerizer1(_containerizer1.get());
+  Owned<Containerizer> containerizer1(_containerizer1.get());
 
   Try<Owned<cluster::Slave>> slave1 =
     this->StartSlave(detector.get(), containerizer1.get(), flags1);
@@ -3206,7 +3208,7 @@ TYPED_TEST(SlaveRecoveryTest, MultipleSlaves)
   Try<Containerizer*> _containerizer2 =
     TypeParam::create(Containerizer::parameterize(flags2, true));
   ASSERT_SOME(_containerizer2);
-  Owned<slave::Containerizer> containerizer2(_containerizer2.get());
+  Owned<Containerizer> containerizer2(_containerizer2.get());
 
   Try<Owned<cluster::Slave>> slave2 =
     this->StartSlave(detector.get(), containerizer2.get(), flags2);
@@ -3419,7 +3421,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, ResourceStatistics)
     MesosContainerizer::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
 
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -3520,7 +3522,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PerfRollForward)
     MesosContainerizer::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
 
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -3666,7 +3668,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceForward)
     MesosContainerizer::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
 
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -3770,7 +3772,7 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceBackward)
     MesosContainerizer::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
 
-  Owned<slave::Containerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 

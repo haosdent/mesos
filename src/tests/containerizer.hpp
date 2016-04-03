@@ -54,7 +54,7 @@ namespace tests {
 // Forward declaration.
 class MockExecutor;
 
-class TestContainerizer : public slave::Containerizer
+class TestContainerizer : public mesos::slave::Containerizer
 {
 public:
   TestContainerizer(
