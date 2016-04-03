@@ -54,6 +54,7 @@ using testing::Return;
 
 using mesos::internal::master::Master;
 
+using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::DiskUsageCollector;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::Slave;
@@ -341,11 +342,11 @@ TEST_F(DiskQuotaTest, NoQuotaEnforcement)
   flags.container_disk_watch_interval = Milliseconds(1);
   flags.enforce_container_disk_quota = false;
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -436,11 +437,11 @@ TEST_F(DiskQuotaTest, ResourceStatistics)
   // the 'du' subprocess.
   flags.container_disk_watch_interval = Milliseconds(1);
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -527,11 +528,11 @@ TEST_F(DiskQuotaTest, SlaveRecovery)
   flags.isolation = "posix/cpu,posix/mem,posix/disk";
   flags.container_disk_watch_interval = Milliseconds(1);
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -594,7 +595,8 @@ TEST_F(DiskQuotaTest, SlaveRecovery)
 
   Future<Nothing> _recover = FUTURE_DISPATCH(_, &Slave::_recover);
 
-  _containerizer = MesosContainerizer::create(flags, true);
+  _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
   ASSERT_SOME(_containerizer);
   containerizer.reset(_containerizer.get());
 
