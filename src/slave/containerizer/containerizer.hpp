@@ -33,6 +33,7 @@
 #include <process/process.hpp>
 
 #include <stout/duration.hpp>
+#include <stout/flags.hpp>
 #include <stout/hashset.hpp>
 #include <stout/option.hpp>
 #include <stout/try.hpp>
@@ -56,6 +57,10 @@ public:
   static Try<Containerizer*> create(
       const Flags& flags,
       bool local);
+
+  static Parameters parameterize(
+      const flags::FlagsBase& flags,
+      const Option<bool>& local = None());
 
   // Determine slave resources from flags, probing the system or
   // querying a delegate.

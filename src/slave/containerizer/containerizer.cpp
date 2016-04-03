@@ -44,6 +44,8 @@
 #include "slave/containerizer/mesos/linux_launcher.hpp"
 #endif // __linux__
 
+using flags::FlagsBase;
+
 using std::map;
 using std::string;
 using std::vector;
@@ -192,6 +194,26 @@ Try<Resources> Containerizer::resources(const Flags& flags)
   }
 
   return resources;
+}
+
+
+Parameters Containerizer::parameterize(
+    const FlagsBase& flags,
+    const Option<bool>& local)
+{
+  Parameters parameters;
+
+  Parameter* parameter = parameters.add_parameter();
+  parameter->set_key("flags");
+  parameter->set_value(string(jsonify(flags)));
+
+  if (local.isSome()) {
+    parameter = parameters.add_parameter();
+    parameter->set_key("local");
+    parameter->set_value(stringify(local.get()));
+  }
+
+  return parameters;
 }
 
 
