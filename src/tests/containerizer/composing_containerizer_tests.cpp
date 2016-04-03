@@ -65,7 +65,7 @@ public:
           const std::string&,
           const Option<std::string>&,
           const SlaveID&,
-          const process::PID<Slave>&,
+          const process::UPID&,
           bool));
 
   MOCK_METHOD8(
@@ -77,7 +77,7 @@ public:
           const std::string&,
           const Option<std::string>&,
           const SlaveID&,
-          const process::PID<Slave>&,
+          const process::UPID&,
           bool));
 
   MOCK_METHOD2(

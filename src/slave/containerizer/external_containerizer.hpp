@@ -89,7 +89,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const process::PID<Slave>& slavePid,
+      const process::UPID& slavePid,
       bool checkpoint);
 
   virtual process::Future<bool> launch(
@@ -99,7 +99,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const process::PID<Slave>& slavePid,
+      const process::UPID& slavePid,
       bool checkpoint);
 
   virtual process::Future<Nothing> update(
@@ -140,7 +140,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const process::PID<Slave>& slavePid,
+      const process::UPID& slavePid,
       bool checkpoint);
 
   // Update the container's resources.

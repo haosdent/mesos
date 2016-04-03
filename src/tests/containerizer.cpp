@@ -94,7 +94,7 @@ Future<bool> TestContainerizer::_launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<slave::Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   CHECK(!drivers.contains(containerId))
@@ -207,7 +207,7 @@ Future<bool> TestContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<slave::Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   return launch(

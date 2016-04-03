@@ -244,7 +244,7 @@ DockerContainerizerProcess::Container::create(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint,
     const Flags& flags)
 {
@@ -667,7 +667,7 @@ Future<bool> DockerContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   return dispatch(
@@ -691,7 +691,7 @@ Future<bool> DockerContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   return dispatch(
@@ -939,7 +939,7 @@ Future<bool> DockerContainerizerProcess::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   if (containers_.contains(containerId)) {

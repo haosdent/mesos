@@ -1517,7 +1517,7 @@ public:
           const std::string&,
           const Option<std::string>&,
           const SlaveID&,
-          const process::PID<slave::Slave>&,
+          const process::UPID&,
           bool checkpoint));
 
   MOCK_METHOD8(
@@ -1529,7 +1529,7 @@ public:
           const std::string&,
           const Option<std::string>&,
           const SlaveID&,
-          const process::PID<slave::Slave>&,
+          const process::UPID&,
           bool checkpoint));
 
   MOCK_METHOD2(
@@ -1547,7 +1547,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const slave::PID<slave::Slave>& slavePid,
+      const slave::UPID& slavePid,
       bool checkpoint)
   {
     return slave::DockerContainerizer::launch(
@@ -1567,7 +1567,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const slave::PID<slave::Slave>& slavePid,
+      const slave::UPID& slavePid,
       bool checkpoint)
   {
     return slave::DockerContainerizer::launch(

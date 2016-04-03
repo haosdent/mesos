@@ -348,7 +348,7 @@ Future<bool> MesosContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   return dispatch(process.get(),
@@ -371,7 +371,7 @@ Future<bool> MesosContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   return dispatch(process.get(),
@@ -617,7 +617,7 @@ Future<bool> MesosContainerizerProcess::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   if (containers_.contains(containerId)) {
@@ -722,7 +722,7 @@ Future<bool> MesosContainerizerProcess::_launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint,
     const Option<ProvisionInfo>& provisionInfo)
 {
@@ -926,7 +926,7 @@ Future<bool> MesosContainerizerProcess::__launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint,
     const list<Option<ContainerLaunchInfo>>& launchInfos)
 {

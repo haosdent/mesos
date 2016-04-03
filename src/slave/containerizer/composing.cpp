@@ -64,7 +64,7 @@ public:
       const string& directory,
       const Option<string>& user,
       const SlaveID& slaveId,
-      const PID<Slave>& slavePid,
+      const UPID& slavePid,
       bool checkpoint);
 
   Future<bool> launch(
@@ -74,7 +74,7 @@ public:
       const string& directory,
       const Option<string>& user,
       const SlaveID& slaveId,
-      const PID<Slave>& slavePid,
+      const UPID& slavePid,
       bool checkpoint);
 
   Future<Nothing> update(
@@ -109,7 +109,7 @@ private:
       const string& directory,
       const Option<string>& user,
       const SlaveID& slaveId,
-      const PID<Slave>& slavePid,
+      const UPID& slavePid,
       bool checkpoint,
       vector<Containerizer*>::iterator containerizer,
       bool launched);
@@ -173,7 +173,7 @@ Future<bool> ComposingContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   return dispatch(process,
@@ -195,7 +195,7 @@ Future<bool> ComposingContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   return dispatch(process,
@@ -326,7 +326,7 @@ Future<bool> ComposingContainerizerProcess::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   if (containers_.contains(containerId)) {
@@ -373,7 +373,7 @@ Future<bool> ComposingContainerizerProcess::_launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint,
     vector<Containerizer*>::iterator containerizer,
     bool launched)
@@ -447,7 +447,7 @@ Future<bool> ComposingContainerizerProcess::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   if (containers_.contains(containerId)) {

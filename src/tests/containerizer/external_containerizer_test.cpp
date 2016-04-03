@@ -104,7 +104,7 @@ public:
       const string& directory,
       const Option<string>& user,
       const SlaveID& slaveId,
-      const PID<Slave>& slavePid,
+      const UPID& slavePid,
       bool checkpoint)
   {
     return slave::ExternalContainerizer::launch(

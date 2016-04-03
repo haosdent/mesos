@@ -180,7 +180,7 @@ Future<bool> ExternalContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
     return dispatch(process.get(),
@@ -203,7 +203,7 @@ Future<bool> ExternalContainerizer::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
     return dispatch(process.get(),
@@ -407,7 +407,7 @@ Future<bool> ExternalContainerizerProcess::launch(
     const string& directory,
     const Option<string>& user,
     const SlaveID& slaveId,
-    const PID<Slave>& slavePid,
+    const UPID& slavePid,
     bool checkpoint)
 {
   LOG(INFO) << "Launching container '" << containerId << "'";

@@ -43,7 +43,6 @@ namespace internal {
 namespace slave {
 
 // Forward declaration.
-class Slave;
 class Flags;
 
 
@@ -84,7 +83,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const process::PID<Slave>& slavePid,
+      const process::UPID& slavePid,
       bool checkpoint) = 0;
 
   // Launch a containerized task. Returns true if launching this
@@ -99,7 +98,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const process::PID<Slave>& slavePid,
+      const process::UPID& slavePid,
       bool checkpoint) = 0;
 
   // Update the resources for a container.

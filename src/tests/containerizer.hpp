@@ -86,7 +86,7 @@ public:
           const std::string&,
           const Option<std::string>&,
           const SlaveID&,
-          const process::PID<slave::Slave>&,
+          const process::UPID&,
           bool checkpoint));
 
   virtual process::Future<bool> launch(
@@ -96,7 +96,7 @@ public:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const process::PID<slave::Slave>& slavePid,
+      const process::UPID& slavePid,
       bool checkpoint);
 
   MOCK_METHOD2(
@@ -129,7 +129,7 @@ private:
       const std::string& directory,
       const Option<std::string>& user,
       const SlaveID& slaveId,
-      const process::PID<slave::Slave>& slavePid,
+      const process::UPID& slavePid,
       bool checkpoint);
 
   process::Future<containerizer::Termination> _wait(
