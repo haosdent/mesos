@@ -266,6 +266,7 @@ if (NOT WIN32)
     slave/containerizer/composing.cpp
     slave/containerizer/composing.hpp
     slave/containerizer/containerizer.cpp
+    slave/containerizer/containerizer_utils.cpp
     slave/containerizer/docker.cpp
     slave/containerizer/docker.hpp
     slave/containerizer/external_containerizer.cpp

@@ -610,7 +610,8 @@ Try<Resources> Resources::parse(
     }
   }
 
-  // TODO(jmlvanre): Move this up into `Containerizer::resources`.
+  // TODO(jmlvanre): Move this up into
+  // `mesos::internal::slave::containerizerResources`.
   Option<Error> error = internal::validateCommandLineResources(result);
   if (error.isSome()) {
     return error.get();

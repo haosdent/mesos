@@ -92,6 +92,7 @@
 #include "slave/slave.hpp"
 #include "slave/status_update_manager.hpp"
 
+#include "slave/containerizer/containerizer_utils.hpp"
 #include "slave/containerizer/fetcher.hpp"
 
 using mesos::executor::Call;
@@ -473,7 +474,7 @@ void Slave::initialize()
   CHECK_SOME(os::mkdir(flags.work_dir))
     << "Failed to create slave work directory '" << flags.work_dir << "'";
 
-  Try<Resources> resources = Containerizer::resources(flags);
+  Try<Resources> resources = containerizerResources(flags);
   if (resources.isError()) {
     EXIT(EXIT_FAILURE)
       << "Failed to determine slave resources: " << resources.error();

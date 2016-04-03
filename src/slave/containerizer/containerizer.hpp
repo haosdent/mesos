@@ -59,14 +59,6 @@ public:
       const flags::FlagsBase& flags,
       const Option<bool>& local = None());
 
-  // Determine slave resources from flags, probing the system or
-  // querying a delegate.
-  // TODO(idownes): Consider making this non-static and moving to
-  // containerizer implementations to enable a containerizer to best
-  // determine the resources, particularly if containerizeration is
-  // delegated.
-  static Try<Resources> resources(const Flags& flags);
-
   virtual ~Containerizer() {}
 
   // Recover all containerized executors.

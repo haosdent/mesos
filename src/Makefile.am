@@ -664,6 +664,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   slave/container_loggers/sandbox.cpp					\
   slave/containerizer/composing.cpp					\
   slave/containerizer/containerizer.cpp					\
+  slave/containerizer/containerizer_utils.cpp				\
   slave/containerizer/docker.cpp					\
   slave/containerizer/external_containerizer.cpp			\
   slave/containerizer/fetcher.cpp					\
@@ -776,6 +777,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   slave/container_loggers/sandbox.hpp					\
   slave/containerizer/composing.hpp					\
   slave/containerizer/containerizer.hpp					\
+  slave/containerizer/containerizer_utils.hpp				\
   slave/containerizer/docker.hpp					\
   slave/containerizer/external_containerizer.hpp			\
   slave/containerizer/fetcher.hpp					\
