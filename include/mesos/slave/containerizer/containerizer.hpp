@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __CONTAINERIZER_HPP__
-#define __CONTAINERIZER_HPP__
+#ifndef __MESOS_SLAVE_CONTAINERIZER_CONTAINERIZER_HPP__
+#define __MESOS_SLAVE_CONTAINERIZER_CONTAINERIZER_HPP__
 
 #include <list>
 #include <map>
@@ -127,4 +127,4 @@ public:
 } // namespace slave {
 } // namespace mesos {
 
-#endif // __CONTAINERIZER_HPP__
+#endif // __MESOS_SLAVE_CONTAINERIZER_CONTAINERIZER_HPP__

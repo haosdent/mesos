@@ -527,7 +527,8 @@ slave_HEADERS =								\
   $(top_srcdir)/include/mesos/slave/oversubscription.hpp		\
   $(top_srcdir)/include/mesos/slave/oversubscription.proto		\
   $(top_srcdir)/include/mesos/slave/qos_controller.hpp			\
-  $(top_srcdir)/include/mesos/slave/resource_estimator.hpp
+  $(top_srcdir)/include/mesos/slave/resource_estimator.hpp		\
+  $(top_srcdir)/include/mesos/slave/containerizer/containerizer.hpp
 
 nodist_slave_HEADERS =							\
   ../include/mesos/slave/isolator.pb.h					\
@@ -663,7 +664,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   slave/validation.cpp							\
   slave/container_loggers/sandbox.cpp					\
   slave/containerizer/composing.cpp					\
-  slave/containerizer/containerizer.cpp					\
+  slave/containerizer/containerizer.cpp				\
   slave/containerizer/containerizer_utils.cpp				\
   slave/containerizer/docker.cpp					\
   slave/containerizer/external_containerizer.cpp			\
@@ -776,7 +777,6 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   slave/validation.hpp							\
   slave/container_loggers/sandbox.hpp					\
   slave/containerizer/composing.hpp					\
-  slave/containerizer/containerizer.hpp					\
   slave/containerizer/containerizer_utils.hpp				\
   slave/containerizer/docker.hpp					\
   slave/containerizer/external_containerizer.hpp			\
