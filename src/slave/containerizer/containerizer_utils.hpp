@@ -42,6 +42,29 @@ class Slave;
 // containerizeration is delegated.
 Try<Resources> containerizerResources(const Flags& flags);
 
+
+/**
+ * Returns a map of environment variables necessary in order to launch
+ * an executor.
+ *
+ * @param executorInfo ExecutorInfo being launched.
+ * @param directory Path to the sandbox directory.
+ * @param slaveId SlaveID where this executor is being launched.
+ * @param slavePid PID of the slave launching the executor.
+ * @param checkpoint Whether or not the framework is checkpointing.
+ * @param flags Flags used to launch the slave.
+ *
+ * @return Map of environment variables (name, value).
+ */
+std::map<std::string, std::string> executorEnvironment(
+    const ExecutorInfo& executorInfo,
+    const std::string& directory,
+    const SlaveID& slaveId,
+    const process::UPID& slavePid,
+    bool checkpoint,
+    const Flags& flags,
+    bool includeOsEnvironment = true);
+
 } // namespace slave {
 } // namespace internal {
 } // namespace mesos {

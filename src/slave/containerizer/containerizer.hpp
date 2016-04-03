@@ -42,10 +42,6 @@ namespace mesos {
 namespace internal {
 namespace slave {
 
-// Forward declaration.
-class Flags;
-
-
 // An abstraction of a Containerizer that will contain an executor and
 // its tasks.
 class Containerizer
@@ -128,29 +124,6 @@ public:
 
   virtual process::Future<hashset<ContainerID>> containers() = 0;
 };
-
-
-/**
- * Returns a map of environment variables necessary in order to launch
- * an executor.
- *
- * @param executorInfo ExecutorInfo being launched.
- * @param directory Path to the sandbox directory.
- * @param slaveId SlaveID where this executor is being launched.
- * @param slavePid PID of the slave launching the executor.
- * @param checkpoint Whether or not the framework is checkpointing.
- * @param flags Flags used to launch the slave.
- *
- * @return Map of environment variables (name, value).
- */
-std::map<std::string, std::string> executorEnvironment(
-    const ExecutorInfo& executorInfo,
-    const std::string& directory,
-    const SlaveID& slaveId,
-    const process::PID<Slave>& slavePid,
-    bool checkpoint,
-    const Flags& flags,
-    bool includeOsEnvironment = true);
 
 } // namespace slave {
 } // namespace internal {
