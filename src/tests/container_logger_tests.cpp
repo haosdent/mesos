@@ -61,6 +61,7 @@ using namespace process;
 
 using mesos::internal::master::Master;
 
+using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::Launcher;
 using mesos::internal::slave::MesosContainerizer;
@@ -279,11 +280,11 @@ TEST_F(ContainerLoggerTest, DefaultToSandbox)
   slave::Flags flags = CreateSlaveFlags();
 
   // We use an actual containerizer + executor since we want something to run.
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -376,11 +377,11 @@ TEST_F(ContainerLoggerTest, LOGROTATE_RotateInSandbox)
   flags.container_logger = LOGROTATE_CONTAINER_LOGGER_NAME;
 
   // We use an actual containerizer + executor since we want something to run.
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -524,11 +525,11 @@ TEST_F(ContainerLoggerTest, LOGROTATE_ModuleFDOwnership)
   flags.container_logger = LOGROTATE_CONTAINER_LOGGER_NAME;
 
   // We use an actual containerizer + executor since we want something to run.
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   CHECK_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
