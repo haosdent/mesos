@@ -13,6 +13,8 @@
 #ifndef __COMMON_PARSE_HPP__
 #define __COMMON_PARSE_HPP__
 
+#include <map>
+
 #include <mesos/mesos.hpp>
 
 #include <mesos/authorizer/acls.hpp>
@@ -105,6 +107,34 @@ inline Try<hashmap<std::string, std::string>> parse(const std::string& value)
                const JSON::Value& value,
                json.get().values) {
     map[key] = stringify(value);
+  }
+  return map;
+}
+
+
+// When the same variable is listed multiple times,
+// uses only the last value.
+template <>
+inline Try<std::map<std::string, std::string>> parse(const std::string& value)
+{
+  // Convert from string or file to JSON.
+  Try<JSON::Object> json = parse<JSON::Object>(value);
+  if (json.isError()) {
+    return Error(json.error());
+  }
+
+  // Convert from JSON to map.
+  std::map<std::string, std::string> map;
+  foreachpair (const std::string& key,
+               const JSON::Value& value,
+               json.get().values) {
+    if (!value.is<JSON::String>()) {
+      return Error(
+          "The value of key '" + key + "' in '" + stringify(json.get()) + "'"
+          " is not a valid string");
+    }
+
+    map[key] = value.as<JSON::String>().value;
   }
   return map;
 }
