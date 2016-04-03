@@ -52,6 +52,7 @@ using namespace process;
 
 using mesos::internal::master::Master;
 
+using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::Launcher;
 using mesos::internal::slave::MesosContainerizer;
@@ -384,11 +385,11 @@ TEST_F(MesosContainerizerExecuteTest, IoRedirection)
   flags.launcher_dir = getLauncherDir();
 
   // Use local=false so std{err,out} are redirected to files.
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   ContainerID containerId;
   containerId.set_value("test_container");
@@ -990,11 +991,11 @@ class MesosContainerizerRecoverTest : public MesosTest {};
 TEST_F(MesosContainerizerRecoverTest, SkipRecoverNonMesosContainers)
 {
   slave::Flags flags = CreateSlaveFlags();
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   SlaveID slaveId;
 
