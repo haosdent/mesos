@@ -273,8 +273,8 @@ Try<Containerizer*> Containerizer::create(const Parameters& parameters)
 
   foreach (const string& type, strings::split(flags.containerizers, ",")) {
     if (type == "mesos") {
-      Try<MesosContainerizer*> containerizer =
-        MesosContainerizer::create(flags, local);
+      Try<Containerizer*> containerizer =
+        MesosContainerizer::create(parameters);
       if (containerizer.isError()) {
         return Error("Could not create MesosContainerizer: " +
                      containerizer.error());

@@ -114,26 +114,57 @@ using mesos::slave::Isolator;
 
 const char MESOS_CONTAINERIZER[] = "mesos-containerizer";
 
-Try<MesosContainerizer*> MesosContainerizer::create(
-    const Flags& flags,
-    bool local)
+Try<Containerizer*> MesosContainerizer::create(
+    const Parameters& parameters)
 {
-  // Modify `flags` based on the deprecated `isolation` flag (and then
-  // use `flags_` in the rest of this function).
-  Flags flags_ = flags;
+  Flags flags;
+  bool local;
+
+  foreach (const Parameter& parameter, parameters.parameter()) {
+    if (parameter.key() == "flags") {
+      Try<map<string, string>> values =
+        flags::parse<map<string, string>>(parameter.value());
+
+      if (values.isError()) {
+        LOG(ERROR) << "Failed to parse 'flags' parameter in '"
+                   << jsonify(JSON::Protobuf(parameters)) << "': "
+                   << values.error();
+        return Error("Failed to parse 'flags' parameter:" + values.error());
+      }
+
+      // Unkown flag is forbidden.
+      Try<Nothing> load = flags.load(values.get(), false);
+      if (load.isError()) {
+        LOG(ERROR) << "Failed to load flags '" << stringify(values.get())
+                   << "': " << load.error();
+        return Error("Failed to load flags: " + load.error());
+      }
+    } else if (parameter.key() == "local") {
+      Try<bool> local_  = numify<bool>(parameter.value());
+
+      if (local_.isError()) {
+        LOG(ERROR) << "Failed to parse 'local' parameter in '"
+                   << jsonify(JSON::Protobuf(parameters)) << "': "
+                   << local_.error();
+        return Error("Failed to parse 'local' parameter:" + local_.error());
+      }
+
+      local = local_.get();
+    }
+  }
 
   if (flags.isolation == "process") {
     LOG(WARNING) << "The 'process' isolation flag is deprecated, "
                  << "please update your flags to"
                  << " '--isolation=posix/cpu,posix/mem'.";
 
-    flags_.isolation = "posix/cpu,posix/mem";
+    flags.isolation = "posix/cpu,posix/mem";
   } else if (flags.isolation == "cgroups") {
     LOG(WARNING) << "The 'cgroups' isolation flag is deprecated, "
                  << "please update your flags to"
                  << " '--isolation=cgroups/cpu,cgroups/mem'.";
 
-    flags_.isolation = "cgroups/cpu,cgroups/mem";
+    flags.isolation = "cgroups/cpu,cgroups/mem";
   }
 
   // One and only one filesystem isolator is required. The filesystem
@@ -142,45 +173,45 @@ Try<MesosContainerizer*> MesosContainerizer::create(
   // the user does not specify one, 'filesystem/posix' will be used.
   //
   // TODO(jieyu): Check that only one filesystem isolator is used.
-  if (!strings::contains(flags_.isolation, "filesystem/")) {
-    flags_.isolation += ",filesystem/posix";
+  if (!strings::contains(flags.isolation, "filesystem/")) {
+    flags.isolation += ",filesystem/posix";
   }
 
-  LOG(INFO) << "Using isolation: " << flags_.isolation;
+  LOG(INFO) << "Using isolation: " << flags.isolation;
 
   // Create the container logger for the MesosContainerizer.
   Try<ContainerLogger*> logger =
-    ContainerLogger::create(flags_.container_logger);
+    ContainerLogger::create(flags.container_logger);
 
   if (logger.isError()) {
     return Error("Failed to create container logger: " + logger.error());
   }
 
   // Create the launcher for the MesosContainerizer.
-  Try<Launcher*> launcher = [&flags_]() -> Try<Launcher*> {
+  Try<Launcher*> launcher = [&flags]() -> Try<Launcher*> {
 #ifdef __linux__
-    if (flags_.launcher.isSome()) {
+    if (flags.launcher.isSome()) {
       // If the user has specified the launcher, use it.
-      if (flags_.launcher.get() == "linux") {
-        return LinuxLauncher::create(flags_);
-      } else if (flags_.launcher.get() == "posix") {
-        return PosixLauncher::create(flags_);
+      if (flags.launcher.get() == "linux") {
+        return LinuxLauncher::create(flags);
+      } else if (flags.launcher.get() == "posix") {
+        return PosixLauncher::create(flags);
       } else {
         return Error(
-            "Unknown or unsupported launcher: " + flags_.launcher.get());
+            "Unknown or unsupported launcher: " + flags.launcher.get());
       }
     }
 
     // Use Linux launcher if it is available, POSIX otherwise.
     return LinuxLauncher::available()
-      ? LinuxLauncher::create(flags_)
-      : PosixLauncher::create(flags_);
+      ? LinuxLauncher::create(flags)
+      : PosixLauncher::create(flags);
 #else
-    if (flags_.launcher.isSome() && flags_.launcher.get() != "posix") {
-      return Error("Unsupported launcher: " + flags_.launcher.get());
+    if (flags.launcher.isSome() && flags.launcher.get() != "posix") {
+      return Error("Unsupported launcher: " + flags.launcher.get());
     }
 
-    return PosixLauncher::create(flags_);
+    return PosixLauncher::create(flags);
 #endif // __linux__
   }();
 
@@ -188,7 +219,7 @@ Try<MesosContainerizer*> MesosContainerizer::create(
     return Error("Failed to create launcher: " + launcher.error());
   }
 
-  Try<Owned<Provisioner>> provisioner = Provisioner::create(flags_);
+  Try<Owned<Provisioner>> provisioner = Provisioner::create(flags);
   if (provisioner.isError()) {
     return Error("Failed to create provisioner: " + provisioner.error());
   }
@@ -227,10 +258,10 @@ Try<MesosContainerizer*> MesosContainerizer::create(
 
   vector<Owned<Isolator>> isolators;
 
-  foreach (const string& type, strings::tokenize(flags_.isolation, ",")) {
-    Try<Isolator*> isolator = [&creators, &type, &flags_]() -> Try<Isolator*> {
+  foreach (const string& type, strings::tokenize(flags.isolation, ",")) {
+    Try<Isolator*> isolator = [&creators, &type, &flags]() -> Try<Isolator*> {
       if (creators.contains(type)) {
-        return creators.at(type)(flags_);
+        return creators.at(type)(flags);
       } else if (ModuleManager::contains<Isolator>(type)) {
         return ModuleManager::create<Isolator>(type);
       }
@@ -253,7 +284,7 @@ Try<MesosContainerizer*> MesosContainerizer::create(
   }
 
   return new MesosContainerizer(
-      flags_,
+      flags,
       local,
       Owned<Fetcher>(new Fetcher()),
       Owned<ContainerLogger>(logger.get()),
