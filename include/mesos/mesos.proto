@@ -1679,6 +1679,7 @@ message ContainerInfo {
   enum Type {
     DOCKER = 1;
     MESOS = 2;
+    CUSTOM = 3;
   }
 
   message DockerInfo {
@@ -1724,6 +1725,11 @@ message ContainerInfo {
     optional Image image = 1;
   }
 
+  message CustomInfo {
+    required string name = 1;
+    repeated Parameter parameters = 2;
+  }
+
   required Type type = 1;
   repeated Volume volumes = 2;
   optional string hostname = 4;
@@ -1732,6 +1738,7 @@ message ContainerInfo {
   // the type.
   optional DockerInfo docker = 3;
   optional MesosInfo mesos = 5;
+  optional CustomInfo custom = 6;
 
   // A list of network requests. A framework can request multiple IP addresses
   // for the container.
