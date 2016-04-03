@@ -126,7 +126,7 @@ TEST_F(ComposingContainerizerTest, DestroyWhileLaunching)
   TaskInfo taskInfo;
   ExecutorInfo executorInfo;
   SlaveID slaveId;
-  PID<Slave> slavePid;
+  UPID slavePid;
 
   Promise<bool> launchPromise;
 
