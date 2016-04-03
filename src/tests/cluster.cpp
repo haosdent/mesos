@@ -355,8 +355,9 @@ Try<process::Owned<Slave>> Slave::start(
   if (containerizer.isSome()) {
     slave->containerizer = containerizer.get();
   } else {
+    Parameters parameters = slave::Containerizer::parameterize(flags, true);
     Try<slave::Containerizer*> _containerizer =
-      slave::Containerizer::create(flags, true);
+      slave::Containerizer::create(parameters);
 
     if (_containerizer.isError()) {
       return Error("Failed to create containerizer: " + _containerizer.error());
