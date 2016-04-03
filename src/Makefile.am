@@ -488,6 +488,7 @@ module_HEADERS =							\
   $(top_srcdir)/include/mesos/module/authenticatee.hpp			\
   $(top_srcdir)/include/mesos/module/authenticator.hpp			\
   $(top_srcdir)/include/mesos/module/authorizer.hpp			\
+  $(top_srcdir)/include/mesos/module/containerizer.hpp			\
   $(top_srcdir)/include/mesos/module/container_logger.hpp		\
   $(top_srcdir)/include/mesos/module/hook.hpp				\
   $(top_srcdir)/include/mesos/module/http_authenticator.hpp		\

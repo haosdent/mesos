@@ -17,6 +17,8 @@
 #include <map>
 #include <vector>
 
+#include <mesos/module/containerizer.hpp>
+
 #include <mesos/slave/containerizer/containerizer.hpp>
 
 #include <process/dispatch.hpp>
@@ -31,6 +33,8 @@
 #include <stout/uuid.hpp>
 
 #include "hook/manager.hpp"
+
+#include "module/manager.hpp"
 
 #include "slave/flags.hpp"
 #include "slave/slave.hpp"
@@ -172,7 +176,14 @@ Try<Containerizer*> Containerizer::create(const Parameters& parameters)
         containerizers.push_back(containerizer.get());
       }
     } else {
-      return Error("Unknown or unsupported containerizer: " + type);
+      Try<Containerizer*> containerizer =
+        modules::ModuleManager::create<Containerizer>(type, parameters);
+      if (containerizer.isError()) {
+        return Error("Could not create " + type + ": " +
+                     containerizer.error());
+      } else {
+        containerizers.push_back(containerizer.get());
+      }
     }
   }
 
