@@ -14,12 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "tests/containerizer.hpp"
-
 #include <mutex>
 
-#include "stout/synchronized.hpp"
+#include <stout/synchronized.hpp>
 
+#include "slave/containerizer/containerizer_utils.hpp"
+
+#include "tests/containerizer.hpp"
 #include "tests/mesos.hpp"
 
 using std::map;

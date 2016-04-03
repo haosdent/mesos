@@ -45,6 +45,7 @@
 
 #include "slave/paths.hpp"
 
+#include "slave/containerizer/containerizer_utils.hpp"
 #include "slave/containerizer/external_containerizer.hpp"
 
 using lambda::bind;

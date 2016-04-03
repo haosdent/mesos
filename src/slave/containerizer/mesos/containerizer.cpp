@@ -44,6 +44,7 @@
 #include "slave/slave.hpp"
 
 #include "slave/containerizer/containerizer.hpp"
+#include "slave/containerizer/containerizer_utils.hpp"
 #include "slave/containerizer/fetcher.hpp"
 
 #include "slave/containerizer/mesos/launcher.hpp"
