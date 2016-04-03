@@ -90,6 +90,7 @@ using mesos::internal::slave::NetClsHandle;
 using mesos::internal::slave::NetClsHandleManager;
 using mesos::internal::slave::SharedFilesystemIsolatorProcess;
 #endif // __linux__
+using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Launcher;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::PosixLauncher;
@@ -1013,11 +1014,11 @@ TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_NetClsIsolate)
   flags.cgroups_net_cls_primary_handle = stringify(primary);
   flags.cgroups_net_cls_secondary_handles = "0xffff,0xffff";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1131,11 +1132,11 @@ TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_ContainerStatus)
   flags.cgroups_net_cls_primary_handle = stringify(0x0012);
   flags.cgroups_net_cls_secondary_handles = "0x0011,0x0012";
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, true);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, true));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
@@ -1498,11 +1499,11 @@ TEST_F(NamespacesPidIsolatorTest, ROOT_PidNamespace)
 
   string directory = os::getcwd(); // We're inside a temporary sandbox.
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false);
+  Try<Containerizer*> _containerizer =
+    MesosContainerizer::create(Containerizer::parameterize(flags, false));
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   ContainerID containerId;
   containerId.set_value(UUID::random().toString());
