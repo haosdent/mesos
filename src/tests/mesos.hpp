@@ -43,6 +43,8 @@
 #include <mesos/slave/qos_controller.hpp>
 #include <mesos/slave/resource_estimator.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/future.hpp>
 #include <process/gmock.hpp>
 #include <process/gtest.hpp>
@@ -73,7 +75,6 @@
 #include "slave/constants.hpp"
 #include "slave/slave.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/docker.hpp"
 #include "slave/containerizer/fetcher.hpp"
 

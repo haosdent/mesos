@@ -21,6 +21,8 @@
 
 #include <mesos/slave/container_logger.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <stout/check.hpp>
 #include <stout/foreach.hpp>
 #include <stout/json.hpp>
@@ -39,7 +41,6 @@
 #endif
 
 #include "slave/constants.hpp"
-#include "slave/containerizer/containerizer.hpp"
 
 #include "slave/containerizer/mesos/containerizer.hpp"
 

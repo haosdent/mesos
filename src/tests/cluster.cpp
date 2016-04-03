@@ -26,6 +26,8 @@
 
 #include <mesos/slave/resource_estimator.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/clock.hpp>
 #include <process/future.hpp>
 #include <process/gmock.hpp>
@@ -71,7 +73,6 @@
 #include "slave/slave.hpp"
 #include "slave/status_update_manager.hpp"
 
-#include "slave/containerizer/containerizer.hpp"
 #include "slave/containerizer/fetcher.hpp"
 
 #include "state/in_memory.hpp"

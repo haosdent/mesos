@@ -19,6 +19,8 @@
 #include <mesos/resources.hpp>
 #include <mesos/scheduler.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/clock.hpp>
 #include <process/gtest.hpp>
 #include <process/owned.hpp>
@@ -29,8 +31,6 @@
 #include "master/master.hpp"
 
 #include "slave/slave.hpp"
-
-#include "slave/containerizer/containerizer.hpp"
 
 #include "messages/messages.hpp"
 

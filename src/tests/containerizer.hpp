@@ -30,6 +30,8 @@
 
 #include <mesos/v1/executor.hpp>
 
+#include <mesos/slave/containerizer/containerizer.hpp>
+
 #include <process/dispatch.hpp>
 #include <process/future.hpp>
 #include <process/gmock.hpp>
@@ -39,8 +41,6 @@
 #include <stout/os.hpp>
 #include <stout/try.hpp>
 #include <stout/uuid.hpp>
-
-#include "slave/containerizer/containerizer.hpp"
 
 #include "slave/slave.hpp"
 #include "slave/state.hpp"
