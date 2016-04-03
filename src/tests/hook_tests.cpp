@@ -57,6 +57,7 @@ using mesos::internal::master::Master;
 
 using mesos::internal::protobuf::createLabel;
 
+using mesos::internal::slave::Containerizer;
 using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::MesosContainerizer;
 using mesos::internal::slave::Slave;
@@ -278,11 +279,12 @@ TEST_F(HookTest, VerifySlaveExecutorEnvironmentDecorator)
 {
   const string& directory = os::getcwd(); // We're inside a temporary sandbox.
 
-  Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(CreateSlaveFlags(), false);
+  Parameters parameters =
+    Containerizer::parameterize(CreateSlaveFlags(), false);
+  Try<Containerizer*> _containerizer = MesosContainerizer::create(parameters);
 
   ASSERT_SOME(_containerizer);
-  Owned<MesosContainerizer> containerizer(_containerizer.get());
+  Owned<Containerizer> containerizer(_containerizer.get());
 
   ContainerID containerId;
   containerId.set_value("test_container");
