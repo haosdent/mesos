@@ -773,7 +773,19 @@ TEST_F(ZooKeeperMasterContenderDetectorTest, MasterDetectorExpireSlaveZKSession)
   Future<Option<int64_t> > session = group->session();
   AWAIT_READY(session);
 
+  Future<Nothing> reconnecting = FUTURE_DISPATCH(
+      group->process->self(),
+      &GroupProcess::reconnecting);
+
   server->expireSession(session.get().get());
+
+  Clock::pause();
+  AWAIT_READY(reconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(MASTER_CONTENDER_ZK_SESSION_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
 
   // Session expiration causes detector to assume all membership are
   // lost.
