@@ -206,3 +206,34 @@ index d02608a..be60a65
  // 7.18.1.4 Integer types capable of holding object pointers
  #ifdef _WIN64 // [
     typedef signed __int64    intptr_t;
+diff --git a/src/c/src/zookeeper.c b/src/c/src/zookeeper.c
+index 7549d48..e39d8ff 100644
+--- a/src/c/src/zookeeper.c
++++ b/src/c/src/zookeeper.c
+@@ -1787,12 +1787,14 @@ static int send_info_packet(zhandle_t *zh, auth_info* auth) {
+     req.auth = auth->auth;
+     rc = rc < 0 ? rc : serialize_AuthPacket(oa, "req", &req);
+     /* add this buffer to the head of the send queue */
++    lock_buffer_list(&zh->to_send);
+     rc = rc < 0 ? rc : queue_front_buffer_bytes(&zh->to_send, get_buffer(oa),
+             get_buffer_len(oa));
++    unlock_buffer_list(&zh->to_send);
+     /* We queued the buffer, so don't free it */
+     close_buffer_oarchive(&oa, 0);
+ 
+-    return rc;
++    return rc < 0 ? rc : adaptor_send_queue(zh, 0);
+ }
+ 
+ /** send all auths, not just the last one **/
+@@ -1868,8 +1870,10 @@ static int send_set_watches(zhandle_t *zh)
+     rc = serialize_RequestHeader(oa, "header", &h);
+     rc = rc < 0 ? rc : serialize_SetWatches(oa, "req", &req);
+     /* add this buffer to the head of the send queue */
++    lock_buffer_list(&zh->to_send);
+     rc = rc < 0 ? rc : queue_front_buffer_bytes(&zh->to_send, get_buffer(oa),
+             get_buffer_len(oa));
++    unlock_buffer_list(&zh->to_send);
+     /* We queued the buffer, so don't free it */
+     close_buffer_oarchive(&oa, 0);
+     free_key_list(req.dataWatches.data, req.dataWatches.count);

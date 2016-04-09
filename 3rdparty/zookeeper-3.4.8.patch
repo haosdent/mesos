@@ -17,3 +17,35 @@ index 7dc7878..9c62991 100644
  #else
      volatile int32_t result;
      _asm
+diff --git a/src/c/src/zookeeper.c b/src/c/src/zookeeper.c
+index 1ba90af..16639d8 100644
+--- a/src/c/src/zookeeper.c
++++ b/src/c/src/zookeeper.c
+@@ -1323,12 +1323,14 @@ static int send_info_packet(zhandle_t *zh, auth_info* auth) {
+     req.auth = auth->auth;
+     rc = rc < 0 ? rc : serialize_AuthPacket(oa, "req", &req);
+     /* add this buffer to the head of the send queue */
++    lock_buffer_list(&zh->to_send);
+     rc = rc < 0 ? rc : queue_front_buffer_bytes(&zh->to_send, get_buffer(oa),
+             get_buffer_len(oa));
++    unlock_buffer_list(&zh->to_send);
+     /* We queued the buffer, so don't free it */
+     close_buffer_oarchive(&oa, 0);
+ 
+-    return rc;
++    return rc < 0 ? rc : adaptor_send_queue(zh, 0);
+ }
+ 
+ /** send all auths, not just the last one **/
+@@ -1404,9 +1406,11 @@ static int send_set_watches(zhandle_t *zh)
+     rc = serialize_RequestHeader(oa, "header", &h);
+     rc = rc < 0 ? rc : serialize_SetWatches(oa, "req", &req);
+     /* add this buffer to the head of the send queue */
++    lock_buffer_list(&zh->to_send);
+     rc = rc < 0 ? rc : queue_front_buffer_bytes(&zh->to_send, get_buffer(oa),
+             get_buffer_len(oa));
++    unlock_buffer_list(&zh->to_send);
+     /* We queued the buffer, so don't free it */   
+     close_buffer_oarchive(&oa, 0);
+     free_key_list(req.dataWatches.data, req.dataWatches.count);
+     free_key_list(req.existWatches.data, req.existWatches.count);
