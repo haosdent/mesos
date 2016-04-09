@@ -870,12 +870,28 @@ TEST_F(ZooKeeperMasterContenderDetectorTest,
   // when the leading master loses its session.
   Future<Option<int64_t> > slaveSession = nonContenderGroup->session();
   AWAIT_READY(slaveSession);
+  Future<Nothing> slaveReconnecting = FUTURE_DISPATCH(
+      nonContenderGroup->process->self(),
+      &GroupProcess::reconnecting);
 
   Future<Option<int64_t> > masterSession = leaderGroup->session();
   AWAIT_READY(masterSession);
+  Future<Nothing> masterReconnecting = FUTURE_DISPATCH(
+      leaderGroup->process->self(),
+      &GroupProcess::reconnecting);
 
   server->expireSession(slaveSession.get().get());
   server->expireSession(masterSession.get().get());
+
+  Clock::pause();
+  AWAIT_READY(slaveReconnecting);
+  AWAIT_READY(masterReconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(MASTER_DETECTOR_ZK_SESSION_TIMEOUT);
+  Clock::advance(MASTER_CONTENDER_ZK_SESSION_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
 
   // Wait for session expiration and the detector will first receive
   // a "no master detected" event.
