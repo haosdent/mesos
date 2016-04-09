@@ -300,10 +300,23 @@ TEST_F(ZooKeeperTest, LeaderContender)
   AWAIT_READY(session);
   ASSERT_SOME(session.get());
 
+  Future<Nothing> reconnecting = FUTURE_DISPATCH(
+      group.process->self(),
+      &GroupProcess::reconnecting);
+
   Future<Nothing> connected = FUTURE_DISPATCH(
       group.process->self(),
       &GroupProcess::connected);
   server->expireSession(session.get().get());
+
+  Clock::pause();
+  AWAIT_READY(reconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(timeout);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
+
   AWAIT_READY(lostCandidacy);
 
   // Withdraw directly returns because candidacy is lost and there
@@ -343,13 +356,15 @@ TEST_F(ZooKeeperTest, LeaderContender)
   AWAIT_READY(candidated);
   lostCandidacy = candidated.get();
 
-  Future<Nothing> reconnecting = FUTURE_DISPATCH(
+  reconnecting = FUTURE_DISPATCH(
       group.process->self(),
       &GroupProcess::reconnecting);
 
   server->shutdownNetwork();
 
   AWAIT_READY(reconnecting);
+
+  server->startNetwork();
 
   Clock::pause();
 
@@ -363,12 +378,11 @@ TEST_F(ZooKeeperTest, LeaderContender)
 
   Clock::resume();
 
-  server->startNetwork();
-
   // Contend again (4).
   contender = Owned<LeaderContender>(
       new LeaderContender(&group, "candidate 1", master::MASTER_INFO_LABEL));
   candidated = contender->contend();
+
   AWAIT_READY(candidated);
 }
 
