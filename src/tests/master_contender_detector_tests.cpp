@@ -518,6 +518,13 @@ TEST_F(ZooKeeperMasterContenderDetectorTest, ContenderDetectorShutdownNetwork)
 
   server->startNetwork();
 
+  Clock::pause();
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(MASTER_CONTENDER_ZK_SESSION_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
+
   // Operations will eventually succeed after ZK is restored.
   AWAIT_READY(contended);
   AWAIT_READY(leader);
