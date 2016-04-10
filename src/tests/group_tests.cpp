@@ -93,6 +93,13 @@ TEST_F(GroupTest, GroupJoinWithDisconnect)
 
   server->startNetwork();
 
+  Clock::pause();
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(NO_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
+
   AWAIT_READY(membership);
 
   Future<set<Group::Membership>> memberships = group.watch();
@@ -117,6 +124,9 @@ TEST_F(GroupTest, GroupDataWithDisconnect)
   EXPECT_EQ(1u, memberships.get().size());
   EXPECT_EQ(1u, memberships.get().count(membership.get()));
 
+  Future<Nothing> reconnecting =
+    FUTURE_DISPATCH(_, &GroupProcess::reconnecting);
+
   server->shutdownNetwork();
 
   Future<Option<string>> data = group.data(membership.get());
@@ -124,6 +134,14 @@ TEST_F(GroupTest, GroupDataWithDisconnect)
   EXPECT_TRUE(data.isPending());
 
   server->startNetwork();
+
+  Clock::pause();
+  AWAIT_READY(reconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(NO_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
 
   AWAIT_READY(data);
   EXPECT_SOME_EQ("hello world", data.get());
@@ -179,6 +197,13 @@ TEST_F(GroupTest, GroupCancelWithDisconnect)
   EXPECT_TRUE(cancellation.isPending());
 
   server->startNetwork();
+
+  Clock::pause();
+  // Trigger retry cancel operation.
+  Clock::advance(GroupProcess::RETRY_INTERVAL);
+  // Make sure `GroupProcess::doCancel` have been executed.
+  Clock::settle();
+  Clock::resume();
 
   AWAIT_EXPECT_TRUE(cancellation);
 
@@ -362,8 +387,18 @@ TEST_F(GroupTest, RetryableErrors)
   // We repeatedly expire the session while Group operations are
   // on-going. This causes retries of authenticate() and group
   // create().
+  Future<Nothing> reconnecting =
+    FUTURE_DISPATCH(_, &GroupProcess::reconnecting);
   connected = FUTURE_DISPATCH(_, &GroupProcess::connected);
   server->expireSession(session.get().get());
+
+  Clock::pause();
+  AWAIT_READY(reconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(NO_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
 
   Future<Group::Membership> membership = group.join("hello world");
 
@@ -372,8 +407,17 @@ TEST_F(GroupTest, RetryableErrors)
   session = group.session();
   AWAIT_READY(session);
   ASSERT_SOME(session.get());
+  reconnecting = FUTURE_DISPATCH(_, &GroupProcess::reconnecting);
   connected = FUTURE_DISPATCH(_, &GroupProcess::connected);
   server->expireSession(session.get().get());
+
+  Clock::pause();
+  AWAIT_READY(reconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(NO_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
 
   AWAIT_READY(membership);
 
@@ -382,8 +426,17 @@ TEST_F(GroupTest, RetryableErrors)
   session = group.session();
   AWAIT_READY(session);
   ASSERT_SOME(session.get());
+  reconnecting = FUTURE_DISPATCH(_, &GroupProcess::reconnecting);
   connected = FUTURE_DISPATCH(_, &GroupProcess::connected);
   server->expireSession(session.get().get());
+
+  Clock::pause();
+  AWAIT_READY(reconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(NO_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
 
   Future<bool> cancellation = group.cancel(membership.get());
 
@@ -392,8 +445,17 @@ TEST_F(GroupTest, RetryableErrors)
   session = group.session();
   AWAIT_READY(session);
   ASSERT_SOME(session.get());
+  reconnecting = FUTURE_DISPATCH(_, &GroupProcess::reconnecting);
   connected = FUTURE_DISPATCH(_, &GroupProcess::connected);
   server->expireSession(session.get().get());
+
+  Clock::pause();
+  AWAIT_READY(reconnecting);
+  // Trigger `GroupProcess::timedout` and `GroupProcess::startConnection` again.
+  Clock::advance(NO_TIMEOUT);
+  // Wait for `GroupProcess::timedout`.
+  Clock::settle();
+  Clock::resume();
 
   AWAIT_READY(cancellation);
   AWAIT_READY(connected);
