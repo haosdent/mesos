@@ -1107,7 +1107,9 @@ TEST_F(OversubscriptionTest, RemoveCapabilitiesOnSchedulerFailover)
   MesosSchedulerDriver driver2(
       &sched2, framework2, master.get()->pid, DEFAULT_CREDENTIAL);
 
-  EXPECT_CALL(sched2, registered(&driver2, _, _));
+  Future<Nothing> sched2Registered;
+  EXPECT_CALL(sched2, registered(&driver2, _, _))
+    .WillOnce(FutureSatisfy(&sched2Registered));
 
   // Scheduler1's expectations.
 
@@ -1125,9 +1127,11 @@ TEST_F(OversubscriptionTest, RemoveCapabilitiesOnSchedulerFailover)
 
   driver2.start();
 
-  // Ensure resources are be recovered before a batch allocation is triggered.
+  // Ensure sched2 registered successfully.
+  AWAIT_READY(sched2Registered);
+
+  // Advance the clock and trigger a batch allocation.
   Clock::pause();
-  Clock::settle();
   Clock::advance(masterFlags.allocation_interval);
   Clock::resume();
 
