@@ -342,14 +342,11 @@ Future<Response> Master::Http::scheduler(
 
   // TODO(vinod): Add support for rate limiting.
 
+  // When current master is not a leader, redirect to the leading master.
+  // Note that this could happen if the scheduler realizes this is the
+  // leading master before master itself realizes it (e.g., ZK watch delay).
   if (!master->elected()) {
-    // Note that this could happen if the scheduler realizes this is the
-    // leading master before master itself realizes it (e.g., ZK watch delay).
-    if (master->leader.isNone()) {
-      return ServiceUnavailable("No leader elected");
-    } else {
-      return redirect(request);
-    }
+    return redirect(request);
   }
 
   CHECK_SOME(master->recovered);
@@ -590,6 +587,11 @@ Future<Response> Master::Http::createVolumes(
     const Request& request,
     const Option<string>& principal) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "POST") {
     return MethodNotAllowed(
         {"POST"}, "Expecting 'POST', received '" + request.method + "'");
@@ -692,6 +694,11 @@ Future<Response> Master::Http::destroyVolumes(
     const Request& request,
     const Option<string>& principal) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "POST") {
     return MethodNotAllowed(
         {"POST"}, "Expecting 'POST', received '" + request.method + "'");
@@ -780,6 +787,11 @@ Future<Response> Master::Http::frameworks(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   auto frameworks = [this](JSON::ObjectWriter* writer) {
     // Model all of the frameworks.
     writer->field("frameworks", [this](JSON::ArrayWriter* writer) {
@@ -982,10 +994,15 @@ string Master::Http::REDIRECT_HELP()
 
 Future<Response> Master::Http::redirect(const Request& request) const
 {
-  // If there's no leader, redirect to this master's base url.
-  MasterInfo info = master->leader.isSome()
-    ? master->leader.get()
-    : master->info_;
+  // If there's no leader, return `ServiceUnavailable`.
+  if (master->leader.isNone()) {
+    LOG(WARNING) << "Current master is not elected as leader, and leader "
+                 << "information is unavailable. Failed to redirect the "
+                 << "request url: " << request.url;
+    return ServiceUnavailable("No leader elected");
+  }
+
+  MasterInfo info = master->leader.get();
 
   // NOTE: Currently, 'info.ip()' stores ip in network order, which
   // should be fixed. See MESOS-1201 for details.
@@ -997,14 +1014,24 @@ Future<Response> Master::Http::redirect(const Request& request) const
     return InternalServerError(hostname.error());
   }
 
+  LOG(INFO) << "Redirecting the request url " << request.url
+            << " to the leading master " << hostname.get();
+
   // NOTE: We can use a protocol-relative URL here in order to allow
   // the browser (or other HTTP client) to prefix with 'http:' or
   // 'https:' depending on the original request. See
   // https://tools.ietf.org/html/rfc7231#section-7.1.2 as well as
   // http://stackoverflow.com/questions/12436669/using-protocol-relative-uris-within-location-headers
   // which discusses this.
-  return TemporaryRedirect(
-    "//" + hostname.get() + ":" + stringify(info.port()) + request.url.path);
+  string basePath = "//" + hostname.get() + ":" + stringify(info.port());
+  if (request.url.path == "/redirect" ||
+      request.url.path == "/" + master->self().id + "/redirect") {
+    // When request url is '/redirect' or '/master/redirect', redirect to the
+    // base url of leading master.
+    return TemporaryRedirect(basePath);
+  } else {
+    return TemporaryRedirect(basePath + request.url.path);
+  }
 }
 
 
@@ -1031,6 +1058,11 @@ Future<Response> Master::Http::reserve(
     const Request& request,
     const Option<string>& principal) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "POST") {
     return MethodNotAllowed(
         {"POST"}, "Expecting 'POST', received '" + request.method + "'");
@@ -1127,6 +1159,11 @@ Future<Response> Master::Http::slaves(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   auto slaves = [this](JSON::ObjectWriter* writer) {
     writer->field("slaves", [this](JSON::ArrayWriter* writer) {
       foreachvalue (const Slave* slave, master->slaves.registered) {
@@ -1201,6 +1238,11 @@ Future<Response> Master::Http::quota(
     const Request& request,
     const Option<string>& principal) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   // Dispatch based on HTTP method to separate `QuotaHandler`.
   if (request.method == "GET") {
     return quotaHandler.status(request);
@@ -1239,6 +1281,11 @@ Future<Response> Master::Http::weights(
     const Request& request,
     const Option<string>& principal) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   // TODO(Yongqiao Wang): `/roles` endpoint also shows the weights information,
   // consider erasing the duplicated information later.
   if (request.method == "GET") {
@@ -1342,6 +1389,11 @@ Future<Response> Master::Http::state(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   auto state = [this](JSON::ObjectWriter* writer) {
     writer->field("version", MESOS_VERSION);
 
@@ -1618,6 +1670,11 @@ Future<Response> Master::Http::stateSummary(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   auto stateSummary = [this](JSON::ObjectWriter* writer) {
     writer->field("hostname", master->info().hostname());
 
@@ -1779,6 +1836,11 @@ Future<Response> Master::Http::roles(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   JSON::Object object;
 
   // Compute the role names to return results for. When an explicit
@@ -1850,6 +1912,11 @@ Future<Response> Master::Http::teardown(
     const Request& request,
     const Option<string>& principal) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "POST") {
     return MethodNotAllowed(
         {"POST"}, "Expecting 'POST', received '" + request.method + "'");
@@ -1989,6 +2056,11 @@ Future<Response> Master::Http::tasks(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   // Get list options (limit and offset).
   Result<int> result = numify<int>(request.url.query.get("limit"));
   size_t limit = result.isSome() ? result.get() : TASK_LIMIT;
@@ -2064,6 +2136,11 @@ Future<Response> Master::Http::maintenanceSchedule(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "GET" && request.method != "POST") {
     return MethodNotAllowed(
         {"GET", "POST"},
@@ -2202,6 +2279,11 @@ Future<Response> Master::Http::machineDown(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "POST") {
     return MethodNotAllowed(
         {"POST"}, "Expecting 'POST', received '" + request.method + "'");
@@ -2308,6 +2390,11 @@ Future<Response> Master::Http::machineUp(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "POST") {
     return MethodNotAllowed(
         {"POST"}, "Expecting 'POST', received '" + request.method + "'");
@@ -2415,6 +2502,11 @@ Future<Response> Master::Http::maintenanceStatus(
     const Request& request,
     const Option<string>& /*principal*/) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "GET") {
     return MethodNotAllowed(
         {"GET"}, "Expecting 'GET', received '" + request.method + "'");
@@ -2497,6 +2589,11 @@ Future<Response> Master::Http::unreserve(
     const Request& request,
     const Option<string>& principal) const
 {
+  // When current master is not a leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
   if (request.method != "POST") {
     return MethodNotAllowed(
         {"POST"}, "Expecting 'POST', received '" + request.method + "'");
