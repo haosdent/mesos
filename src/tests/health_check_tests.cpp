@@ -489,6 +489,91 @@ TEST_F(HealthCheckTest, HealthyTaskNonShell)
 }
 
 
+// Check whether healthy task could escape quote or not.
+TEST_F(HealthCheckTest, HealthyTaskShellEscape)
+{
+  Try<Owned<cluster::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  slave::Flags flags = CreateSlaveFlags();
+  flags.isolation = "posix/cpu,posix/mem";
+
+  Fetcher fetcher;
+
+  Try<MesosContainerizer*> _containerizer =
+    MesosContainerizer::create(flags, true, &fetcher);
+
+  CHECK_SOME(_containerizer);
+  Owned<MesosContainerizer> containerizer(_containerizer.get());
+
+  Owned<MasterDetector> detector = master.get()->createDetector();
+
+  Try<Owned<cluster::Slave>> slave =
+    StartSlave(detector.get(), containerizer.get());
+  ASSERT_SOME(slave);
+
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+
+  EXPECT_CALL(sched, registered(&driver, _, _))
+    .Times(1);
+
+  Future<vector<Offer> > offers;
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return()); // Ignore subsequent offers.
+
+  driver.start();
+
+  AWAIT_READY(offers);
+  EXPECT_NE(0u, offers.get().size());
+
+  map<string, string> env;
+  env["HOST"] = "www.google.com";
+  env["PORT0"] = "80";
+
+  CommandInfo command;
+
+  // First way.
+  command.set_shell(true);
+  command.set_value("bash -c \"</dev/tcp/$HOST/$PORT0\"");
+
+  // Second way.
+  // command.set_shell(true);
+  // command.set_value("</dev/tcp/$HOST/$PORT0");
+
+  // Third way.
+  // command.set_shell(false);
+  // command.set_value("bash");
+  // command.add_arguments("bash");
+  // command.add_arguments("-c");
+  // command.add_arguments("</dev/tcp/$HOST/$PORT0");
+
+  vector<TaskInfo> tasks =
+    populateTasks("sleep 120", command, offers.get()[0], 0, None(), env);
+
+  Future<TaskStatus> statusRunning;
+  Future<TaskStatus> statusHealth;
+
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&statusRunning))
+    .WillOnce(FutureArg<1>(&statusHealth));
+
+  driver.launchTasks(offers.get()[0].id(), tasks);
+
+  AWAIT_READY(statusRunning);
+  EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
+
+  AWAIT_READY(statusHealth);
+  EXPECT_EQ(TASK_RUNNING, statusHealth.get().state());
+  EXPECT_TRUE(statusHealth.get().healthy());
+
+  driver.stop();
+  driver.join();
+}
+
+
 // Testing health status change reporting to scheduler.
 TEST_F(HealthCheckTest, HealthStatusChange)
 {
