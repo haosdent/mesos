@@ -1001,7 +1001,7 @@ TEST_F(HealthCheckTest, EnvironmentSetup)
 
 
 // Testing grace period that ignores all failed task failures.
-TEST_F(HealthCheckTest, DISABLED_GracePeriod)
+TEST_F(HealthCheckTest, GracePeriod)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -1012,7 +1012,7 @@ TEST_F(HealthCheckTest, DISABLED_GracePeriod)
   Fetcher fetcher;
 
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, true, &fetcher);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -1041,7 +1041,7 @@ TEST_F(HealthCheckTest, DISABLED_GracePeriod)
   EXPECT_NE(0u, offers.get().size());
 
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit 1", offers.get()[0], 6);
+    "sleep 120", "exit 1", offers.get()[0], 2);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealth;
@@ -1053,16 +1053,11 @@ TEST_F(HealthCheckTest, DISABLED_GracePeriod)
 
   driver.launchTasks(offers.get()[0].id(), tasks);
 
-  Clock::pause();
-  EXPECT_TRUE(statusHealth.isPending());
+  AWAIT_READY(statusRunning);
+  EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
 
   // No task unhealthy update should be called in grace period.
-  Clock::advance(Seconds(5));
   EXPECT_TRUE(statusHealth.isPending());
-
-  Clock::advance(Seconds(1));
-  Clock::settle();
-  Clock::resume();
 
   AWAIT_READY(statusHealth);
   EXPECT_EQ(TASK_RUNNING, statusHealth.get().state());
