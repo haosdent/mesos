@@ -501,7 +501,7 @@ TEST_F(HealthCheckTest, HealthStatusChange)
   Fetcher fetcher;
 
   Try<MesosContainerizer*> _containerizer =
-    MesosContainerizer::create(flags, false, &fetcher);
+    MesosContainerizer::create(flags, true, &fetcher);
 
   CHECK_SOME(_containerizer);
   Owned<MesosContainerizer> containerizer(_containerizer.get());
@@ -557,7 +557,8 @@ TEST_F(HealthCheckTest, HealthStatusChange)
     .WillOnce(FutureArg<1>(&statusRunning))
     .WillOnce(FutureArg<1>(&statusHealth1))
     .WillOnce(FutureArg<1>(&statusHealth2))
-    .WillOnce(FutureArg<1>(&statusHealth3));
+    .WillOnce(FutureArg<1>(&statusHealth3))
+    .WillRepeatedly(Return()); // Ignore subsequent status updates.
 
   driver.launchTasks(offers.get()[0].id(), tasks);
 
@@ -796,7 +797,8 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
     .WillOnce(FutureArg<1>(&statusRunning))
     .WillOnce(FutureArg<1>(&statusHealth1))
     .WillOnce(FutureArg<1>(&statusHealth2))
-    .WillOnce(FutureArg<1>(&statusHealth3));
+    .WillOnce(FutureArg<1>(&statusHealth3))
+    .WillRepeatedly(Return()); // Ignore subsequent status updates.
 
   driver.launchTasks(offers.get()[0].id(), tasks);
 
