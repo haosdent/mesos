@@ -1074,19 +1074,20 @@ TEST_F(FetcherCacheHttpTest, HttpCachedConcurrent)
   // Now let the tasks run.
   httpServer->resume();
 
-  AWAIT_READY(awaitFinished(tasks.get()));
+  // We wait for 30 seconds here because launch a lot of concurrent tasks in
+  // slow machine requires more time to finish.
+  AWAIT_READY_FOR(awaitFinished(tasks.get()), Seconds(30));
 
   EXPECT_EQ(1u, fetcherProcess->cacheSize());
   ASSERT_SOME(fetcherProcess->cacheFiles(slaveId, flags));
   EXPECT_EQ(1u, fetcherProcess->cacheFiles(slaveId, flags).get().size());
 
-  // HTTP requests regarding the archive asset as follows. Archive
-  // "content-length" requests: 1, archive file downloads: 2.
+  // HTTP requests regarding the command asset as follows. Command
+  // "content-length" requests: 1, command file downloads: 2.
   EXPECT_EQ(2u, httpServer->countCommandRequests);
 
-  // HTTP requests regarding the command asset as follows. Command
-  // "content-length" requests: 0, command file downloads: 2.
-  EXPECT_EQ(2u, httpServer->countArchiveRequests);
+  // HTTP requests regarding the archive asset as follows.
+  EXPECT_EQ(countTasks / 2, httpServer->countArchiveRequests);
 
   for (size_t i = 0; i < countTasks; i++) {
     EXPECT_EQ(i % 2 == 1, os::exists(
