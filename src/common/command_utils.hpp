@@ -34,6 +34,11 @@ enum class Compression
 };
 
 
+process::Future<std::string> launch(
+    const std::string& path,
+    const std::vector<std::string>& argv);
+
+
 /**
  * Tar(archive) the file/directory to produce output file.
  *

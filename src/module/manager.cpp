@@ -69,6 +69,7 @@ void ModuleManager::initialize()
   kindToVersion["Authenticatee"] = MESOS_VERSION;
   kindToVersion["Authenticator"] = MESOS_VERSION;
   kindToVersion["Authorizer"] = MESOS_VERSION;
+  kindToVersion["Containerizer"] = MESOS_VERSION;
   kindToVersion["ContainerLogger"] = MESOS_VERSION;
   kindToVersion["Hook"] = MESOS_VERSION;
   kindToVersion["HttpAuthenticator"] = MESOS_VERSION;

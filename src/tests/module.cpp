@@ -222,6 +222,23 @@ static void addHttpAuthenticatorModules(Modules* modules)
 }
 
 
+// Add available Containerizer modules.
+static void addContainerizerModules(Modules* modules)
+{
+  CHECK_NOTNULL(modules);
+
+  // Add our test container logger module.
+  Modules::Library* library = modules->add_libraries();
+  library->set_file(getModulePath("testcontainerizer"));
+
+  // To add a new module from this library, create a new ModuleID enum
+  // and tie it with a module name.
+  addModule(library,
+            TestHyperContainerizer,
+            "org_apache_mesos_TestHyperContainerizer");
+}
+
+
 Try<Nothing> initModules(const Option<Modules>& modules)
 {
   // First get the user provided modules.
@@ -256,6 +273,9 @@ Try<Nothing> initModules(const Option<Modules>& modules)
 
   // Add HTTP authenticator modules from testhttpauthenticator library.
   addHttpAuthenticatorModules(&mergedModules);
+
+  // Add container logger modules from testcontainerizer library.
+  addContainerizerModules(&mergedModules);
 
   return ModuleManager::load(mergedModules);
 }

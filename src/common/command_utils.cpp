@@ -38,7 +38,7 @@ namespace mesos {
 namespace internal {
 namespace command {
 
-static Future<string> launch(
+Future<string> launch(
     const string& path,
     const vector<string>& argv)
 {
@@ -53,6 +53,8 @@ static Future<string> launch(
       ", ",
       path,
       strings::join(", ", argv));
+
+  LOG(INFO) << "Launch command:" << strings::join(" ", argv);
 
   if (s.isError()) {
     return Failure(

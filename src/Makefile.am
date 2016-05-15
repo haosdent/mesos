@@ -670,6 +670,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   slave/containerizer/docker.cpp					\
   slave/containerizer/external_containerizer.cpp			\
   slave/containerizer/fetcher.cpp					\
+  slave/containerizer/hyper.cpp					\
   slave/containerizer/mesos/containerizer.cpp				\
   slave/containerizer/mesos/isolator.cpp				\
   slave/containerizer/mesos/launch.cpp					\
@@ -736,6 +737,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   files/files.hpp							\
   hdfs/hdfs.hpp								\
   hook/manager.hpp							\
+  hyper/executor.hpp							\
   internal/devolve.hpp							\
   internal/evolve.hpp							\
   local/flags.hpp							\
@@ -782,6 +784,7 @@ libmesos_no_3rdparty_la_SOURCES +=					\
   slave/containerizer/docker.hpp					\
   slave/containerizer/external_containerizer.hpp			\
   slave/containerizer/fetcher.hpp					\
+  slave/containerizer/hyper.hpp					\
   slave/containerizer/mesos/containerizer.hpp				\
   slave/containerizer/mesos/isolator.hpp				\
   slave/containerizer/mesos/launch.hpp					\
@@ -1199,6 +1202,11 @@ pkglibexec_PROGRAMS += mesos-docker-executor
 mesos_docker_executor_SOURCES = docker/executor.cpp
 mesos_docker_executor_CPPFLAGS = $(MESOS_CPPFLAGS)
 mesos_docker_executor_LDADD = libmesos.la $(LDADD)
+
+pkglibexec_PROGRAMS += mesos-hyper-executor
+mesos_hyper_executor_SOURCES = hyper/executor.cpp
+mesos_hyper_executor_CPPFLAGS = $(MESOS_CPPFLAGS)
+mesos_hyper_executor_LDADD = libmesos.la $(LDADD)
 
 bin_PROGRAMS += mesos-log
 mesos_log_SOURCES = log/main.cpp
@@ -1772,6 +1780,7 @@ MESOS_TEST_MODULES =		\
   libtestanonymous.la		\
   libtestauthentication.la	\
   libtestauthorizer.la		\
+  libtestcontainerizer.la	\
   libtestcontainer_logger.la	\
   libtesthook.la		\
   libtesthttpauthenticator.la	\
@@ -1838,6 +1847,12 @@ libtestqos_controller_la_SOURCES =		\
   examples/test_qos_controller_module.cpp
 libtestqos_controller_la_CPPFLAGS = $(MESOS_CPPFLAGS)
 libtestqos_controller_la_LDFLAGS = $(MESOS_TEST_MODULE_LDFLAGS)
+
+# Library containing example test hyper containerizer module.
+libtestcontainerizer_la_SOURCES =		\
+  examples/test_containerizer_module.cpp
+libtestcontainerizer_la_CPPFLAGS = $(MESOS_CPPFLAGS)
+libtestcontainerizer_la_LDFLAGS = $(MESOS_TEST_MODULE_LDFLAGS)
 
 if INSTALL_TESTS
 pkgmodule_LTLIBRARIES += $(MESOS_TEST_MODULES)

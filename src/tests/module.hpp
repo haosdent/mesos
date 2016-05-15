@@ -50,7 +50,8 @@ enum ModuleID
   TestLocalAuthorizer,
   TestSandboxContainerLogger,
   LogrotateContainerLogger,
-  TestHttpBasicAuthenticator
+  TestHttpBasicAuthenticator,
+  TestHyperContainerizer
 };
 
 

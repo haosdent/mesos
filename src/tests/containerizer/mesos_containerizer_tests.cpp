@@ -23,6 +23,8 @@
 
 #include <mesos/mesos.hpp>
 
+#include <mesos/module/containerizer.hpp>
+
 #include <mesos/slave/container_logger.hpp>
 #include <mesos/slave/isolator.hpp>
 
@@ -43,6 +45,7 @@
 
 #include "tests/flags.hpp"
 #include "tests/mesos.hpp"
+#include "tests/module.hpp"
 #include "tests/utils.hpp"
 
 #include "tests/containerizer/isolator.hpp"
@@ -1035,6 +1038,98 @@ TEST_F(MesosContainerizerRecoverTest, SkipRecoverNonMesosContainers)
   Future<hashset<ContainerID>> containers = containerizer.get()->containers();
   AWAIT_READY(containers);
   EXPECT_EQ(0u, containers.get().size());
+}
+
+
+class HyperContainerizerTest : public MesosTest {};
+
+
+TEST_F(HyperContainerizerTest, TestHyper)
+{
+  Try<Owned<cluster::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  slave::Flags flags = CreateSlaveFlags();
+
+  const Parameters& params = Containerizer::parameterize(flags, true);
+  Try<Containerizer*> create =
+    tests::Module<Containerizer, TestHyperContainerizer>::create(params);
+
+  ASSERT_SOME(create);
+
+  Owned<MasterDetector> detector = master.get()->createDetector();
+  Try<Owned<cluster::Slave>> slave =
+    StartSlave(detector.get(), create.get(), flags);
+
+  ASSERT_SOME(slave);
+
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+
+  Future<FrameworkID> frameworkId;
+  EXPECT_CALL(sched, registered(&driver, _, _))
+    .WillOnce(FutureArg<1>(&frameworkId));
+
+  Future<vector<Offer>> offers;
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return()); // Ignore subsequent offers.
+
+  driver.start();
+
+  AWAIT_READY(frameworkId);
+
+  AWAIT_READY(offers);
+  ASSERT_NE(0u, offers.get().size());
+
+  const Offer& offer = offers.get()[0];
+
+  SlaveID slaveId = offer.slave_id();
+
+  TaskInfo task;
+  task.set_name("");
+  task.mutable_task_id()->set_value("1");
+  task.mutable_slave_id()->CopyFrom(offer.slave_id());
+  task.mutable_resources()->CopyFrom(offer.resources());
+
+  CommandInfo command;
+  command.set_value("sleep 10");
+
+  ContainerInfo containerInfo;
+  containerInfo.set_type(ContainerInfo::CUSTOM);
+
+  // TODO(tnachen): Use local image to test if possible.
+  ContainerInfo::CustomInfo customInfo;
+  customInfo.set_name("hyper");
+  Parameter* parameter = customInfo.add_parameters();
+  parameter->set_key("image");
+  parameter->set_value("alpine");
+  containerInfo.mutable_custom()->CopyFrom(customInfo);
+
+  task.mutable_command()->CopyFrom(command);
+  task.mutable_container()->CopyFrom(containerInfo);
+
+  Future<TaskStatus> statusRunning;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&statusRunning))
+    .WillRepeatedly(DoDefault());
+
+  driver.launchTasks(offers.get()[0].id(), {task});
+
+  AWAIT_READY_FOR(statusRunning, Seconds(60));
+  EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
+
+  // Now verify that the TaskStatus contains the container IP address.
+  ASSERT_TRUE(statusRunning.get().has_container_status());
+  EXPECT_EQ(1, statusRunning.get().container_status().network_infos().size());
+  EXPECT_TRUE(
+      statusRunning.get().container_status().network_infos(0).has_ip_address());
+
+  os::sleep(Seconds(30));
+
+  driver.stop();
+  driver.join();
 }
 
 } // namespace tests {
