@@ -31,7 +31,7 @@ def _create_module(module_name):
     ext_common_dir = os.path.join(
         'src', 'python', 'native_common')
 
-    leveldb = os.path.join('3rdparty', 'leveldb-1.4')
+    leveldb = os.path.join('3rdparty', 'leveldb-1.18')
     zookeeper = os.path.join('3rdparty', 'zookeeper-3.4.8', 'src', 'c')
     libprocess = os.path.join('3rdparty', 'libprocess')
 

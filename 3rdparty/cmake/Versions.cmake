@@ -3,7 +3,7 @@ set(CURL_VERSION        "7.43.0")
 set(GLOG_VERSION        "0.3.3")
 set(GMOCK_VERSION       "1.7.0")
 set(HTTP_PARSER_VERSION "2.6.2")
-set(LEVELDB_VERSION     "1.4")
+set(LEVELDB_VERSION     "1.18")
 set(LIBAPR_VERSION      "1.5.2")
 set(LIBEV_VERSION       "4.22")
 # TODO(hausdorff): (MESOS-3529) transition this back to a non-beta version.
