@@ -23,11 +23,15 @@
 
 #include <mesos/executor/executor.hpp>
 
+#include <mesos/maintenance/maintenance.hpp>
+
 #include <mesos/scheduler/scheduler.hpp>
 
 #include <mesos/v1/mesos.hpp>
 
 #include <mesos/v1/executor/executor.hpp>
+
+#include <mesos/v1/maintenance/maintenance.hpp>
 
 #include <mesos/v1/scheduler/scheduler.hpp>
 
@@ -46,6 +50,7 @@ Offer devolve(const v1::Offer& offer);
 InverseOffer devolve(const v1::InverseOffer& inverseOffer);
 Credential devolve(const v1::Credential& credential);
 TaskStatus devolve(const v1::TaskStatus& status);
+maintenance::Schedule devolve(const v1::maintenance::Schedule& schedule);
 
 scheduler::Call devolve(const v1::scheduler::Call& call);
 scheduler::Event devolve(const v1::scheduler::Event& event);

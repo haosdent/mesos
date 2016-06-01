@@ -115,6 +115,12 @@ TaskStatus devolve(const v1::TaskStatus& status)
 }
 
 
+maintenance::Schedule devolve(const v1::maintenance::Schedule& schedule)
+{
+  return devolve<maintenance::Schedule>(schedule);
+}
+
+
 executor::Call devolve(const v1::executor::Call& call)
 {
   return devolve<executor::Call>(call);
