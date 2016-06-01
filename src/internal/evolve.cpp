@@ -149,6 +149,12 @@ v1::MasterInfo evolve(const MasterInfo& masterInfo)
 }
 
 
+v1::maintenance::ClusterStatus evolve(const maintenance::ClusterStatus& status)
+{
+  return evolve<v1::maintenance::ClusterStatus>(status);
+}
+
+
 v1::scheduler::Call evolve(const scheduler::Call& call)
 {
   return evolve<v1::scheduler::Call>(call);

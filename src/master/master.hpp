@@ -1241,6 +1241,9 @@ private:
     process::Future<process::http::Response> _teardown(
         const FrameworkID& id) const;
 
+    process::Future<mesos::maintenance::ClusterStatus>
+      _maintenanceStatus() const;
+
     /**
      * Continuation for operations: /reserve, /unreserve,
      * /create-volumes and /destroy-volumes. First tries to recover
@@ -1299,6 +1302,10 @@ private:
         const Option<std::string>& principal) const;
 
     process::Future<v1::master::Response> getLeadingMaster(
+        const v1::master::Call& call,
+        const Option<std::string>& principal) const;
+
+    process::Future<v1::master::Response> getMaintenanceStatus(
         const v1::master::Call& call,
         const Option<std::string>& principal) const;
 

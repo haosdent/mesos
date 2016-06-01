@@ -23,6 +23,8 @@
 
 #include <mesos/executor/executor.hpp>
 
+#include <mesos/maintenance/maintenance.hpp>
+
 #include <mesos/scheduler/scheduler.hpp>
 
 #include <mesos/v1/agent.hpp>
@@ -56,6 +58,7 @@ v1::TaskID evolve(const TaskID& taskId);
 v1::TaskInfo evolve(const TaskInfo& taskInfo);
 v1::TaskStatus evolve(const TaskStatus& status);
 v1::MasterInfo evolve(const MasterInfo& masterInfo);
+v1::maintenance::ClusterStatus evolve(const maintenance::ClusterStatus& status);
 
 v1::scheduler::Call evolve(const scheduler::Call& call);
 

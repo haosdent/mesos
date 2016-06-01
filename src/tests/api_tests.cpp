@@ -31,6 +31,7 @@
 #include <stout/try.hpp>
 
 #include "common/http.hpp"
+#include "common/protobuf_utils.hpp"
 
 #include "master/detector/standalone.hpp"
 
@@ -42,6 +43,11 @@ using mesos::master::detector::StandaloneMasterDetector;
 
 using mesos::internal::slave::Slave;
 
+using mesos::internal::protobuf::maintenance::createSchedule;
+using mesos::internal::protobuf::maintenance::createUnavailability;
+using mesos::internal::protobuf::maintenance::createWindow;
+
+using process::Clock;
 using process::Failure;
 using process::Future;
 using process::Owned;
@@ -200,6 +206,59 @@ TEST_P(MasterAPITest, GetLeadingMaster)
   ASSERT_EQ(v1::master::Response::GET_LEADING_MASTER, v1Response->type());
   ASSERT_EQ(master.get()->getMasterInfo().ip(),
             v1Response->get_leading_master().master_info().ip());
+}
+
+
+TEST_P(MasterAPITest, GetMaintenanceStatus)
+{
+  Try<Owned<cluster::Master>> master = this->StartMaster();
+  ASSERT_SOME(master);
+
+  // Generate `MachineID`s that can be used in this test.
+  MachineID machine1;
+  MachineID machine2;
+  machine1.set_hostname("Machine1");
+  machine2.set_ip("0.0.0.2");
+
+  // Initialize the default POST header.
+  process::http::Headers headers;
+  headers = createBasicAuthHeaders(DEFAULT_CREDENTIAL);
+  headers["Content-Type"] = "application/json";
+
+  // Try to setup maintenance on an unscheduled machine.
+  maintenance::Schedule schedule = createSchedule(
+      {createWindow({machine1, machine2}, createUnavailability(Clock::now()))});
+
+  // TODO(haosdent): use v1::master::Call::UPDATE_MAINTENANCE_SCHEDULE when it
+  // is implemented.
+  Future<Response> response = process::http::post(
+      master.get()->pid,
+      "maintenance/schedule",
+      headers,
+      stringify(JSON::protobuf(schedule)));
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, response);
+
+  // Query maintenance status.
+  v1::master::Call v1Call;
+  v1Call.set_type(v1::master::Call::GET_MAINTENANCE_STATUS);
+
+  ContentType contentType = GetParam();
+
+  Future<v1::master::Response> v1Response =
+    post(master.get()->pid, v1Call, contentType);
+
+  AWAIT_READY(v1Response);
+  ASSERT_TRUE(v1Response.get().IsInitialized());
+  ASSERT_EQ(
+      v1::master::Response::GET_MAINTENANCE_STATUS,
+      v1Response.get().type());
+
+  // Verify maintenance status matches the expectation.
+  v1::maintenance::ClusterStatus status =
+    v1Response.get().get_maintenance_status().status();
+  ASSERT_EQ(2, status.draining_machines().size());
+  ASSERT_EQ(0, status.down_machines().size());
 }
 
 
