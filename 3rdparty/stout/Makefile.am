@@ -176,7 +176,8 @@ BUILT_SOURCES = $(BUNDLED_DEPS)
 check-local: tests
 	./stout-tests
 
-tests: stout-tests
+tests: $(BUNDLED_DEPS)
+	$(MAKE) $(AM_MAKEFLAGS) stout-tests
 
 all-local: Makefile
 
