@@ -31,6 +31,7 @@
 #include <stout/try.hpp>
 
 #include "common/http.hpp"
+#include "common/protobuf_utils.hpp"
 
 #include "master/detector/standalone.hpp"
 
@@ -42,10 +43,16 @@ using mesos::master::detector::StandaloneMasterDetector;
 
 using mesos::internal::slave::Slave;
 
+using mesos::internal::protobuf::maintenance::createSchedule;
+using mesos::internal::protobuf::maintenance::createUnavailability;
+using mesos::internal::protobuf::maintenance::createWindow;
+
+using process::Clock;
 using process::Failure;
 using process::Future;
 using process::Owned;
 
+using process::http::Accepted;
 using process::http::OK;
 using process::http::Response;
 
@@ -63,10 +70,9 @@ class MasterAPITest
   : public MesosTest,
     public WithParamInterface<ContentType>
 {
-public:
-  // Helper function to post a request to "/api/v1" master endpoint and return
-  // the response.
-  Future<v1::master::Response> post(
+protected:
+  // Helper function to post a request to "/api/v1" master endpoint.
+  Future<Response> _post(
       const process::PID<master::Master>& pid,
       const v1::master::Call& call,
       const ContentType& contentType)
@@ -79,13 +85,46 @@ public:
         "api/v1",
         headers,
         serialize(contentType, call),
-        stringify(contentType))
+        stringify(contentType));
+  }
+
+public:
+  // Helper function to post a request to "/api/v1" master endpoint and return
+  // the response.
+  Future<v1::master::Response> post(
+      const process::PID<master::Master>& pid,
+      const v1::master::Call& call,
+      const ContentType& contentType)
+  {
+    return _post(
+        pid,
+        call,
+        contentType)
       .then([contentType](const Response& response)
             -> Future<v1::master::Response> {
         if (response.status != OK().status) {
           return Failure("Unexpected response status " + response.status);
         }
         return deserialize<v1::master::Response>(contentType, response.body);
+      });
+  }
+
+  // Helper function to post a request to "/api/v1" master endpoint and return
+  // `Accepted`.
+  Future<Nothing> postWithoutResponse(
+      const process::PID<master::Master>& pid,
+      const v1::master::Call& call,
+      const ContentType& contentType)
+  {
+    return _post(
+        pid,
+        call,
+        contentType)
+      .then([contentType](const Response& response) -> Future<Nothing> {
+        if (response.status != Accepted().status) {
+          return Failure("Unexpected response status " + response.status);
+        }
+        return Nothing();
       });
   }
 };
@@ -200,6 +239,64 @@ TEST_P(MasterAPITest, GetLeadingMaster)
   ASSERT_EQ(v1::master::Response::GET_LEADING_MASTER, v1Response->type());
   ASSERT_EQ(master.get()->getMasterInfo().ip(),
             v1Response->get_leading_master().master_info().ip());
+}
+
+
+// Test updates a maintenance schedule and verifies it saved via query.
+TEST_P(MasterAPITest, UpdateAndGetMaintenanceSchedule)
+{
+  // Set up a master.
+  Try<Owned<cluster::Master>> master = this->StartMaster();
+  ASSERT_SOME(master);
+
+  ContentType contentType = GetParam();
+
+  // Generate `MachineID`s that can be used in this test.
+  MachineID machine1;
+  MachineID machine2;
+  machine1.set_hostname("Machine1");
+  machine2.set_ip("0.0.0.2");
+
+  // Try to schedule maintenance on an unscheduled machine.
+  v1::maintenance::Schedule schedule;
+  maintenance::Schedule _schedule = createSchedule(
+      {createWindow({machine1, machine2}, createUnavailability(Clock::now()))});
+
+  // Convert to v1 message.
+  string scheduleData;
+  _schedule.SerializePartialToString(&scheduleData);
+  schedule.ParsePartialFromString(scheduleData);
+
+  v1::master::Call v1UpdateScheduleCall;
+  v1UpdateScheduleCall.set_type(v1::master::Call::UPDATE_MAINTENANCE_SCHEDULE);
+  v1::master::Call_UpdateMaintenanceSchedule* maintenanceSchedule =
+    v1UpdateScheduleCall.mutable_update_maintenance_schedule();
+  maintenanceSchedule->mutable_schedule()->CopyFrom(schedule);
+
+  Future<Nothing> v1UpdateScheduleResponse =
+    postWithoutResponse(master.get()->pid, v1UpdateScheduleCall, contentType);
+
+  AWAIT_READY(v1UpdateScheduleResponse);
+
+  // Query maintenance schedule.
+  v1::master::Call v1GetScheduleCall;
+  v1GetScheduleCall.set_type(v1::master::Call::GET_MAINTENANCE_SCHEDULE);
+
+  Future<v1::master::Response> v1GetScheduleResponse =
+    post(master.get()->pid, v1GetScheduleCall, contentType);
+
+  AWAIT_READY(v1GetScheduleResponse);
+  ASSERT_TRUE(v1GetScheduleResponse.get().IsInitialized());
+  ASSERT_EQ(
+      v1::master::Response::GET_MAINTENANCE_SCHEDULE,
+      v1GetScheduleResponse.get().type());
+
+  // Verify maintenance schedule matches the expectation.
+  v1::maintenance::Schedule respSchedule =
+    v1GetScheduleResponse.get().get_maintenance_schedule().schedule();
+  string respScheduleData;
+  respSchedule.SerializePartialToString(&respScheduleData);
+  ASSERT_EQ(scheduleData, respScheduleData);
 }
 
 
