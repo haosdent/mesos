@@ -656,7 +656,8 @@ Future<Response> Master::Http::api(
       return NotImplemented();
 
     case v1::master::Call::GET_MAINTENANCE_STATUS:
-      return NotImplemented();
+      return getMaintenanceStatus(call, principal)
+        .then(serializer);
 
     case v1::master::Call::GET_MAINTENANCE_SCHEDULE:
       return getMaintenanceSchedule(call, principal)
@@ -3197,20 +3198,9 @@ string Master::Http::MAINTENANCE_STATUS_HELP()
 }
 
 
-// /master/maintenance/status endpoint handler.
-Future<Response> Master::Http::maintenanceStatus(
-    const Request& request,
-    const Option<string>& /*principal*/) const
+Future<mesos::maintenance::ClusterStatus>
+  Master::Http::_getMaintenanceStatus() const
 {
-  // When current master is not the leader, redirect to the leading master.
-  if (!master->elected()) {
-    return redirect(request);
-  }
-
-  if (request.method != "GET") {
-    return MethodNotAllowed({"GET"}, request.method);
-  }
-
   return master->allocator->getInverseOfferStatuses()
     .then(defer(
         master->self(),
@@ -3218,7 +3208,7 @@ Future<Response> Master::Http::maintenanceStatus(
             hashmap<
                 SlaveID,
                 hashmap<FrameworkID, mesos::master::InverseOfferStatus>> result)
-          -> Future<Response> {
+          -> Future<mesos::maintenance::ClusterStatus> {
     // Unwrap the master's machine information into two arrays of machines.
     // The data is coming from the allocator and therefore could be stale.
     // Also, if the master fails over, this data is cleared.
@@ -3260,8 +3250,44 @@ Future<Response> Master::Http::maintenanceStatus(
       }
     }
 
-    return OK(JSON::protobuf(status), request.url.query.get("jsonp"));
+    return status;
   }));
+}
+
+
+// /master/maintenance/status endpoint handler.
+Future<Response> Master::Http::maintenanceStatus(
+    const Request& request,
+    const Option<string>& /*principal*/) const
+{
+  // When current master is not the leader, redirect to the leading master.
+  if (!master->elected()) {
+    return redirect(request);
+  }
+
+  if (request.method != "GET") {
+    return MethodNotAllowed({"GET"}, request.method);
+  }
+
+  return _getMaintenanceStatus()
+    .then([=](const mesos::maintenance::ClusterStatus& status)
+            -> Response {
+      return OK(JSON::protobuf(status), request.url.query.get("jsonp"));
+    });
+}
+
+
+Future<v1::master::Response> Master::Http::getMaintenanceStatus(
+    const v1::master::Call& call,
+    const Option<string>& principal) const
+{
+  CHECK_EQ(v1::master::Call::GET_MAINTENANCE_STATUS, call.type());
+
+  return _getMaintenanceStatus()
+    .then([](const mesos::maintenance::ClusterStatus& status)
+            -> v1::master::Response {
+      return evolve(status);
+    });
 }
 
 
