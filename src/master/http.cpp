@@ -659,7 +659,8 @@ Future<Response> Master::Http::api(
       return NotImplemented();
 
     case v1::master::Call::GET_MAINTENANCE_SCHEDULE:
-      return NotImplemented();
+      return getMaintenanceSchedule(call, principal)
+        .then(serializer);
 
     case v1::master::Call::UPDATE_MAINTENANCE_SCHEDULE:
       return updateMaintenanceSchedule(call, principal);
@@ -2863,6 +2864,18 @@ Future<Response> Master::Http::_updateMaintenanceSchedule(
 }
 
 
+mesos::maintenance::Schedule Master::Http::_getMaintenanceSchedule() const
+{
+  // TODO(josephw): Return more than one schedule.
+  const mesos::maintenance::Schedule schedule =
+    master->maintenance.schedules.empty() ?
+      mesos::maintenance::Schedule() :
+      master->maintenance.schedules.front();
+
+  return schedule;
+}
+
+
 // /master/maintenance/schedule endpoint handler.
 Future<Response> Master::Http::maintenanceSchedule(
     const Request& request,
@@ -2879,12 +2892,7 @@ Future<Response> Master::Http::maintenanceSchedule(
 
   // JSON-ify and return the current maintenance schedule.
   if (request.method == "GET") {
-    // TODO(josephw): Return more than one schedule.
-    const mesos::maintenance::Schedule schedule =
-      master->maintenance.schedules.empty() ?
-        mesos::maintenance::Schedule() :
-        master->maintenance.schedules.front();
-
+    const mesos::maintenance::Schedule schedule = _getMaintenanceSchedule();
     return OK(JSON::protobuf(schedule), request.url.query.get("jsonp"));
   }
 
@@ -2911,6 +2919,16 @@ Future<Response> Master::Http::maintenanceSchedule(
 
       return resp;
     });
+}
+
+
+Future<v1::master::Response> Master::Http::getMaintenanceSchedule(
+    const v1::master::Call& call,
+    const Option<string>& principal) const
+{
+  CHECK_EQ(v1::master::Call::GET_MAINTENANCE_SCHEDULE, call.type());
+
+  return evolve(_getMaintenanceSchedule());
 }
 
 
