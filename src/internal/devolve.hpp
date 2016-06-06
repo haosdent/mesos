@@ -50,6 +50,7 @@ Offer devolve(const v1::Offer& offer);
 InverseOffer devolve(const v1::InverseOffer& inverseOffer);
 Credential devolve(const v1::Credential& credential);
 TaskStatus devolve(const v1::TaskStatus& status);
+MachineID devolve(const v1::MachineID& machineId);
 maintenance::Schedule devolve(const v1::maintenance::Schedule& schedule);
 
 scheduler::Call devolve(const v1::scheduler::Call& call);

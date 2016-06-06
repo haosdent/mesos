@@ -667,7 +667,7 @@ Future<Response> Master::Http::api(
       return updateMaintenanceSchedule(call, principal);
 
     case v1::master::Call::START_MAINTENANCE:
-      return NotImplemented();
+      return startMaintenance(call, principal);
 
     case v1::master::Call::STOP_MAINTENANCE:
       return NotImplemented();
@@ -2966,6 +2966,79 @@ string Master::Http::MACHINE_DOWN_HELP()
 }
 
 
+Future<Response> Master::Http::_startMaintenance(
+    const RepeatedPtrField<MachineID>& machineIds) const
+{
+  // Validate every machine in the list.
+  Try<Nothing> isValid = maintenance::validation::machines(machineIds);
+  if (isValid.isError()) {
+    return BadRequest(isValid.error());
+  }
+
+  // Check that all machines are part of a maintenance schedule.
+  // TODO(josephw): Allow a transition from `UP` to `DOWN`.
+  foreach (const MachineID& id, machineIds) {
+    if (!master->machines.contains(id)) {
+      return BadRequest(
+          "Machine '" + stringify(JSON::protobuf(id)) +
+            "' is not part of a maintenance schedule");
+    }
+
+    if (master->machines[id].info.mode() != MachineInfo::DRAINING) {
+      return BadRequest(
+          "Machine '" + stringify(JSON::protobuf(id)) +
+            "' is not in DRAINING mode and cannot be brought down");
+    }
+  }
+
+  return master->registrar->apply(Owned<Operation>(
+      new maintenance::StartMaintenance(machineIds)))
+    .then(defer(master->self(), [=](bool result) -> Future<Response> {
+      // See the top comment in "master/maintenance.hpp" for why this check
+      // is here, and is appropriate.
+      CHECK(result);
+
+      // We currently send a `ShutdownMessage` to each slave. This terminates
+      // all the executors for all the frameworks running on that slave.
+      // We also manually remove the slave to force sending TASK_LOST updates
+      // for all the tasks that were running on the slave and `LostSlaveMessage`
+      // messages to the framework. This guards against the slave having dropped
+      // the `ShutdownMessage`.
+      foreach (const MachineID& machineId, machineIds) {
+        // The machine may not be in machines. This means no slaves are
+        // currently registered on that machine so this is a no-op.
+        if (master->machines.contains(machineId)) {
+          // NOTE: Copies are needed because removeSlave modifies
+          // master->machines.
+          foreach (
+              const SlaveID& slaveId,
+              utils::copy(master->machines[machineId].slaves)) {
+            Slave* slave = master->slaves.registered.get(slaveId);
+            CHECK_NOTNULL(slave);
+
+            // Tell the slave to shut down.
+            ShutdownMessage shutdownMessage;
+            shutdownMessage.set_message("Operator initiated 'Machine DOWN'");
+            master->send(slave->pid, shutdownMessage);
+
+            // Immediately remove the slave to force sending `TASK_LOST` status
+            // updates as well as `LostSlaveMessage` messages to the frameworks.
+            // See comment above.
+            master->removeSlave(slave, "Operator initiated 'Machine DOWN'");
+          }
+        }
+      }
+
+      // Update the master's local state with the downed machines.
+      foreach (const MachineID& id, machineIds) {
+        master->machines[id].info.set_mode(MachineInfo::DOWN);
+      }
+
+      return Accepted();
+    }));
+}
+
+
 // /master/machine/down endpoint handler.
 Future<Response> Master::Http::machineDown(
     const Request& request,
@@ -2992,73 +3065,29 @@ Future<Response> Master::Http::machineDown(
     return BadRequest(ids.error());
   }
 
-  // Validate every machine in the list.
-  Try<Nothing> isValid = maintenance::validation::machines(ids.get());
-  if (isValid.isError()) {
-    return BadRequest(isValid.error());
-  }
-
-  // Check that all machines are part of a maintenance schedule.
-  // TODO(josephw): Allow a transition from `UP` to `DOWN`.
-  foreach (const MachineID& id, ids.get()) {
-    if (!master->machines.contains(id)) {
-      return BadRequest(
-          "Machine '" + stringify(JSON::protobuf(id)) +
-            "' is not part of a maintenance schedule");
-    }
-
-    if (master->machines[id].info.mode() != MachineInfo::DRAINING) {
-      return BadRequest(
-          "Machine '" + stringify(JSON::protobuf(id)) +
-            "' is not in DRAINING mode and cannot be brought down");
-    }
-  }
-
-  return master->registrar->apply(Owned<Operation>(
-      new maintenance::StartMaintenance(ids.get())))
-    .then(defer(master->self(), [=](bool result) -> Future<Response> {
-      // See the top comment in "master/maintenance.hpp" for why this check
-      // is here, and is appropriate.
-      CHECK(result);
-
-      // We currently send a `ShutdownMessage` to each slave. This terminates
-      // all the executors for all the frameworks running on that slave.
-      // We also manually remove the slave to force sending TASK_LOST updates
-      // for all the tasks that were running on the slave and `LostSlaveMessage`
-      // messages to the framework. This guards against the slave having dropped
-      // the `ShutdownMessage`.
-      foreach (const MachineID& machineId, ids.get()) {
-        // The machine may not be in machines. This means no slaves are
-        // currently registered on that machine so this is a no-op.
-        if (master->machines.contains(machineId)) {
-          // NOTE: Copies are needed because removeSlave modifies
-          // master->machines.
-          foreach (
-              const SlaveID& slaveId,
-              utils::copy(master->machines[machineId].slaves)) {
-            Slave* slave = master->slaves.registered.get(slaveId);
-            CHECK_NOTNULL(slave);
-
-            // Tell the slave to shut down.
-            ShutdownMessage shutdownMessage;
-            shutdownMessage.set_message("Operator initiated 'Machine DOWN'");
-            master->send(slave->pid, shutdownMessage);
-
-            // Immediately remove the slave to force sending `TASK_LOST` status
-            // updates as well as `LostSlaveMessage` messages to the frameworks.
-            // See comment above.
-            master->removeSlave(slave, "Operator initiated 'Machine DOWN'");
-          }
-        }
+  return _startMaintenance(ids.get())
+    .then([](const Response& resp) -> Response {
+      // Convert `Accepted()` to `OK()` for API compatibility.
+      if (resp.code == process::http::Status::ACCEPTED) {
+        return OK();
       }
 
-      // Update the master's local state with the downed machines.
-      foreach (const MachineID& id, ids.get()) {
-        master->machines[id].info.set_mode(MachineInfo::DOWN);
-      }
+      return resp;
+    });
+}
 
-      return OK();
-    }));
+
+Future<Response> Master::Http::startMaintenance(
+    const v1::master::Call& call,
+    const Option<string>& principal) const
+{
+  CHECK_EQ(v1::master::Call::START_MAINTENANCE, call.type());
+  CHECK(call.has_start_maintenance());
+
+  RepeatedPtrField<MachineID> machineIds =
+    devolve<MachineID, v1::MachineID>(call.start_maintenance().machines());
+
+  return _startMaintenance(machineIds);
 }
 
 

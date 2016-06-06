@@ -115,6 +115,12 @@ TaskStatus devolve(const v1::TaskStatus& status)
 }
 
 
+MachineID devolve(const v1::MachineID& machineId)
+{
+  return devolve<MachineID>(machineId);
+}
+
+
 maintenance::Schedule devolve(const v1::maintenance::Schedule& schedule)
 {
   return devolve<maintenance::Schedule>(schedule);
