@@ -668,7 +668,7 @@ Future<Response> Master::Http::api(
       return startMaintenance(call, principal, responseContentType);
 
     case v1::master::Call::STOP_MAINTENANCE:
-      return stopMaintenance(call, principal);
+      return stopMaintenance(call, principal, responseContentType);
 
     case v1::master::Call::GET_QUOTA:
       return NotImplemented();
@@ -3172,7 +3172,7 @@ Future<Response> Master::Http::_stopMaintenance(
         }
       }
 
-      return Accepted();
+      return OK();
     }));
 }
 
@@ -3203,21 +3203,14 @@ Future<Response> Master::Http::machineUp(
     return BadRequest(ids.error());
   }
 
-  return _stopMaintenance(ids.get())
-    .then([](const Response& resp) -> Response {
-      // Convert `Accepted()` to `OK()` for API compatibility.
-      if (resp.code == process::http::Status::ACCEPTED) {
-        return OK();
-      }
-
-      return resp;
-    });
+  return _stopMaintenance(ids.get());
 }
 
 
 Future<Response> Master::Http::stopMaintenance(
     const v1::master::Call& call,
-    const Option<string>& principal) const
+    const Option<string>& principal,
+    const ContentType& responseContentType) const
 {
   CHECK_EQ(v1::master::Call::STOP_MAINTENANCE, call.type());
   CHECK(call.has_stop_maintenance());
