@@ -656,8 +656,7 @@ Future<Response> Master::Http::api(
       return NotImplemented();
 
     case v1::master::Call::GET_MAINTENANCE_STATUS:
-      return getMaintenanceStatus(call, principal)
-        .then(serializer);
+      return getMaintenanceStatus(call, principal, responseContentType);
 
     case v1::master::Call::GET_MAINTENANCE_SCHEDULE:
       return getMaintenanceSchedule(call, principal, responseContentType);
@@ -3330,16 +3329,20 @@ Future<Response> Master::Http::maintenanceStatus(
 }
 
 
-Future<v1::master::Response> Master::Http::getMaintenanceStatus(
+Future<Response> Master::Http::getMaintenanceStatus(
     const v1::master::Call& call,
-    const Option<string>& principal) const
+    const Option<string>& principal,
+    const ContentType& responseContentType) const
 {
   CHECK_EQ(v1::master::Call::GET_MAINTENANCE_STATUS, call.type());
 
   return _getMaintenanceStatus()
-    .then([](const mesos::maintenance::ClusterStatus& status)
-            -> v1::master::Response {
-      return evolve(status);
+    .then([=](const mesos::maintenance::ClusterStatus& status)
+            -> Response {
+      v1::master::Response response = evolve(status);
+
+      return OK(serialize(responseContentType, response),
+                stringify(responseContentType));
     });
 }
 

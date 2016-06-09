@@ -1331,9 +1331,10 @@ private:
         const Option<std::string>& principal,
         const ContentType& responseContentType) const;
 
-    process::Future<v1::master::Response> getMaintenanceStatus(
+    process::Future<process::http::Response> getMaintenanceStatus(
         const v1::master::Call& call,
-        const Option<std::string>& principal) const;
+        const Option<std::string>& principal,
+        const ContentType& responseContentType) const;
 
     process::Future<process::http::Response> startMaintenance(
         const v1::master::Call& call,
