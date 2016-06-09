@@ -664,7 +664,7 @@ Future<Response> Master::Http::api(
         .then(serializer);
 
     case v1::master::Call::UPDATE_MAINTENANCE_SCHEDULE:
-      return updateMaintenanceSchedule(call, principal);
+      return updateMaintenanceSchedule(call, principal, responseContentType);
 
     case v1::master::Call::START_MAINTENANCE:
       return startMaintenance(call, principal);
@@ -2860,7 +2860,7 @@ Future<Response> Master::Http::_updateMaintenanceSchedule(
       master->maintenance.schedules.clear();
       master->maintenance.schedules.push_back(schedule);
 
-      return Accepted();
+      return OK();
     }));
 }
 
@@ -2911,15 +2911,7 @@ Future<Response> Master::Http::maintenanceSchedule(
     return BadRequest(protoSchedule.error());
   }
 
-  return _updateMaintenanceSchedule(protoSchedule.get())
-    .then([](const Response& resp) -> Response {
-      // Convert `Accepted()` to `OK()` for API compatibility.
-      if (resp.code == process::http::Status::ACCEPTED) {
-        return OK();
-      }
-
-      return resp;
-    });
+  return _updateMaintenanceSchedule(protoSchedule.get());
 }
 
 
