@@ -660,8 +660,7 @@ Future<Response> Master::Http::api(
         .then(serializer);
 
     case v1::master::Call::GET_MAINTENANCE_SCHEDULE:
-      return getMaintenanceSchedule(call, principal)
-        .then(serializer);
+      return getMaintenanceSchedule(call, principal, responseContentType);
 
     case v1::master::Call::UPDATE_MAINTENANCE_SCHEDULE:
       return updateMaintenanceSchedule(call, principal, responseContentType);
@@ -2915,13 +2914,17 @@ Future<Response> Master::Http::maintenanceSchedule(
 }
 
 
-Future<v1::master::Response> Master::Http::getMaintenanceSchedule(
+Future<Response> Master::Http::getMaintenanceSchedule(
     const v1::master::Call& call,
-    const Option<string>& principal) const
+    const Option<string>& principal,
+    const ContentType& responseContentType) const
 {
   CHECK_EQ(v1::master::Call::GET_MAINTENANCE_SCHEDULE, call.type());
 
-  return evolve(_getMaintenanceSchedule());
+  v1::master::Response response = evolve(_getMaintenanceSchedule());
+
+  return OK(serialize(responseContentType, response),
+            stringify(responseContentType));
 }
 
 
