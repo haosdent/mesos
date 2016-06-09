@@ -2929,7 +2929,8 @@ Future<Response> Master::Http::getMaintenanceSchedule(
 
 Future<Response> Master::Http::updateMaintenanceSchedule(
     const v1::master::Call& call,
-    const Option<string>& principal) const
+    const Option<string>& principal,
+    const ContentType& responseContentType) const
 {
   CHECK_EQ(v1::master::Call::UPDATE_MAINTENANCE_SCHEDULE, call.type());
   CHECK(call.has_update_maintenance_schedule());
