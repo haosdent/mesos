@@ -1338,7 +1338,8 @@ private:
 
     process::Future<process::http::Response> startMaintenance(
         const v1::master::Call& call,
-        const Option<std::string>& principal) const;
+        const Option<std::string>& principal,
+        const ContentType& responseContentType) const;
 
     process::Future<process::http::Response> stopMaintenance(
         const v1::master::Call& call,

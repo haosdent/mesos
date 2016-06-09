@@ -665,7 +665,7 @@ Future<Response> Master::Http::api(
       return updateMaintenanceSchedule(call, principal, responseContentType);
 
     case v1::master::Call::START_MAINTENANCE:
-      return startMaintenance(call, principal);
+      return startMaintenance(call, principal, responseContentType);
 
     case v1::master::Call::STOP_MAINTENANCE:
       return stopMaintenance(call, principal);
@@ -3028,7 +3028,7 @@ Future<Response> Master::Http::_startMaintenance(
         master->machines[id].info.set_mode(MachineInfo::DOWN);
       }
 
-      return Accepted();
+      return OK();
     }));
 }
 
@@ -3073,7 +3073,8 @@ Future<Response> Master::Http::machineDown(
 
 Future<Response> Master::Http::startMaintenance(
     const v1::master::Call& call,
-    const Option<string>& principal) const
+    const Option<string>& principal,
+    const ContentType& responseContentType) const
 {
   CHECK_EQ(v1::master::Call::START_MAINTENANCE, call.type());
   CHECK(call.has_start_maintenance());
