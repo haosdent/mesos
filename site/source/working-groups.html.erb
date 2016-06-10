@@ -1,0 +1,99 @@
+---
+title: Apache Mesos | Release Plan
+breadcrumb: Release Plan
+---
+<div class="row-fluid">
+  <div class="col-md-12">
+
+    <h1>Working Groups</h1>
+
+    <% data.working_groups.groups.each do |group| %>
+    <div class="panel panel-default">
+
+      <div class="panel-heading"><%= group.topic %></div>
+      <div class="panel-body">
+
+        <div class="col-md-4 col-sm-4">
+          <h4>Members</h4>
+          <ul class="list-unstyled">
+            <% (group.members || []).sort.each do |member| %>
+            <li><%= member %></li>
+            <% end %>
+          </ul>
+        </div>
+
+        <div class="col-md-4 col-sm-4">
+          <h4>Resources</h4>
+          <dl>
+            <% (group.resources || {}).each do |type, resource| %>
+            <% if type === "jira_issues" %>
+            <dt>JIRA</dt>
+            <dd>
+              <ul class="list-inline">
+
+                <% resource.each do |jira_issue| %>
+                <li>
+                  <a href="https://issues.apache.org/jira/browse/<%= jira_issue %>">
+                  <%= jira_issue %>
+                  </a>
+                </li>
+                <% end %>
+
+              </ul>
+            </dd>
+            <% elsif type === "design_docs" %>
+            <dt>Design docs</dt>
+            <dd>
+              <ul class="list-unstyled">
+
+                <% resource.each do |doc| %>
+                <li>
+                  <a href="<%= doc.link %>"><%= doc.title %></a>
+                </li>
+                <% end %>
+
+              </ul>
+            </dd>
+            <% elsif type === "meeting_notes" %>
+            <dt>Meeting notes</dt>
+            <dd>
+              <a href="<%= resource %>">
+              <span class="glyphicon glyphicon-file"></span>
+              </a>
+            </dd>
+            <% end %> <!-- if -->
+            <% end %> <!-- each -->
+          </dl>
+        </div>
+
+        <div class="col-md-4 col-sm-4">
+          <h4>Communication</h4>
+          <dl>
+            <% (group.communication || {}).each do |type, communication| %>
+            <% if type === "irc" %>
+            <dt>IRC</dt>
+            <dd>
+              <%= communication %>
+            </dd>
+            <% elsif type === "link" %>
+            <dt>Link</dt>
+            <dd>
+              <a href="<%= communication %>">
+              <span class="glyphicon glyphicon-globe"></span>
+              </a>
+            </dd>
+            <% elsif type === "subject_prefix" %>
+            <dt>Mailing lists subject prefix</dt>
+            <dd>
+              <%= communication %>
+            </dd>
+            <% end %> <!-- if -->
+            <% end %> <!-- each -->
+          </dl>
+        </div>
+
+      </div>
+    </div>
+    <% end %> <!-- groups.each -->
+  </div>
+</div>

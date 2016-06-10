@@ -1,0 +1,185 @@
+---
+groups:
+  -
+    communication:
+      link: "https://groups.google.com/forum/#!forum/mesos-containerizer-dev-wg"
+    members:
+      - "Jie Yu"
+      - "James Peach"
+      - "Zhitao Li"
+      - "Kapil Arya"
+    resources:
+      jira_issues:
+        - MESOS-3333
+    topic: "Nested Container"
+  -
+    communication:
+      irc: mesos-oversubscription
+    members:
+      - "Niklas Nielsen"
+      - "Joris Van Remoortere"
+      - "Bartłomiej Płotka"
+      - "Vinod Kone"
+      - "Jie Yu"
+    resources:
+      design_docs:
+        -
+          link: "https://docs.google.com/document/d/1pUnElxHy1uWfHY_FOvvRC73QaOGgdXE0OXN-gbxdXA0/edit"
+          title: "Mesos Oversubscription Design"
+      jira_issues:
+        - MESOS-2044
+    topic: Oversubscription
+  -
+    members:
+      - "Kapil Arya"
+      - "Jie Yu"
+      - "Niklas Nielsen"
+    resources:
+      design_docs:
+        -
+          link: "https://docs.google.com/document/d/17mXtAmdAXcNBwp_JfrxmZcQrs7EO6ancSbejrqjLQ0g/edit"
+          title: "IP Address Manager Enable Per-Container IP in Mesos"
+      jira_issues:
+        - MESOS-2044
+    topic: Networking
+  -
+    members:
+      - "Jie Yu"
+      - "Joerg Schad"
+      - "Klaus Ma"
+      - "Adam B"
+    resources:
+      jira_issues:
+        - MESOS-2728
+    topic: "Global resources"
+  -
+    communication:
+      irc: mesos-gpus
+      subject_prefix: GPU
+    members:
+      - "Benjamin Mahler"
+      - "Vikrama Ditya"
+      - "Rob Todd"
+      - "Jonathan Calmels"
+      - "Felix Abecassis"
+      - "Kevin Klues"
+      - "Ian Downes"
+    resources:
+      jira_issues:
+        - MESOS-4424
+    topic: "GPU support"
+  -
+    communication:
+      link: "https://hangouts.google.com/hangouts/_/intel.com/mesos-isolation"
+    members:
+      - "Ian Downes"
+      - "Jie Yu"
+      - "Benjamin Mahler"
+      - "Connor Doyle"
+      - "Niklas Nielsen,"
+      - "Kevin Klues"
+    resources:
+      design_docs:
+        -
+          link: "https://docs.google.com/document/d/1Aby-U3-MPKE51s4aYd41L4Co2S97eM6LPtyzjyR_ecI/edit"
+          title: "Mesos: exclusive resources"
+      jira_issues:
+        - MESOS-4138
+      meeting_notes: "https://docs.google.com/document/d/11mlGPZSABItP47J6VX-zB0fAK6Qr1mCIOI7nhlATMqk/edit"
+    topic: "Performance Isolation"
+  -
+    members:
+      - "Adam B"
+    topic: "External Volumes"
+  -
+    members:
+      - "Benjamin Mahler"
+      - "Joseph Wu"
+      - "Joris Van Remoortere"
+      - "Klaus Ma"
+      - "Guangya Liu"
+      - "Benjamin Hindman"
+      - "Vinod Kone"
+      - "Jie Yu"
+      - "Alex Rukletsov"
+    resources:
+      design_docs:
+        -
+          link: "https://docs.google.com/document/d/1RGrkDNnfyjpOQVxk_kUFJCalNMqnFlzaMRww7j7HSKU/edit?usp=sharing"
+          title: "Optimistically Offering Unallocated Reserved Resources"
+    topic: "Resource Allocation"
+  -
+    communication:
+      irc: mesos-http-api
+      subject_prefix: "HTTP API"
+    members:
+      - "Vinod Kone"
+      - "Benjamin Mahler"
+      - "Anand Mazumdar"
+      - "Isabel Jimenez"
+    resources:
+      design_docs:
+        -
+          link: "https://docs.google.com/document/d/1dFmTrSZXCo5zj8H8SkJ4HT-V0z2YYnEZVV8Fd_-AupM/edit?usp=sharing"
+          title: "Executor Design Doc"
+        -
+          link: "https://docs.google.com/document/d/1-iQjo6778H_fU_1Zi_Yk6szg8qj-wqYgVgnx7u3h6OU/edit?usp=sharing"
+          title: "Versioning HTTP API"
+        -
+          link: "https://docs.google.com/document/d/1pnIY_HckimKNvpqhKRhbc9eSItWNFT-priXh_urR-T0/edit?usp=sharing"
+          title: "Scheduler HTTP API Design doc"
+        -
+          link: "https://github.com/apache/mesos/blob/master/docs/scheduler_http_api.md"
+          title: "Scheduler HTTP API User doc"
+        -
+          link: "https://docs.google.com/document/d/1i2pWJaIjnFYhuR-000NG-AC1rFKKrRh3Wn47Y2G6lRE/edit?usp=sharing"
+          title: "Master discovery"
+      jira_issues:
+        - MESOS-2288
+        - MESOS-3302
+      meeting_notes: ~
+    topic: "HTTP API"
+  -
+    members:
+      - "Ben Hindman"
+      - "Vinod Kone"
+      - "Ben Mahler"
+      - "Niklas Nielsen"
+      - "Dan Mercer"
+      - "Adam B"
+    resources:
+      meeting_notes: "https://docs.google.com/document/d/11LLDKQBZObduNUG7_bayBIU6VMKq2E8CvmaI0tt1U4M/edit"
+    topic: Strategy
+  -
+    communication:
+      irc: mesos-simulation
+    members:
+      - "Marco Massenzio"
+      - "Maged Michael"
+      - "Neil Conway"
+      - "Dan Mercer"
+    resources:
+      design_docs:
+        -
+          link: "https://docs.google.com/document/d/1x4FVpm4DP95w1as78xIPeCR4ke8gZgA3Cu_G624Bung/edit"
+          title: "Deterministic Simulation Tools for Mesos Testing and Debugging"
+      meeting_notes: "https://docs.google.com/document/d/1sSDI_5g2yILSXdrBWtS9AkKf27nQbxPPi9ddAaI8TzU/edit"
+    topic: Simulation
+  -
+    communication:
+      subject_prefix: WEBSITE
+    members:
+      - "Vinod Kone"
+      - "Jeff Schroeder"
+      - "Ryuichi Okumura"
+      - "Zhou Z Xing"
+      - "Jay JN Guo,"
+      - "Zhong TIAN"
+      - Haosdent
+      - "Abhishek Dasgupta"
+      - "Tomek Janiszewski"
+      - "Neil Conway,"
+      - "Freddy Ayuso-Henson"
+      - "Timothy Anderegg"
+      - "Radoslaw Gruchalski"
+    topic: Website
