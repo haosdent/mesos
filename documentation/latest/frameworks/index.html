@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Apache Mesos - Software Projects Built on Mesos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:image" content="/assets/img/mesos_logo_fb_preview.png">
+
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="alternate" type="application/atom+xml" title="Apache Mesos Blog" href="/blog/feed.xml">
+    <link href="../../../assets/css/main.css" media="screen" rel="stylesheet" type="text/css" />
+
+    
+
+    <!-- Google Analytics Magic -->
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-20226872-1']);
+    _gaq.push(['_setDomainName', 'apache.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+  </head>
+  <body>
+    <!-- magical breadcrumbs -->
+    <div class="topnav">
+      <div class="container">
+        <ul class="breadcrumb">
+          <li>
+            <div class="dropdown">
+              <a data-toggle="dropdown" href="#">Apache Software Foundation <span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                <li><a href="http://www.apache.org">Apache Homepage</a></li>
+                <li><a href="http://www.apache.org/licenses/">License</a></li>
+                <li><a href="http://www.apache.org/foundation/sponsorship.html">Sponsorship</a></li>
+                <li><a href="http://www.apache.org/foundation/thanks.html">Thanks</a></li>
+                <li><a href="http://www.apache.org/security/">Security</a></li>
+              </ul>
+            </div>
+          </li>
+
+          <li><a href="http://mesos.apache.org">Apache Mesos</a></li>
+          
+          
+          <li><a href="/documentation
+/">Documentation
+</a></li>
+          
+          
+        </ul><!-- /.breadcrumb -->
+      </div><!-- /.container -->
+    </div><!-- /.topnav -->
+
+    <!-- navbar excitement -->
+<div class="navbar navbar-default navbar-static-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mesos-menu" aria-expanded="false">
+      <span class="sr-only">Toggle navigation</span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/"><img src="/assets/img/mesos_logo.png" alt="Apache Mesos logo"/></a>
+    </div><!-- /.navbar-header -->
+
+    <div class="navbar-collapse collapse" id="mesos-menu">
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="/gettingstarted/">Getting Started</a></li>
+        <li><a href="/blog/">Blog</a></li>
+        <li><a href="/documentation/latest/">Documentation</a></li>
+        <li><a href="/downloads/">Downloads</a></li>
+        <li><a href="/community/">Community</a></li>
+      </ul>
+    </div><!-- /#mesos-menu -->
+  </div><!-- /.container -->
+</div><!-- /.navbar -->
+
+<div class="content">
+  <div class="container">
+    <div class="row-fluid">
+  <div class="col-md-4">
+    <h4>If you're new to Mesos</h4>
+    <p>See the <a href="/gettingstarted/">getting started</a> page for more
+       information about downloading, building, and deploying Mesos.</p>
+
+    <h4>If you'd like to get involved or you're looking for support</h4>
+    <p>See our <a href="/community/">community</a> page for more details.</p>
+  </div>
+  <div class="col-md-8">
+    <h1>Software Projects Built on Mesos</h1>
+
+<h2>Long Running Services</h2>
+
+<ul>
+<li><a href="http://aurora.incubator.apache.org">Aurora</a> is a service scheduler that runs on top of Mesos, enabling you to run long-running services that take advantage of Mesos' scalability, fault-tolerance, and resource isolation.</li>
+<li><a href="https://github.com/mesosphere/marathon">Marathon</a> is a private PaaS built on Mesos. It automatically handles hardware or software failures and ensures that an app is &ldquo;always on&rdquo;.</li>
+<li><a href="https://github.com/HubSpot/Singularity">Singularity</a> is a scheduler (HTTP API and web interface) for running Mesos tasks: long running processes, one-off tasks, and scheduled jobs.</li>
+<li><a href="https://github.com/mesosphere/sssp">SSSP</a> is a simple web application that provides a white-label &ldquo;Megaupload&rdquo; for storing and sharing files in S3.</li>
+</ul>
+
+
+<h2>Big Data Processing</h2>
+
+<ul>
+<li><a href="https://github.com/nqn/mesos-chapel">Cray Chapel</a> is a productive parallel programming language. The Chapel Mesos scheduler lets you run Chapel programs on Mesos.</li>
+<li><a href="https://github.com/douban/dpark">Dpark</a> is a Python clone of Spark, a MapReduce-like framework written in Python, running on Mesos.</li>
+<li><a href="https://github.com/mesosphere/exelixi">Exelixi</a> is a distributed framework for running genetic algorithms at scale.</li>
+<li><a href="https://github.com/mesos/hadoop">Hadoop</a> Running Hadoop on Mesos distributes MapReduce jobs efficiently across an entire cluster.</li>
+<li><a href="http://wiki.apache.org/hama/GettingStartedMesos">Hama</a> is a distributed computing framework based on Bulk Synchronous Parallel computing techniques for massive scientific computations e.g., matrix, graph and network algorithms.</li>
+<li><a href="https://github.com/mesosphere/mesos-hydra">MPI</a> is a message-passing system designed to function on a wide variety of parallel computers.</li>
+<li><a href="http://spark.incubator.apache.org/">Spark</a> is a fast and general-purpose cluster computing system which makes parallel jobs easy to write.</li>
+<li><a href="https://github.com/mesosphere/storm-mesos">Storm</a> is a distributed realtime computation system. Storm makes it easy to reliably process unbounded streams of data, doing for realtime processing what Hadoop did for batch processing.</li>
+</ul>
+
+
+<h2>Batch Scheduling</h2>
+
+<ul>
+<li><a href="https://github.com/mesos/chronos">Chronos</a> is a distributed job scheduler that supports complex job topologies. It can be used as a more fault-tolerant replacement for Cron.</li>
+<li><a href="https://github.com/jenkinsci/mesos-plugin">Jenkins</a> is a continuous integration server. The mesos-jenkins plugin allows it to dynamically launch workers on a Mesos cluster depending on the workload.</li>
+<li><a href="http://www.grandlogic.com/content/html_docs/jobserver.html">JobServer</a> is a distributed job scheduler and processor  which allows developers to build custom batch processing Tasklets using point and click web UI.</li>
+<li><a href="https://bitbucket.org/osallou/go-docker">GoDocker</a> is a batch computing job scheduler like SGE, Torque, etc. It schedules batch computing tasks via webui, API or CLI for system or LDAP users, mounting their home directory or other shared resources in a Docker container. It targets scientists, not developers, and provides plugin mechanisms to extend or modify the default behavior.</li>
+</ul>
+
+
+<h2>Data Storage</h2>
+
+<ul>
+<li><a href="http://alluxio.org">Alluxio</a> is a memory-centric distributed storage system enabling reliable data sharing at memory-speed across cluster frameworks.</li>
+<li><a href="https://github.com/mesosphere/cassandra-mesos">Cassandra</a> is a performant and highly available distributed database. Linear scalability and proven fault-tolerance on commodity hardware or cloud infrastructure make it the perfect platform for mission-critical data.</li>
+<li><a href="https://github.com/mesosphere/elasticsearch-mesos">ElasticSearch</a> is a distributed search engine. Mesos makes it easy to run and scale.</li>
+<li><a href="https://code.google.com/p/hypertable/wiki/Mesos">Hypertable</a> is a high performance, scalable, distributed storage and processing system for structured and unstructured data.</li>
+</ul>
+
+
+  </div>
+</div>
+
+  </div><!-- /.container -->
+</div><!-- /.content -->
+
+<hr>
+
+
+
+    <!-- footer -->
+    <div class="footer">
+      <div class="container">
+        <div class="col-md-4 social-blk">
+          <span class="social">
+            <a href="https://twitter.com/ApacheMesos"
+              class="twitter-follow-button"
+              data-show-count="false" data-size="large">Follow @ApacheMesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+            <a href="https://twitter.com/intent/tweet?button_hashtag=mesos"
+              class="twitter-hashtag-button"
+              data-size="large"
+              data-related="ApacheMesos">Tweet #mesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+          </span>
+        </div>
+
+        <div class="col-md-8 trademark">
+          <p>&copy; 2012-2016 <a href="http://apache.org">The Apache Software Foundation</a>.
+            Apache Mesos, the Apache feather logo, and the Apache Mesos project logo are trademarks of The Apache Software Foundation.
+          <p>
+        </div>
+      </div><!-- /.container -->
+    </div><!-- /.footer -->
+
+    <!-- JS -->
+    <script src="//code.jquery.com/jquery-1.11.0.min.js" type="text/javascript"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js" type="text/javascript"></script>
+  </body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Apache Mesos - Documentation Home</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:image" content="/assets/img/mesos_logo_fb_preview.png">
+
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="alternate" type="application/atom+xml" title="Apache Mesos Blog" href="/blog/feed.xml">
+    <link href="../../assets/css/main.css" media="screen" rel="stylesheet" type="text/css" />
+
+    
+
+    <!-- Google Analytics Magic -->
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-20226872-1']);
+    _gaq.push(['_setDomainName', 'apache.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+  </head>
+  <body>
+    <!-- magical breadcrumbs -->
+    <div class="topnav">
+      <div class="container">
+        <ul class="breadcrumb">
+          <li>
+            <div class="dropdown">
+              <a data-toggle="dropdown" href="#">Apache Software Foundation <span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                <li><a href="http://www.apache.org">Apache Homepage</a></li>
+                <li><a href="http://www.apache.org/licenses/">License</a></li>
+                <li><a href="http://www.apache.org/foundation/sponsorship.html">Sponsorship</a></li>
+                <li><a href="http://www.apache.org/foundation/thanks.html">Thanks</a></li>
+                <li><a href="http://www.apache.org/security/">Security</a></li>
+              </ul>
+            </div>
+          </li>
+
+          <li><a href="http://mesos.apache.org">Apache Mesos</a></li>
+          
+          
+          <li><a href="/documentation
+/">Documentation
+</a></li>
+          
+          
+        </ul><!-- /.breadcrumb -->
+      </div><!-- /.container -->
+    </div><!-- /.topnav -->
+
+    <!-- navbar excitement -->
+<div class="navbar navbar-default navbar-static-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mesos-menu" aria-expanded="false">
+      <span class="sr-only">Toggle navigation</span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/"><img src="/assets/img/mesos_logo.png" alt="Apache Mesos logo"/></a>
+    </div><!-- /.navbar-header -->
+
+    <div class="navbar-collapse collapse" id="mesos-menu">
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="/gettingstarted/">Getting Started</a></li>
+        <li><a href="/blog/">Blog</a></li>
+        <li><a href="/documentation/latest/">Documentation</a></li>
+        <li><a href="/downloads/">Downloads</a></li>
+        <li><a href="/community/">Community</a></li>
+      </ul>
+    </div><!-- /#mesos-menu -->
+  </div><!-- /.container -->
+</div><!-- /.navbar -->
+
+<div class="content">
+  <div class="container">
+    <div class="row-fluid">
+  <div class="col-md-4">
+    <h4>If you're new to Mesos</h4>
+    <p>See the <a href="/gettingstarted/">getting started</a> page for more
+       information about downloading, building, and deploying Mesos.</p>
+
+    <h4>If you'd like to get involved or you're looking for support</h4>
+    <p>See our <a href="/community/">community</a> page for more details.</p>
+  </div>
+  <div class="col-md-8">
+    <h1>Documentation</h1>
+
+<h2>Mesos Fundamentals</h2>
+
+<ul>
+<li><a href="/documentation/latest/./architecture/">Mesos Architecture</a> providing an overview of Mesos concepts.</li>
+<li><a href="/documentation/latest/./presentations/">Video and Slides of Mesos Presentations</a></li>
+</ul>
+
+
+<h2>Running Mesos</h2>
+
+<ul>
+<li><a href="/documentation/latest/./getting-started/">Getting Started</a> for basic instructions on compiling and installing Mesos.</li>
+<li><a href="/documentation/latest/./upgrades/">Upgrades</a> for upgrading a Mesos cluster.</li>
+<li><a href="/documentation/latest/./configuration/">Configuration</a> for command-line arguments.</li>
+<li><a href="endpoints/">HTTP Endpoints</a> for available HTTP endpoints.</li>
+<li><a href="/documentation/latest/./containerizer/">Containerizer</a> for containerizer overview and use cases.
+
+<ul>
+<li><a href="/documentation/latest/./containerizer-internals/">Containerizer Internals</a> for implementation details of containerizers.</li>
+<li><a href="/documentation/latest/./mesos-containerizer/">Mesos Containerizer</a> default containerizer, supports both Linux and POSIX systems.
+
+<ul>
+<li><a href="/documentation/latest/./docker-volume/">Docker Volume Support</a></li>
+<li><a href="/documentation/latest/./cni/">CNI support</a></li>
+</ul>
+</li>
+<li><a href="/documentation/latest/./docker-containerizer/">Docker Containerizer</a> for launching a Docker image as a Task, or as an Executor.</li>
+<li><a href="/documentation/latest/./external-containerizer/">External Containerizer</a> for custom containerization implementations (deprecated).</li>
+</ul>
+</li>
+<li><a href="/documentation/latest/./roles/">Roles</a></li>
+<li><a href="/documentation/latest/./weights/">Weights</a></li>
+<li><a href="/documentation/latest/./authentication/">Authentication</a></li>
+<li><a href="/documentation/latest/./authorization/">Authorization</a></li>
+<li><a href="/documentation/latest/./framework-rate-limiting/">Framework Rate Limiting</a></li>
+<li><a href="/documentation/latest/./logging/">Logging</a></li>
+<li><a href="/documentation/latest/./high-availability/">High Availability</a> for running multiple masters simultaneously.</li>
+<li><a href="/documentation/latest/./operational-guide/">Operational Guide</a></li>
+<li><a href="/documentation/latest/./monitoring/">Monitoring</a></li>
+<li><a href="/documentation/latest/./network-monitoring/">Network Monitoring and Isolation</a></li>
+<li><a href="/documentation/latest/./agent-recovery/">Agent Recovery</a> for doing seamless agent upgrades and allowing executors to survive <code>mesos-agent</code> crashes.</li>
+<li><a href="/documentation/latest/./maintenance/">Maintenance</a> for performing maintenance on a Mesos cluster.</li>
+<li><a href="/documentation/latest/./tools/">Tools</a> for setting up and running a Mesos cluster.</li>
+<li><a href="/documentation/latest/./ssl/">SSL</a> for enabling and enforcing SSL communication.</li>
+<li><a href="/documentation/latest/./container-image/">Container Image</a> for supporting container images in Mesos containerizer.</li>
+</ul>
+
+
+<h2>Advanced Features</h2>
+
+<ul>
+<li><a href="/documentation/latest/./attributes-resources/">Attributes and Resources</a> for how to describe the agents that comprise a cluster.</li>
+<li><a href="/documentation/latest/./fetcher/">Fetcher Cache</a> for how to configure the Mesos fetcher cache.</li>
+<li><a href="/documentation/latest/./networking-for-mesos-managed-containers/">Networking for Mesos-managed Containers</a></li>
+<li><a href="/documentation/latest/./oversubscription/">Oversubscription</a> for how to configure Mesos to take advantage of unused resources to launch &ldquo;best-effort&rdquo; tasks.</li>
+<li><a href="/documentation/latest/./persistent-volume/">Persistent Volume</a> for how to allow tasks to access persistent storage resources.</li>
+<li><a href="/documentation/latest/./multiple-disk/">Multiple Disks</a> for how to to allow tasks to use multiple isolated disk resources.</li>
+<li><a href="/documentation/latest/./quota/">Quota</a> for how to configure Mesos to provide guaranteed resource allocations for use by a role.</li>
+<li><a href="/documentation/latest/./reservation/">Reservation</a> for how operators and frameworks can reserve resources on individual agents for use by a role.</li>
+<li><a href="/documentation/latest/./replicated-log-internals/">Replicated Log</a> for information on the Mesos replicated log.</li>
+</ul>
+
+
+<h2>Running Mesos Frameworks</h2>
+
+<ul>
+<li><a href="/documentation/latest/./frameworks/">Mesos frameworks</a> for a list of apps built on top of Mesos and instructions on how to run them.</li>
+<li><a href="/documentation/latest/./sandbox/">Sandbox</a> describes a useful debugging arena for most users.</li>
+</ul>
+
+
+<h2>Developing Mesos Frameworks</h2>
+
+<ul>
+<li><a href="/documentation/latest/./app-framework-development-guide/">Framework Development Guide</a> describes how to build applications on top of Mesos.</li>
+<li><a href="/documentation/latest/./high-availability-framework-guide/">Designing Highly Available Mesos Frameworks</a></li>
+<li><a href="/documentation/latest/./reconciliation/">Reconciliation</a> for ensuring a framework&rsquo;s state remains eventually consistent in the face of failures.</li>
+<li><a href="/documentation/latest/./scheduler-http-api/">Scheduler HTTP API</a> describes the new HTTP API for communication between schedulers and the Mesos master.</li>
+<li><a href="/documentation/latest/./executor-http-api/">Executor HTTP API</a> describes the new HTTP API for communication between executors and the Mesos agent.</li>
+<li><a href="/api/latest/java/">Javadoc</a> documents the Mesos Java API.</li>
+<li><a href="/api/latest/c++/namespacemesos.html">Doxygen</a> documents the Mesos C++ API.</li>
+<li><a href="/documentation/latest/./tools/">Developer Tools</a> for hacking on Mesos or writing frameworks.</li>
+<li><a href="/documentation/latest/./versioning/">Versioning</a> describes how Mesos does API and release versioning.</li>
+</ul>
+
+
+<h2>Extending Mesos</h2>
+
+<ul>
+<li><a href="/documentation/latest/./modules/">Mesos Modules</a> for specifying Mesos modules for master, agent and tests.</li>
+<li><a href="/documentation/latest/./allocation-module/">Allocation Modules</a> for how to write custom resource allocators.</li>
+</ul>
+
+
+<h2>Contributing to Mesos</h2>
+
+<ul>
+<li><a href="/documentation/latest/./reporting-a-bug/">Reporting an Issue, Improvement, or Feature</a> for getting started with JIRA.</li>
+<li><a href="/documentation/latest/./submitting-a-patch/">Submitting a Patch</a> for getting started with ReviewBoard and our tooling around it.</li>
+<li><a href="/documentation/latest/./testing-patterns/">Testing Patterns</a> for tips and tricks used in Mesos tests.</li>
+<li><a href="/documentation/latest/./effective-code-reviewing/">Effective Code Reviewing</a> guidelines, tips, and learnings for how to do effective code reviews.</li>
+<li><a href="/documentation/latest/./engineering-principles-and-practices/">Engineering Principles and Practices</a> to serve as a shared set of project-level values for the community.</li>
+<li><a href="/documentation/latest/./committing/">Committing</a> guidelines for committing changes.</li>
+<li><a href="/documentation/latest/./committers/">Committers and Maintainers</a> a listing of project committers and component maintainers; useful when seeking feedback.</li>
+<li><a href="/documentation/latest/./working-groups/">Working groups</a> a listing of groups working on different components.</li>
+<li><a href="/api/latest/c++/">Doxygen</a> documents the internal Mesos APIs.</li>
+<li><a href="/documentation/latest/./documentation-guide/">Documentation Guide</a>
+
+<ul>
+<li><a href="/documentation/latest/./c++-style-guide/">C++ Style Guide</a></li>
+<li><a href="/documentation/latest/./doxygen-style-guide/">Doxygen Style Guide</a></li>
+<li><a href="/documentation/latest/./markdown-style-guide/">Markdown Style Guide</a></li>
+</ul>
+</li>
+<li><a href="/documentation/latest/./roadmap/">Development Roadmap</a></li>
+<li><a href="/documentation/latest/./release-guide/">Release Guide</a></li>
+</ul>
+
+
+<h2>More Info about Mesos</h2>
+
+<ul>
+<li><a href="/documentation/latest/./powered-by-mesos/">Powered by Mesos</a> lists organizations and software that are powered by Apache Mesos.</li>
+<li><a href="https://www.usenix.org/conference/nsdi11/mesos-platform-fine-grained-resource-sharing-data-center">Academic Papers and Project History</a></li>
+<li><a href="/documentation/latest/./design-docs/">Design docs</a> list of design documents for various Mesos features</li>
+</ul>
+
+
+  </div>
+</div>
+
+  </div><!-- /.container -->
+</div><!-- /.content -->
+
+<hr>
+
+
+
+    <!-- footer -->
+    <div class="footer">
+      <div class="container">
+        <div class="col-md-4 social-blk">
+          <span class="social">
+            <a href="https://twitter.com/ApacheMesos"
+              class="twitter-follow-button"
+              data-show-count="false" data-size="large">Follow @ApacheMesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+            <a href="https://twitter.com/intent/tweet?button_hashtag=mesos"
+              class="twitter-hashtag-button"
+              data-size="large"
+              data-related="ApacheMesos">Tweet #mesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+          </span>
+        </div>
+
+        <div class="col-md-8 trademark">
+          <p>&copy; 2012-2016 <a href="http://apache.org">The Apache Software Foundation</a>.
+            Apache Mesos, the Apache feather logo, and the Apache Mesos project logo are trademarks of The Apache Software Foundation.
+          <p>
+        </div>
+      </div><!-- /.container -->
+    </div><!-- /.footer -->
+
+    <!-- JS -->
+    <script src="//code.jquery.com/jquery-1.11.0.min.js" type="text/javascript"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js" type="text/javascript"></script>
+  </body>
+</html>

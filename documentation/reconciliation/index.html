@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Apache Mesos - Reconciliation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:image" content="/assets/img/mesos_logo_fb_preview.png">
+
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="alternate" type="application/atom+xml" title="Apache Mesos Blog" href="/blog/feed.xml">
+    <link href="../../assets/css/main.css" media="screen" rel="stylesheet" type="text/css" />
+
+    
+
+    <!-- Google Analytics Magic -->
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-20226872-1']);
+    _gaq.push(['_setDomainName', 'apache.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+  </head>
+  <body>
+    <!-- magical breadcrumbs -->
+    <div class="topnav">
+      <div class="container">
+        <ul class="breadcrumb">
+          <li>
+            <div class="dropdown">
+              <a data-toggle="dropdown" href="#">Apache Software Foundation <span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                <li><a href="http://www.apache.org">Apache Homepage</a></li>
+                <li><a href="http://www.apache.org/licenses/">License</a></li>
+                <li><a href="http://www.apache.org/foundation/sponsorship.html">Sponsorship</a></li>
+                <li><a href="http://www.apache.org/foundation/thanks.html">Thanks</a></li>
+                <li><a href="http://www.apache.org/security/">Security</a></li>
+              </ul>
+            </div>
+          </li>
+
+          <li><a href="http://mesos.apache.org">Apache Mesos</a></li>
+          
+          
+          <li><a href="/documentation
+/">Documentation
+</a></li>
+          
+          
+        </ul><!-- /.breadcrumb -->
+      </div><!-- /.container -->
+    </div><!-- /.topnav -->
+
+    <!-- navbar excitement -->
+<div class="navbar navbar-default navbar-static-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mesos-menu" aria-expanded="false">
+      <span class="sr-only">Toggle navigation</span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/"><img src="/assets/img/mesos_logo.png" alt="Apache Mesos logo"/></a>
+    </div><!-- /.navbar-header -->
+
+    <div class="navbar-collapse collapse" id="mesos-menu">
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="/gettingstarted/">Getting Started</a></li>
+        <li><a href="/blog/">Blog</a></li>
+        <li><a href="/documentation/latest/">Documentation</a></li>
+        <li><a href="/downloads/">Downloads</a></li>
+        <li><a href="/community/">Community</a></li>
+      </ul>
+    </div><!-- /#mesos-menu -->
+  </div><!-- /.container -->
+</div><!-- /.navbar -->
+
+<div class="content">
+  <div class="container">
+    <div class="row-fluid">
+  <div class="col-md-4">
+    <h4>If you're new to Mesos</h4>
+    <p>See the <a href="/gettingstarted/">getting started</a> page for more
+       information about downloading, building, and deploying Mesos.</p>
+
+    <h4>If you'd like to get involved or you're looking for support</h4>
+    <p>See our <a href="/community/">community</a> page for more details.</p>
+  </div>
+  <div class="col-md-8">
+    <h1>Task Reconciliation</h1>
+
+<p>Messages between framework schedulers and the Mesos master may be dropped due to
+failures and network partitions. This may cause a framework scheduler and the
+master to have different views of the current state of the cluster. For example,
+consider a launch task request sent by a framework.  There are many ways that
+failures can prevent the task launch operation from succeeding, such as:</p>
+
+<ul>
+<li>Framework fails after persisting its intent to launch the task, but
+before the launch task message was sent.</li>
+<li>Master fails before receiving the message.</li>
+<li>Master fails after receiving the message but before sending it to the
+agent.</li>
+</ul>
+
+
+<p>In these cases, the framework believes the task to be staging but the task is
+unknown to the master. To cope with such situations, Mesos frameworks should use
+<em>reconciliation</em> to ask the master for the current state of their tasks.</p>
+
+<h2>How To Reconcile</h2>
+
+<p>Frameworks can use the scheduler driver&rsquo;s <code>reconcileTasks</code> method to send a
+reconciliation request to the master:</p>
+
+<pre><code class="{.cpp}">// Allows the framework to query the status for non-terminal tasks.
+// This causes the master to send back the latest task status for
+// each task in 'statuses', if possible. Tasks that are no longer
+// known will result in a TASK_LOST update. If statuses is empty,
+// then the master will send the latest status for each task
+// currently known.
+virtual Status reconcileTasks(const std::vector&lt;TaskStatus&gt;&amp; statuses);
+</code></pre>
+
+<p>Currently, the master will only examine two fields in <code>TaskStatus</code>:</p>
+
+<ul>
+<li><code>TaskID</code>: This is required.</li>
+<li><code>SlaveID</code>: Optional but recommended. This leads to faster reconciliation in
+the presence of agents that are transitioning between states.</li>
+</ul>
+
+
+<p>Mesos provides two forms of reconciliation:</p>
+
+<ul>
+<li>&ldquo;Explicit&rdquo; reconciliation: the scheduler sends a list of non-terminal task IDs
+and the master responds with the latest state for each task, if possible.</li>
+<li>&ldquo;Implicit&rdquo; reconciliation: the scheduler sends an empty list of tasks
+and the master responds with the latest state for all currently known
+non-terminal tasks.</li>
+</ul>
+
+
+<p>Reconciliation results are returned as task status updates (e.g., via the
+scheduler driver&rsquo;s <code>statusUpdate</code> callback). Status updates that result from
+reconciliation requests will their <code>reason</code> field set to
+<code>REASON_RECONCILIATION</code>. Note that most of the other fields in the returned
+<code>TaskStatus</code> message will not be set: for example, reconciliation cannot be used
+to retrieve the <code>labels</code> or <code>data</code> fields associated with a running task.</p>
+
+<h2>When To Reconcile</h2>
+
+<p>Framework schedulers should periodically reconcile <em>all</em> of their tasks (for
+example, every fifteen minutes). This serves two purposes:</p>
+
+<ol>
+<li> It is necessary to account for dropped messages between the framework and
+ the master; for example, see the task launch scenario described above.</li>
+<li> It is a defensive programming technique to catch bugs in both the framework
+ and the Mesos master.</li>
+</ol>
+
+
+<p>As an optimization, framework schedulers should reconcile <em>more frequently</em> when
+they have reason to suspect that their local state differs from that of the
+master. For example, after a framework launches a task, it should expect to
+receive a <code>TASK_RUNNING</code> status update for the new task fairly promptly. If no
+such update is received, the framework should perform explicit reconciliation
+more quickly than usual.</p>
+
+<p>Similarly, frameworks should initiate reconciliation after both framework
+failovers and master failovers. Note that the scheduler driver notifies
+frameworks when master failover has occurred (via the <code>reregistered()</code>
+callback). For more information, see the
+<a href="/documentation/latest/./high-availability-framework-guide/">guide to designing highly available frameworks</a>.</p>
+
+<h2>Algorithm</h2>
+
+<p>This technique for explicit reconciliation reconciles all non-terminal tasks
+until an update is received for each task, using exponential backoff to retry
+tasks that remain unreconciled. Retries are needed because the master temporarily
+may not be able to reply for a particular task. For example, during master
+failover the master must re-register all of the agents to rebuild its
+set of known tasks (this process can take minutes for large clusters, and
+is bounded by the <code>--agent_reregister_timeout</code> flag on the master).</p>
+
+<p>Steps:</p>
+
+<ol>
+<li>let <code>start = now()</code></li>
+<li>let <code>remaining = { T in tasks | T is non-terminal }</code></li>
+<li>Perform reconciliation: <code>reconcile(remaining)</code></li>
+<li>Wait for status updates to arrive (use truncated exponential backoff). For each update, note the time of arrival.</li>
+<li>let <code>remaining = { T in remaining | T.last_update_arrival() &lt; start }</code></li>
+<li>If <code>remaining</code> is non-empty, go to 3.</li>
+</ol>
+
+
+<p>This reconciliation algorithm <strong>must</strong> be run after each (re-)registration.</p>
+
+<p>Implicit reconciliation (passing an empty list) should also be used
+periodically, as a defense against data loss in the framework. Unless a
+strict registry is in use on the master, its possible for tasks to resurrect
+from a LOST state (without a strict registry the master does not enforce
+agent removal across failovers). When an unknown task is encountered, the
+scheduler should kill or recover the task.</p>
+
+<p>Notes:</p>
+
+<ul>
+<li>When waiting for updates to arrive, <strong>use a truncated exponential backoff</strong>.
+This will avoid a snowball effect in the case of the driver or master being
+backed up.</li>
+<li>It is beneficial to ensure that only 1 reconciliation is in progress at a
+time, to avoid a snowball effect in the face of many re-registrations.
+If another reconciliation should be started while one is in-progress,
+then the previous reconciliation algorithm should stop running.</li>
+</ul>
+
+
+<h1>Offer Reconciliation</h1>
+
+<p>Offers are reconciled automatically after a failure:</p>
+
+<ul>
+<li>Offers do not persist beyond the lifetime of a Master.</li>
+<li>If a disconnection occurs, offers are no longer valid.</li>
+<li>Offers are rescinded and regenerated each time the framework (re-)registers.</li>
+</ul>
+
+
+  </div>
+</div>
+
+  </div><!-- /.container -->
+</div><!-- /.content -->
+
+<hr>
+
+
+
+    <!-- footer -->
+    <div class="footer">
+      <div class="container">
+        <div class="col-md-4 social-blk">
+          <span class="social">
+            <a href="https://twitter.com/ApacheMesos"
+              class="twitter-follow-button"
+              data-show-count="false" data-size="large">Follow @ApacheMesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+            <a href="https://twitter.com/intent/tweet?button_hashtag=mesos"
+              class="twitter-hashtag-button"
+              data-size="large"
+              data-related="ApacheMesos">Tweet #mesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+          </span>
+        </div>
+
+        <div class="col-md-8 trademark">
+          <p>&copy; 2012-2016 <a href="http://apache.org">The Apache Software Foundation</a>.
+            Apache Mesos, the Apache feather logo, and the Apache Mesos project logo are trademarks of The Apache Software Foundation.
+          <p>
+        </div>
+      </div><!-- /.container -->
+    </div><!-- /.footer -->
+
+    <!-- JS -->
+    <script src="//code.jquery.com/jquery-1.11.0.min.js" type="text/javascript"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js" type="text/javascript"></script>
+  </body>
+</html>

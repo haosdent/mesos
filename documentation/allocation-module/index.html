@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Apache Mesos - Allocation Modules</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:image" content="/assets/img/mesos_logo_fb_preview.png">
+
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="alternate" type="application/atom+xml" title="Apache Mesos Blog" href="/blog/feed.xml">
+    <link href="../../assets/css/main.css" media="screen" rel="stylesheet" type="text/css" />
+
+    
+
+    <!-- Google Analytics Magic -->
+    <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-20226872-1']);
+    _gaq.push(['_setDomainName', 'apache.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+    </script>
+  </head>
+  <body>
+    <!-- magical breadcrumbs -->
+    <div class="topnav">
+      <div class="container">
+        <ul class="breadcrumb">
+          <li>
+            <div class="dropdown">
+              <a data-toggle="dropdown" href="#">Apache Software Foundation <span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                <li><a href="http://www.apache.org">Apache Homepage</a></li>
+                <li><a href="http://www.apache.org/licenses/">License</a></li>
+                <li><a href="http://www.apache.org/foundation/sponsorship.html">Sponsorship</a></li>
+                <li><a href="http://www.apache.org/foundation/thanks.html">Thanks</a></li>
+                <li><a href="http://www.apache.org/security/">Security</a></li>
+              </ul>
+            </div>
+          </li>
+
+          <li><a href="http://mesos.apache.org">Apache Mesos</a></li>
+          
+          
+          <li><a href="/documentation
+/">Documentation
+</a></li>
+          
+          
+        </ul><!-- /.breadcrumb -->
+      </div><!-- /.container -->
+    </div><!-- /.topnav -->
+
+    <!-- navbar excitement -->
+<div class="navbar navbar-default navbar-static-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#mesos-menu" aria-expanded="false">
+      <span class="sr-only">Toggle navigation</span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/"><img src="/assets/img/mesos_logo.png" alt="Apache Mesos logo"/></a>
+    </div><!-- /.navbar-header -->
+
+    <div class="navbar-collapse collapse" id="mesos-menu">
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="/gettingstarted/">Getting Started</a></li>
+        <li><a href="/blog/">Blog</a></li>
+        <li><a href="/documentation/latest/">Documentation</a></li>
+        <li><a href="/downloads/">Downloads</a></li>
+        <li><a href="/community/">Community</a></li>
+      </ul>
+    </div><!-- /#mesos-menu -->
+  </div><!-- /.container -->
+</div><!-- /.navbar -->
+
+<div class="content">
+  <div class="container">
+    <div class="row-fluid">
+  <div class="col-md-4">
+    <h4>If you're new to Mesos</h4>
+    <p>See the <a href="/gettingstarted/">getting started</a> page for more
+       information about downloading, building, and deploying Mesos.</p>
+
+    <h4>If you'd like to get involved or you're looking for support</h4>
+    <p>See our <a href="/community/">community</a> page for more details.</p>
+  </div>
+  <div class="col-md-8">
+    <h1>Mesos Allocation Modules</h1>
+
+<p>The logic that the Mesos master uses to determine which frameworks to make resource offers to is encapsulated in the master&rsquo;s <em>allocator module</em>. The allocator is a pluggable component that organizations can use to implement their own sharing policy, e.g. fair-sharing, priority, etc., or tune the default hierarchical Dominant Resource Fairness algorithm (see <a href="https://www.cs.berkeley.edu/~alig/papers/drf.pdf">the DRF paper</a>).</p>
+
+<p>To use a custom allocator in Mesos, one must:</p>
+
+<ul>
+<li><p><a href="#writing-a-custom-allocator">Implement</a> the <code>Allocator</code> interface as defined in <code>mesos/master/allocator.hpp</code>,</p></li>
+<li><p><a href="#wiring-up-a-custom-allocator">Wrap</a> the allocator implementation in a module and load it in the Mesos master.</p></li>
+</ul>
+
+
+<p><a name="writing-a-custom-allocator"></a></p>
+
+<h2>Writing a custom allocator</h2>
+
+<p>Allocator modules are implemented in C++, the same language in which Mesos is written. They must subclass the <code>Allocator</code> interface defined in <code>mesos/master/allocator.hpp</code>. However, your implementation can be a C++ proxy, which delegates calls to an actual allocator written in a language of your choice.</p>
+
+<p>The default allocator is <code>HierarchicalDRFAllocatorProcess</code>, which lives in <code>$MESOS_HOME/src/master/allocator/mesos/hierarchical.hpp</code>. Like most Mesos components, it is actor-based, which means all interface methods are non-blocking and return immediately after putting the corresponding action into the actor&rsquo;s queue. If you would like to design your custom allocator in a similar manner, subclass <code>MesosAllocatorProcess</code> from <code>$MESOS_HOME/src/master/allocator/mesos/allocator.hpp</code> and wrap your actor-based allocator in <code>MesosAllocator</code>. This dispatches calls to the underlying actor and controls its lifetime. You can refer to <code>HierarchicalDRFAllocatorProcess</code> as a starting place if you choose to write your own actor-based allocation module.</p>
+
+<p>Additionally, the built-in hierarchical allocator can be extended without the need to reimplement the entirety of the allocation logic. This is possible through the use of the <code>Sorter</code> abstraction. Sorters define the order in which hierarchy layers (e.g. roles or frameworks) should be offered resources by taking &ldquo;client&rdquo; objects and some information about those clients and returning an ordered list of clients.</p>
+
+<p>Sorters are implemented in C++ and inherit the <code>Sorter</code> class defined in <code>$MESOS_HOME/src/master/allocator/sorter/sorter.hpp</code>. The default sorter is <code>DRFSorter</code>, which implements fair sharing and can be found in <code>$MESOS_HOME/src/master/allocator/sorter/drf/sorter.hpp</code>. This sorter is capable of expressing priorities by specifying weights in <code>Sorter::add()</code>. Each client&rsquo;s share is divided by its weight. For example, a role that has a weight of 2 will be offered twice as many resources as a role with weight 1.</p>
+
+<p><a name="wiring-up-a-custom-allocator"></a></p>
+
+<h2>Wiring up a custom allocator</h2>
+
+<p>Once a custom allocator has been written, the next step is to override the built-in implementation with your own. This process consists of several steps:</p>
+
+<ul>
+<li><p>Wrap your allocator in a Mesos allocator module,</p></li>
+<li><p>Load this module in Mesos master.</p></li>
+</ul>
+
+
+<p>An allocator module is a factory function and a module description, as defined in <code>mesos/module/allocator.hpp</code>. Assuming the allocation logic is implemented by the <code>ExternalAllocator</code> class declared in <code>external_allocator.hpp</code>, the following snippet describes the implementation of an allocator module named <code>ExternalAllocatorModule</code>:</p>
+
+<pre><code class="{.cpp}">#include &lt;mesos/master/allocator.hpp&gt;
+#include &lt;mesos/module/allocator.hpp&gt;
+#include &lt;stout/try.hpp&gt;
+
+#include "external_allocator.hpp"
+
+using namespace mesos;
+using mesos::master::allocator::Allocator;
+using mesos::internal::master::allocator::HierarchicalDRFAllocator;
+
+static Allocator* createExternalAllocator(const Parameters&amp; parameters)
+{
+  Try&lt;Allocator*&gt; allocator = ExternalAllocator::create();
+  if (allocator.isError()) {
+    return nullptr;
+  }
+
+  return allocator.get();
+}
+
+// Declares an ExternalAllocator module named 'ExternalAllocatorModule'.
+mesos::modules::Module&lt;Allocator&gt; ExternalAllocatorModule(
+    MESOS_MODULE_API_VERSION,
+    MESOS_VERSION,
+    "Mesos Contributor",
+    "engineer@example.com",
+    "External Allocator module.",
+    nullptr,
+    createExternalAllocator);
+</code></pre>
+
+<p>Refer to the <a href="/documentation/latest/./modules/">Mesos Modules documentation</a> for instructions on how to compile and load a module in Mesos master.</p>
+
+  </div>
+</div>
+
+  </div><!-- /.container -->
+</div><!-- /.content -->
+
+<hr>
+
+
+
+    <!-- footer -->
+    <div class="footer">
+      <div class="container">
+        <div class="col-md-4 social-blk">
+          <span class="social">
+            <a href="https://twitter.com/ApacheMesos"
+              class="twitter-follow-button"
+              data-show-count="false" data-size="large">Follow @ApacheMesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+            <a href="https://twitter.com/intent/tweet?button_hashtag=mesos"
+              class="twitter-hashtag-button"
+              data-size="large"
+              data-related="ApacheMesos">Tweet #mesos</a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+          </span>
+        </div>
+
+        <div class="col-md-8 trademark">
+          <p>&copy; 2012-2016 <a href="http://apache.org">The Apache Software Foundation</a>.
+            Apache Mesos, the Apache feather logo, and the Apache Mesos project logo are trademarks of The Apache Software Foundation.
+          <p>
+        </div>
+      </div><!-- /.container -->
+    </div><!-- /.footer -->
+
+    <!-- JS -->
+    <script src="//code.jquery.com/jquery-1.11.0.min.js" type="text/javascript"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js" type="text/javascript"></script>
+  </body>
+</html>
