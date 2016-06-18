@@ -1218,7 +1218,7 @@ TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_ContainerStatus)
 class PerfEventIsolatorTest : public MesosTest {};
 
 
-TEST_F(PerfEventIsolatorTest, ROOT_CGROUPS_Sample)
+TEST_F(PerfEventIsolatorTest, ROOT_CGROUPS_PERF_Sample)
 {
   slave::Flags flags;
 
