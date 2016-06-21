@@ -317,7 +317,7 @@ Future<Response> Slave::Http::api(
       return NotImplemented();
 
     case agent::Call::GET_CONTAINERS:
-      return NotImplemented();
+      return getContainers(call, principal, acceptType);
   }
 
   UNREACHABLE();
@@ -653,6 +653,99 @@ Future<Response> Slave::Http::setLoggingLevel(
   return dispatch(process::logging(), &Logging::set_level, level, duration)
       .then([]() -> Response {
         return OK();
+      });
+}
+
+
+Future<Response> Slave::Http::getContainers(
+    const agent::Call& call,
+    const Option<string>& principal,
+    ContentType contentType) const
+{
+  CHECK_EQ(agent::Call::GET_CONTAINERS, call.type());
+
+  Owned<agent::Response> response(new agent::Response());
+  response->set_type(agent::Response::GET_CONTAINERS);
+
+  agent::Response_GetContainers* getContainers =
+      response->mutable_get_containers();
+
+  list<Future<ContainerStatus>> statusFutures;
+  list<Future<ResourceStatistics>> statsFutures;
+
+  foreachvalue (const Framework* framework, slave->frameworks) {
+    foreachvalue (const Executor* executor, framework->executors) {
+      const ExecutorInfo& info = executor->info;
+      const ContainerID& containerId = executor->containerId;
+
+      agent::Response_GetContainers_Container* container =
+          getContainers->add_containers();
+      container->mutable_framework_id()->CopyFrom(info.framework_id());
+      container->mutable_executor_id()->CopyFrom(info.executor_id());
+      container->set_executor_name(info.name());
+      container->mutable_container_id()->CopyFrom(containerId);
+
+      statusFutures.push_back(slave->containerizer->status(containerId));
+      statsFutures.push_back(slave->containerizer->usage(containerId));
+    }
+  }
+
+  return await(await(statusFutures), await(statsFutures)).then(
+      [response, contentType](const tuple<
+          Future<list<Future<ContainerStatus>>>,
+          Future<list<Future<ResourceStatistics>>>>& t)
+          -> Future<Response> {
+        agent::Response_GetContainers* getContainers =
+            response->mutable_get_containers();
+        const list<Future<ContainerStatus>>& status = std::get<0>(t).get();
+        const list<Future<ResourceStatistics>>& stats = std::get<1>(t).get();
+        CHECK_EQ(status.size(), stats.size());
+        CHECK_EQ(status.size(), getContainers->containers_size());
+
+        auto statusIter = status.begin();
+        auto statsIter = stats.begin();
+        auto containerIter = getContainers->mutable_containers()->begin();
+
+        while (statusIter != status.end() &&
+               statsIter != stats.end() &&
+               containerIter != getContainers->mutable_containers()->end()) {
+          if (statusIter->isReady()) {
+            containerIter->mutable_status()->CopyFrom(statusIter->get());
+          } else {
+            LOG(WARNING) << "Failed to get container status for executor '"
+                         << containerIter->executor_id() << "'"
+                         << " of framework "
+                         << containerIter->framework_id() << ": "
+                         << (statusIter->isFailed()
+                              ? statusIter->failure()
+                              : "discarded");
+          }
+
+          if (statsIter->isReady()) {
+            containerIter->mutable_stats()->CopyFrom(statsIter->get());
+          } else {
+            LOG(WARNING) << "Failed to get resource statistics for executor '"
+                         << containerIter->executor_id() << "'"
+                         << " of framework "
+                         << containerIter->framework_id() << ": "
+                         << (statsIter->isFailed()
+                              ? statsIter->failure()
+                              : "discarded");
+          }
+
+          statusIter++;
+          statsIter++;
+          containerIter++;
+        }
+
+        return OK(serialize(contentType, evolve(*response)),
+                  stringify(contentType));
+      })
+      .repair([](const Future<Response>& future) {
+        LOG(WARNING) << "Could not collect container status and statistics: "
+                     << future.failure();
+
+        return InternalServerError();
       });
 }
 

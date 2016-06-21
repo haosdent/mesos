@@ -165,9 +165,17 @@ message Response {
     required ResourceStatistics resource_statistics = 1;
   }
 
+  // Information of containers running on this agent. It contains
+  // ContainerStatus and ResourceStatistics along with some meatadata
+  // of containers.
   message GetContainers {
     message Container {
-      // TODO(vinod): Fill in the fields.
+      required FrameworkID framework_id = 1;
+      required ExecutorID executor_id = 2;
+      optional string executor_name = 3;
+      required ContainerID container_id = 4;
+      optional ContainerStatus status = 5;
+      optional ResourceStatistics stats = 6;
     }
 
     repeated Container containers = 1;

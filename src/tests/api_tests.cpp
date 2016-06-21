@@ -1149,6 +1149,133 @@ TEST_P(AgentAPITest, SetLoggingLevel)
   Clock::resume();
 }
 
+
+// This tests v1 Operator API GetContainers with no
+// container presents.
+TEST_P(AgentAPITest, GetContainersNoExecutor)
+{
+  Future<Nothing> __recover = FUTURE_DISPATCH(_, &Slave::__recover);
+
+  StandaloneMasterDetector detector;
+  Try<Owned<cluster::Slave>> slave = this->StartSlave(&detector);
+  ASSERT_SOME(slave);
+
+  // Wait until the agent has finished recovery.
+  AWAIT_READY(__recover);
+
+  v1::agent::Call v1Call;
+  v1Call.set_type(v1::agent::Call::GET_CONTAINERS);
+
+  ContentType contentType = GetParam();
+
+  Future<v1::agent::Response> v1Response =
+    post(slave.get()->pid, v1Call, contentType);
+
+  AWAIT_READY(v1Response);
+  ASSERT_TRUE(v1Response.get().IsInitialized());
+  ASSERT_EQ(v1::agent::Response::GET_CONTAINERS, v1Response.get().type());
+  ASSERT_EQ(0, v1Response.get().get_containers().containers_size());
+}
+
+
+// This tests v1 Operator API GetContainers with executor.
+TEST_P(AgentAPITest, GetContainers)
+{
+  Try<Owned<cluster::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
+  MockExecutor exec(DEFAULT_EXECUTOR_ID);
+  TestContainerizer containerizer(&exec);
+  StandaloneMasterDetector detector(master.get()->pid);
+
+  MockSlave slave(CreateSlaveFlags(), &detector, &containerizer);
+  spawn(slave);
+
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+
+  EXPECT_CALL(sched, registered(_, _, _));
+  EXPECT_CALL(exec, registered(_, _, _, _));
+
+  Future<vector<Offer>> offers;
+
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return()); // Ignore subsequent offers.
+
+  driver.start();
+
+  AWAIT_READY(offers);
+  EXPECT_NE(0u, offers.get().size());
+
+  const Offer& offer = offers.get()[0];
+
+  TaskInfo task = createTask(
+      offer.slave_id(),
+      Resources::parse("cpus:0.1;mem:32").get(),
+      "sleep 1000",
+      exec.id);
+
+  EXPECT_CALL(exec, launchTask(_, _))
+    .WillOnce(SendStatusUpdateFromTask(TASK_RUNNING));
+
+  Future<TaskStatus> status;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&status));
+
+  driver.launchTasks(offer.id(), {task});
+
+  AWAIT_READY(status);
+  EXPECT_EQ(TASK_RUNNING, status.get().state());
+
+  ResourceStatistics statistics;
+  statistics.set_mem_limit_bytes(2048);
+  statistics.set_timestamp(0);
+
+  EXPECT_CALL(containerizer, usage(_))
+    .WillOnce(Return(statistics));
+
+  ContainerStatus containerStatus;
+
+  CgroupInfo* cgroupInfo = containerStatus.mutable_cgroup_info();
+  CgroupInfo::NetCls* netCls = cgroupInfo->mutable_net_cls();
+  netCls->set_classid(42);
+
+  NetworkInfo* networkInfo = containerStatus.add_network_infos();
+  NetworkInfo::IPAddress* ipAddr = networkInfo->add_ip_addresses();
+  ipAddr->set_ip_address("192.168.1.20");
+
+  EXPECT_CALL(containerizer, status(_))
+    .WillOnce(Return(containerStatus));
+
+  v1::agent::Call v1Call;
+  v1Call.set_type(v1::agent::Call::GET_CONTAINERS);
+
+  ContentType contentType = GetParam();
+  process::http::Headers headers = createBasicAuthHeaders(DEFAULT_CREDENTIAL);
+  headers["Accept"] = stringify(contentType);
+
+  Future<v1::agent::Response> v1Response = process::http::post(
+      slave.self(),
+      "api/v1",
+      headers,
+      serialize(contentType, v1Call),
+      stringify(contentType))
+    .then([contentType](const Response& response)
+          -> Future<v1::agent::Response> {
+      if (response.status != OK().status) {
+        return Failure("Unexpected response status " + response.status);
+      }
+      return deserialize<v1::agent::Response>(contentType, response.body);
+    });
+
+  AWAIT_READY(v1Response);
+  ASSERT_TRUE(v1Response.get().IsInitialized());
+  ASSERT_EQ(v1::agent::Response::GET_CONTAINERS, v1Response.get().type());
+  ASSERT_EQ(1, v1Response.get().get_containers().containers_size());
+}
+
 } // namespace tests {
 } // namespace internal {
 } // namespace mesos {
