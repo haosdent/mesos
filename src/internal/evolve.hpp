@@ -31,6 +31,8 @@
 
 #include <mesos/maintenance/maintenance.hpp>
 
+#include <mesos/quota/quota.hpp>
+
 #include <mesos/scheduler/scheduler.hpp>
 
 #include <mesos/v1/mesos.hpp>
@@ -42,6 +44,8 @@
 #include <mesos/v1/master/master.hpp>
 
 #include <mesos/v1/maintenance/maintenance.hpp>
+
+#include <mesos/v1/quota/quota.hpp>
 
 #include <mesos/v1/scheduler/scheduler.hpp>
 
@@ -144,6 +148,7 @@ v1::master::Response evolve(const JSON::Object& object);
 // v1::master::Response.
 v1::master::Response evolve(const mesos::maintenance::ClusterStatus& status);
 v1::master::Response evolve(const mesos::maintenance::Schedule& schedule);
+v1::master::Response evolve(const mesos::quota::QuotaStatus& status);
 
 
 // Declaration of helper functions for evolving JSON objects used in agent's

@@ -981,6 +981,11 @@ private:
       CHECK_NOTNULL(master);
     }
 
+    process::Future<process::http::Response> get(
+        const mesos::master::Call& call,
+        const Option<std::string>& principal,
+        ContentType contentType) const;
+
     // Returns a list of set quotas.
     process::Future<process::http::Response> status(
         const process::http::Request& request,
@@ -1063,10 +1068,8 @@ private:
         const Option<std::string>& principal,
         const mesos::quota::QuotaInfo& quotaInfo) const;
 
-    process::Future<process::http::Response> _status(
-        const process::http::Request& request,
-        const std::vector<mesos::quota::QuotaInfo>& quotaInfos,
-        const std::list<bool>& authorized) const;
+    process::Future<mesos::quota::QuotaStatus> _status(
+        const Option<std::string>& principal) const;
 
     process::Future<process::http::Response> _set(
         const mesos::quota::QuotaRequest& quotaRequest,

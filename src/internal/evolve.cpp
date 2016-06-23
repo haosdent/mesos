@@ -496,6 +496,18 @@ v1::master::Response evolve(const maintenance::Schedule& schedule)
 }
 
 
+v1::master::Response evolve(const quota::QuotaStatus& status)
+{
+  v1::master::Response response;
+  response.set_type(v1::master::Response::GET_QUOTA);
+
+  v1::master::Response::GetQuota* quota = response.mutable_get_quota();
+  quota->mutable_status()->CopyFrom(evolve<v1::quota::QuotaStatus>(status));
+
+  return response;
+}
+
+
 v1::master::Event evolve(const mesos::master::Event& event)
 {
   return evolve<v1::master::Event>(event);
