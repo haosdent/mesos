@@ -82,7 +82,7 @@ message Call {
     START_MAINTENANCE = 26;           // See 'StartMaintenance' below.
     STOP_MAINTENANCE = 27;            // See 'StopMaintenance' below.
 
-    GET_QUOTA = 28;
+    GET_QUOTA = 28;         // Retrieves the quota information about roles.
     SET_QUOTA = 29;
     REMOVE_QUOTA = 30;      // See 'RemoveQuota' below.
   }
@@ -231,7 +231,7 @@ message Response {
     GET_MAINTENANCE_STATUS = 16;   // See 'GetMaintenanceStatus' below.
     GET_MAINTENANCE_SCHEDULE = 17; // See 'GetMaintenanceSchedule' below.
 
-    GET_QUOTA = 18;
+    GET_QUOTA = 18;                // See 'GetQuota' below.
   }
 
   // The response for 'Call::GET_HEALTH', `healthy` would be true if the master
@@ -333,6 +333,8 @@ message Response {
     required maintenance.Schedule schedule = 1;
   }
 
+  // The response for 'Call::GET_QUOTA', contains the quota information about
+  // roles.
   message GetQuota {
     required quota.QuotaStatus status = 1;
   }
