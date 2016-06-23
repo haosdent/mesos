@@ -84,7 +84,7 @@ message Call {
 
     GET_QUOTA = 28;
     SET_QUOTA = 29;
-    REMOVE_QUOTA = 30;
+    REMOVE_QUOTA = 30;      // See 'RemoveQuota' below.
   }
 
   // Provides a snapshot of the current metrics tracked by the master.
@@ -172,6 +172,7 @@ message Call {
     required quota.QuotaRequest quota_request = 1;
   }
 
+  // Removes the allocated quota for resources by a particular role.
   message RemoveQuota {
     required string role = 1;
   }
