@@ -906,19 +906,22 @@ TEST_P(MasterAPITest, Subscribe)
 }
 
 
-TEST_P(MasterAPITest, SetQuota)
+// This test tries to verify a couple of quota operations work as expected.
+TEST_P(MasterAPITest, QuotaOperations)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
+  ContentType contentType = GetParam();
+
   v1::Resources quotaResources =
     v1::Resources::parse("cpus:1;mem:512").get();
 
-  v1::master::Call v1Call;
-  v1Call.set_type(v1::master::Call::SET_QUOTA);
+  v1::master::Call v1SetQuotaCall;
+  v1SetQuotaCall.set_type(v1::master::Call::SET_QUOTA);
 
   v1::quota::QuotaRequest* quotaRequest =
-    v1Call.mutable_set_quota()->mutable_quota_request();
+    v1SetQuotaCall.mutable_set_quota()->mutable_quota_request();
 
   // Use the force flag for setting quota that cannot be satisfied in
   // this empty cluster without any agents.
@@ -926,17 +929,53 @@ TEST_P(MasterAPITest, SetQuota)
   quotaRequest->set_role("role1");
   quotaRequest->mutable_guarantee()->CopyFrom(quotaResources);
 
-  ContentType contentType = GetParam();
-
   // Send a quota request for the specified role.
-  Future<Response> response = process::http::post(
+  Future<Response> setQuotaResponse = process::http::post(
       master.get()->pid,
       "api/v1",
       createBasicAuthHeaders(DEFAULT_CREDENTIAL),
-      serialize(contentType, v1Call),
+      serialize(contentType, v1SetQuotaCall),
       stringify(contentType));
 
-  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, response);
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, setQuotaResponse);
+
+  v1::master::Call v1GetQuotaCall;
+  v1GetQuotaCall.set_type(v1::master::Call::GET_QUOTA);
+
+  // Verifies the quota has been set.
+  Future<v1::master::Response> v1GetQuotaResponse =
+    post(master.get()->pid, v1GetQuotaCall, contentType);
+
+  AWAIT_READY(v1GetQuotaResponse);
+  ASSERT_TRUE(v1GetQuotaResponse.get().IsInitialized());
+  ASSERT_EQ(v1::master::Response::GET_QUOTA, v1GetQuotaResponse.get().type());
+  ASSERT_EQ(1, v1GetQuotaResponse.get().get_quota().status().infos().size());
+  ASSERT_EQ("role1",
+            v1GetQuotaResponse.get().get_quota().status().infos(0).role());
+  ASSERT_EQ(quotaResources,
+            v1GetQuotaResponse.get().get_quota().status().infos(0).guarantee());
+
+  // Remove the quota set before.
+  v1::master::Call v1RemoveQuotaCall;
+  v1RemoveQuotaCall.set_type(v1::master::Call::REMOVE_QUOTA);
+  v1RemoveQuotaCall.mutable_remove_quota()->set_role("role1");
+
+  Future<Response> removeQuotaResponse = process::http::post(
+      master.get()->pid,
+      "api/v1",
+      createBasicAuthHeaders(DEFAULT_CREDENTIAL),
+      serialize(contentType, v1RemoveQuotaCall),
+      stringify(contentType));
+
+  AWAIT_EXPECT_RESPONSE_STATUS_EQ(OK().status, removeQuotaResponse);
+
+  // Verifies the quota has been removed.
+  v1GetQuotaResponse = post(master.get()->pid, v1GetQuotaCall, contentType);
+
+  AWAIT_READY(v1GetQuotaResponse);
+  ASSERT_TRUE(v1GetQuotaResponse.get().IsInitialized());
+  ASSERT_EQ(v1::master::Response::GET_QUOTA, v1GetQuotaResponse.get().type());
+  ASSERT_EQ(0, v1GetQuotaResponse.get().get_quota().status().infos().size());
 }
 
 // Test create and destroy persistent volumes through the master operator API.
