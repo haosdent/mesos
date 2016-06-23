@@ -995,6 +995,10 @@ private:
         const Option<std::string>& principal) const;
 
     process::Future<process::http::Response> remove(
+        const mesos::master::Call& call,
+        const Option<std::string>& principal) const;
+
+    process::Future<process::http::Response> remove(
         const process::http::Request& request,
         const Option<std::string>& principal) const;
 
@@ -1073,6 +1077,10 @@ private:
         bool forced) const;
 
     process::Future<process::http::Response> _remove(
+        const std::string& role,
+        const Option<std::string>& principal) const;
+
+    process::Future<process::http::Response> __remove(
         const std::string& role) const;
 
     // To perform actions related to quota management, we require access to the
