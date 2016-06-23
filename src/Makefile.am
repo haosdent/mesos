@@ -717,6 +717,7 @@ nodist_v1master_HEADERS =						\
 v1quotadir = $(pkgincludedir)/v1/quota
 
 v1quota_HEADERS =							\
+  $(top_srcdir)/include/mesos/v1/quota/quota.hpp			\
   $(top_srcdir)/include/mesos/v1/quota/quota.proto
 
 nodist_v1quota_HEADERS =						\
