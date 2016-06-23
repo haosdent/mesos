@@ -233,33 +233,28 @@ message Response {
     GET_QUOTA = 18;                // See 'GetQuota' below.
   }
 
-  // The response for 'Call::GET_HEALTH', `healthy` would be true if the master
-  // is healthy. Delayed responses are also indicative of the poor health of the
-  // master.
+  // `healthy` would be true if the master is healthy. Delayed responses are
+  // also indicative of the poor health of the master.
   message GetHealth {
     required bool healthy = 1;
   }
 
-  // The response for 'Call::GET_FLAGS', contains the flag configuration of the
-  // master.
+  // Contains the flag configuration of the master.
   message GetFlags {
     repeated Flag flags = 1;
   }
 
-  // The response for 'Call::GET_VERSION', contains the version information of
-  // the master.
+  // Contains the version information of the master.
   message GetVersion {
     required VersionInfo version_info = 1;
   }
 
-  // The response for 'Call::GET_METRICS', contains a snapshot of the current
-  // metrics.
+  // Contains a snapshot of the current metrics.
   message GetMetrics {
     repeated Metric metrics = 1;
   }
 
-  // The response for 'Call::GET_LOGGING_LEVEL', contains the logging level of
-  // the master.
+  // Contains the logging level of the master.
   message GetLoggingLevel {
     required uint32 level = 1;
   }
@@ -311,8 +306,7 @@ message Response {
     repeated WeightInfo weight_infos = 1;
   }
 
-  // The response for 'Call::GET_LEADING_MASTER', contains the leading master
-  // information.
+  // Contains the leading master information.
   // NOTE: This is broken currently "on the cloud" (e.g. EC2) as it stores the
   // private IP address, unless advertise_ip points to an externally accessible
   // IP.
@@ -320,20 +314,17 @@ message Response {
     optional MasterInfo master_info = 1;
   }
 
-  // The response for 'Call::GET_MAINTENANCE_STATUS', contains the cluster's
-  // maintenance status.
+  // Contains the cluster's maintenance status.
   message GetMaintenanceStatus {
     required maintenance.ClusterStatus status = 1;
   }
 
-  // The response for 'Call::GET_MAINTENANCE_SCHEDULE', contains the cluster's
-  // maintenance schedule.
+  // Contains the cluster's maintenance schedule.
   message GetMaintenanceSchedule {
     required maintenance.Schedule schedule = 1;
   }
 
-  // The response for 'Call::GET_QUOTA', contains the quota information about
-  // roles.
+  // Contains the quota information about roles.
   message GetQuota {
     required quota.QuotaStatus status = 1;
   }
