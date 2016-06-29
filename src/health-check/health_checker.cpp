@@ -51,12 +51,24 @@ Try<Owned<HealthChecker>> HealthChecker::create(
     const TaskID& taskID)
 {
   // Validate the 'HealthCheck' protobuf.
-  if (check.has_http() && check.has_command()) {
-    return Error("Both 'http' and 'command' health check requested");
+  int count = 0;
+
+  if (check.has_command()) {
+    count++;
+  }
+  if (check.has_http()) {
+    count++;
+  }
+  if (check.has_tcp()) {
+    count++;
   }
 
-  if (!check.has_http() && !check.has_command()) {
-    return Error("Expecting one of 'http' or 'command' health check");
+  if (count > 1) {
+    return Error("Compose multiple health check ways is not supported");
+  }
+
+  if (!check.has_command() && !check.has_http() && !check.has_tcp()) {
+    return Error("Expecting one of 'command', 'http' or 'tcp' health check");
   }
 
   Owned<HealthCheckerProcess> process(new HealthCheckerProcess(

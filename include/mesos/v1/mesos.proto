@@ -345,6 +345,15 @@ message HealthCheck {
     // for specific data in the response.
   }
 
+  // Describes a TCP health check.
+  message TCP {
+    // Port to send the TCP request.
+    required uint32 port = 1;
+
+    // Domain to send the TCP request.
+    required string domain = 2;
+  }
+
   // Amount of time to wait until starting the health checks.
   optional double delay_seconds = 2 [default = 15.0];
 
@@ -368,6 +377,9 @@ message HealthCheck {
 
   // Command health check.
   optional CommandInfo command = 7;
+
+  // TCP health check.
+  optional TCP tcp = 8;
 }
 
 

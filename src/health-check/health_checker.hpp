@@ -37,6 +37,7 @@
 #include <process/pid.hpp>
 #include <process/process.hpp>
 #include <process/protobuf.hpp>
+#include <process/socket.hpp>
 #include <process/subprocess.hpp>
 
 #include <stout/duration.hpp>
@@ -308,19 +309,59 @@ private:
     failure("HTTP health check returned unexpected status: " + stringify(code));
   }
 
-  void _healthCheck()
+  void _tcpHealthCheck()
   {
-    if (check.has_http() && check.has_command()) {
-      promise.fail("Using both HTTP health check and command health check "
-                   "is not supported");
+    const HealthCheck_TCP& tcp = check.tcp();
+
+    VLOG(2) << "Launching health TCP check '" << tcp.domain() << ":"
+            << tcp.port() << "'";
+
+
+    Try<net::IP> ip = net::getIP(tcp.domain(), AF_INET);
+    if (ip.isError()) {
+      failure("Failed to determine IP of domain '" + tcp.domain() + "': " +
+              ip.error());
       return;
     }
 
+    process::network::Address address;
+    address.ip = ip.get();
+    address.port = tcp.port();
+
+    Try<process::network::Socket> socket = process::network::Socket::create(
+        process::network::Socket::POLL);
+
+    process::Future<Nothing> connect = socket->connect(address);
+    connect.await(Seconds(check.timeout_seconds()));
+
+    if (!connect.isReady()) {
+      string msg = "TCP check failed with reason: ";
+      if (connect.isFailed()) {
+        msg += connect.failure();
+      } else if (connect.isDiscarded()) {
+        msg += "connect future discarded";
+      } else {
+        msg += "connect still pending after timeout " +
+               stringify(Seconds(check.timeout_seconds()));
+      }
+
+      failure(msg);
+      return;
+    }
+
+    success();
+  }
+
+  void _healthCheck()
+  {
     if (check.has_command()) {
       _commandHealthCheck();
       return;
     } else if (check.has_http()) {
       _httpHealthCheck();
+      return;
+    } else if (check.has_tcp()) {
+      _tcpHealthCheck();
       return;
     }
 
