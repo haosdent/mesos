@@ -77,37 +77,9 @@ class HealthCheckTest : public MesosTest
 public:
   vector<TaskInfo> populateTasks(
       const string& cmd,
-      const string& healthCmd,
+      const HealthCheck& healthCheck,
       const Offer& offer,
-      int gracePeriodSeconds = 0,
-      const Option<int>& consecutiveFailures = None(),
-      const Option<map<string, string>>& env = None(),
-      const Option<ContainerInfo>& containerInfo = None(),
-      const Option<int>& timeoutSeconds = None())
-  {
-    CommandInfo healthCommand;
-    healthCommand.set_value(healthCmd);
-
-    return populateTasks(
-        cmd,
-        healthCommand,
-        offer,
-        gracePeriodSeconds,
-        consecutiveFailures,
-        env,
-        containerInfo,
-        timeoutSeconds);
-  }
-
-  vector<TaskInfo> populateTasks(
-      const string& cmd,
-      CommandInfo healthCommand,
-      const Offer& offer,
-      int gracePeriodSeconds = 0,
-      const Option<int>& consecutiveFailures = None(),
-      const Option<map<string, string>>& env = None(),
-      const Option<ContainerInfo>& containerInfo = None(),
-      const Option<int>& timeoutSeconds = None())
+      const Option<ContainerInfo>& containerInfo = None())
   {
     TaskInfo task;
     task.set_name("");
@@ -122,30 +94,6 @@ public:
 
     if (containerInfo.isSome()) {
       task.mutable_container()->CopyFrom(containerInfo.get());
-    }
-
-    HealthCheck healthCheck;
-
-    if (env.isSome()) {
-      foreachpair (const string& name, const string value, env.get()) {
-        Environment::Variable* variable =
-          healthCommand.mutable_environment()->mutable_variables()->Add();
-        variable->set_name(name);
-        variable->set_value(value);
-      }
-    }
-
-    healthCheck.mutable_command()->CopyFrom(healthCommand);
-    healthCheck.set_delay_seconds(0);
-    healthCheck.set_interval_seconds(0);
-    healthCheck.set_grace_period_seconds(gracePeriodSeconds);
-
-    if (timeoutSeconds.isSome()) {
-      healthCheck.set_timeout_seconds(timeoutSeconds.get());
-    }
-
-    if (consecutiveFailures.isSome()) {
-      healthCheck.set_consecutive_failures(consecutiveFailures.get());
     }
 
     task.mutable_health_check()->CopyFrom(healthCheck);
@@ -183,7 +131,7 @@ TEST_F(HealthCheckTest, HealthyTask)
 
   MockScheduler sched;
   MesosSchedulerDriver driver(
-    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
   EXPECT_CALL(sched, registered(&driver, _, _))
     .Times(1);
@@ -198,8 +146,17 @@ TEST_F(HealthCheckTest, HealthyTask)
   AWAIT_READY(offers);
   EXPECT_NE(0u, offers.get().size());
 
+  CommandInfo healthCommand;
+  healthCommand.set_value("exit 0");
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+
   vector<TaskInfo> tasks =
-    populateTasks("sleep 120", "exit 0", offers.get()[0]);
+    populateTasks("sleep 120", healthCheck, offers.get()[0]);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealth;
@@ -338,9 +295,18 @@ TEST_F(HealthCheckTest, ROOT_HealthyTaskWithContainerImage)
   AWAIT_READY(offers);
   EXPECT_NE(0u, offers.get().size());
 
+  CommandInfo healthCommand;
+  healthCommand.set_value("exit 0");
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+
   // Make use of 'populateTasks()' to avoid duplicate code.
   vector<TaskInfo> tasks =
-    populateTasks("sleep 120", "exit 0", offers.get()[0]);
+    populateTasks("sleep 120", healthCheck, offers.get()[0]);
 
   TaskInfo task = tasks[0];
 
@@ -457,7 +423,7 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
 
   MockScheduler sched;
   MesosSchedulerDriver driver(
-    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
   EXPECT_CALL(sched, registered(&driver, _, _))
     .Times(1);
@@ -480,8 +446,17 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthyTask)
   dockerInfo.set_image("alpine");
   containerInfo.mutable_docker()->CopyFrom(dockerInfo);
 
+  CommandInfo healthCommand;
+  healthCommand.set_value("exit 0");
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit 0", offers.get()[0], 0, None(), None(), containerInfo);
+      "sleep 120", healthCheck, offers.get()[0], containerInfo);
 
   Future<ContainerID> containerId;
   EXPECT_CALL(containerizer, launch(_, _, _, _, _, _, _, _))
@@ -556,7 +531,7 @@ TEST_F(HealthCheckTest, HealthyTaskNonShell)
 
   MockScheduler sched;
   MesosSchedulerDriver driver(
-    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
   EXPECT_CALL(sched, registered(&driver, _, _))
     .Times(1);
@@ -576,8 +551,14 @@ TEST_F(HealthCheckTest, HealthyTaskNonShell)
   command.set_value("true");
   command.add_arguments("true");
 
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(command);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+
   vector<TaskInfo> tasks =
-    populateTasks("sleep 120", command, offers.get()[0]);
+    populateTasks("sleep 120", healthCheck, offers.get()[0]);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealth;
@@ -656,8 +637,18 @@ TEST_F(HealthCheckTest, HealthStatusChange)
   //   - Exit with a non-zero status.
   string alt = "rm " + tmpPath + " || (touch " + tmpPath + " && exit 1)";
 
+  CommandInfo healthCommand;
+  healthCommand.set_value(alt);
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+  healthCheck.set_consecutive_failures(3);
+
   vector<TaskInfo> tasks = populateTasks(
-      "sleep 120", alt, offers.get()[0], 0, 3);
+      "sleep 120", healthCheck, offers.get()[0]);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealth1;
@@ -889,8 +880,18 @@ TEST_F(HealthCheckTest, ROOT_DOCKER_DockerHealthStatusChange)
   string alt = "rm " + tmpPath + " || (mkdir -p " + os::getcwd() +
                " && echo foo >" + tmpPath + " && exit 1)";
 
+  CommandInfo healthCommand;
+  healthCommand.set_value(alt);
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+  healthCheck.set_consecutive_failures(3);
+
   vector<TaskInfo> tasks = populateTasks(
-      "sleep 120", alt, offers.get()[0], 0, 3, None(), containerInfo);
+      "sleep 120", healthCheck, offers.get()[0], containerInfo);
 
   Future<ContainerID> containerId;
   EXPECT_CALL(containerizer, launch(_, _, _, _, _, _, _, _))
@@ -979,7 +980,7 @@ TEST_F(HealthCheckTest, ConsecutiveFailures)
 
   MockScheduler sched;
   MesosSchedulerDriver driver(
-    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
   EXPECT_CALL(sched, registered(&driver, _, _))
     .Times(1);
@@ -994,8 +995,18 @@ TEST_F(HealthCheckTest, ConsecutiveFailures)
   AWAIT_READY(offers);
   EXPECT_NE(0u, offers.get().size());
 
+  CommandInfo healthCommand;
+  healthCommand.set_value("exit 1");
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+  healthCheck.set_consecutive_failures(4);
+
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit 1", offers.get()[0], 0, 4);
+      "sleep 120", healthCheck, offers.get()[0]);
 
   // Expecting four unhealthy updates and one final kill update.
   Future<TaskStatus> statusRunning;
@@ -1069,7 +1080,7 @@ TEST_F(HealthCheckTest, EnvironmentSetup)
 
   MockScheduler sched;
   MesosSchedulerDriver driver(
-    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
   EXPECT_CALL(sched, registered(&driver, _, _))
     .Times(1);
@@ -1084,11 +1095,21 @@ TEST_F(HealthCheckTest, EnvironmentSetup)
   AWAIT_READY(offers);
   EXPECT_NE(0u, offers.get().size());
 
-  map<string, string> env;
-  env["STATUS"] = "0";
+  CommandInfo healthCommand;
+  healthCommand.set_value("exit $STATUS");
+  Environment::Variable* variable =
+    healthCommand.mutable_environment()->mutable_variables()->Add();
+  variable->set_name("STATUS");
+  variable->set_value("0");
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
 
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit $STATUS", offers.get()[0], 0, None(), env);
+      "sleep 120", healthCheck, offers.get()[0]);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealth;
@@ -1136,7 +1157,7 @@ TEST_F(HealthCheckTest, DISABLED_GracePeriod)
 
   MockScheduler sched;
   MesosSchedulerDriver driver(
-    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
   EXPECT_CALL(sched, registered(&driver, _, _))
     .Times(1);
@@ -1151,8 +1172,17 @@ TEST_F(HealthCheckTest, DISABLED_GracePeriod)
   AWAIT_READY(offers);
   EXPECT_NE(0u, offers.get().size());
 
+  CommandInfo healthCommand;
+  healthCommand.set_value("exit 1");
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(6);
+
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "exit 1", offers.get()[0], 6);
+      "sleep 120", healthCheck, offers.get()[0]);
 
   Future<TaskStatus> statusRunning;
   Future<TaskStatus> statusHealth;
@@ -1209,7 +1239,7 @@ TEST_F(HealthCheckTest, CheckCommandTimeout)
 
   MockScheduler sched;
   MesosSchedulerDriver driver(
-    &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
   EXPECT_CALL(sched, registered(&driver, _, _))
     .Times(1);
@@ -1224,8 +1254,19 @@ TEST_F(HealthCheckTest, CheckCommandTimeout)
   AWAIT_READY(offers);
   EXPECT_NE(0u, offers.get().size());
 
+  CommandInfo healthCommand;
+  healthCommand.set_value("sleep 120");
+
+  HealthCheck healthCheck;
+  healthCheck.mutable_command()->CopyFrom(healthCommand);
+  healthCheck.set_delay_seconds(0);
+  healthCheck.set_interval_seconds(0);
+  healthCheck.set_grace_period_seconds(0);
+  healthCheck.set_consecutive_failures(1);
+  healthCheck.set_timeout_seconds(1);
+
   vector<TaskInfo> tasks = populateTasks(
-    "sleep 120", "sleep 120", offers.get()[0], 0, 1, None(), None(), 1);
+      "sleep 120", healthCheck, offers.get()[0]);
 
   // Expecting one unhealthy update and one final kill update.
   Future<TaskStatus> statusRunning;
