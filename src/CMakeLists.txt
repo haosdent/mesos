@@ -512,7 +512,6 @@ target_link_libraries(${MESOS_PROTOBUF_TARGET} ${AGENT_LIBS})
 # BUILD THE MESOS EXECUTABLES.
 ##############################
 add_subdirectory(docker/)
-add_subdirectory(health-check/)
 add_subdirectory(launcher/)
 add_subdirectory(master/)
 add_subdirectory(slave/)
