@@ -467,54 +467,50 @@ private:
     }
 
     HealthCheck healthCheck = task.health_check();
-    if (!healthCheck.has_command()) {
-      cerr << "Unable to launch health process: "
-           << "Only command health check is supported now" << endl;
-      return;
-    }
+    if (healthCheck.has_command()) {
+      // `docker exec` requires docker version greater than 1.3.0.
+      Try<Nothing> validateVersion =
+        docker->validateVersion(Version(1, 3, 0));
 
-    // "docker exec" require docker version greater than 1.3.0.
-    Try<Nothing> validateVersion =
-      docker->validateVersion(Version(1, 3, 0));
-
-    if (validateVersion.isError()) {
-      cerr << "Unable to launch health process: "
-           << validateVersion.error() << endl;
-      return;
-    }
-
-    // Wrap the original health check command in "docker exec".
-    const CommandInfo& command = healthCheck.command();
-    if (!command.has_value()) {
-      cerr << "Unable to launch health process: "
-           << (command.shell() ? "Shell command" : "Executable path")
-           << " is not specified" << endl;
-      return;
-    }
-
-    vector<string> commandArguments;
-    commandArguments.push_back(docker->getPath());
-    commandArguments.push_back("exec");
-    commandArguments.push_back(containerName);
-
-    if (command.shell()) {
-      commandArguments.push_back("sh");
-      commandArguments.push_back("-c");
-      commandArguments.push_back("\"");
-      commandArguments.push_back(command.value());
-      commandArguments.push_back("\"");
-    } else {
-      commandArguments.push_back(command.value());
-
-      foreach (const string& argument, command.arguments()) {
-        commandArguments.push_back(argument);
+      if (validateVersion.isError()) {
+        cerr << "Unable to launch health process: "
+             << validateVersion.error() << endl;
+        return;
       }
-    }
 
-    healthCheck.mutable_command()->set_shell(true);
-    healthCheck.mutable_command()->clear_arguments();
-    healthCheck.mutable_command()->set_value(
-        strings::join(" ", commandArguments));
+      // Wrap the original health check command in "docker exec".
+      const CommandInfo& command = healthCheck.command();
+      if (!command.has_value()) {
+        cerr << "Unable to launch health process: "
+             << (command.shell() ? "Shell command" : "Executable path")
+             << " is not specified" << endl;
+        return;
+      }
+
+      vector<string> commandArguments;
+      commandArguments.push_back(docker->getPath());
+      commandArguments.push_back("exec");
+      commandArguments.push_back(containerName);
+
+      if (command.shell()) {
+        commandArguments.push_back("sh");
+        commandArguments.push_back("-c");
+        commandArguments.push_back("\"");
+        commandArguments.push_back(command.value());
+        commandArguments.push_back("\"");
+      } else {
+        commandArguments.push_back(command.value());
+
+        foreach (const string& argument, command.arguments()) {
+          commandArguments.push_back(argument);
+        }
+      }
+
+      healthCheck.mutable_command()->set_shell(true);
+      healthCheck.mutable_command()->clear_arguments();
+      healthCheck.mutable_command()->set_value(
+          strings::join(" ", commandArguments));
+    }
 
     Try<Owned<HealthChecker>> _checker = HealthChecker::create(
         healthCheck,
