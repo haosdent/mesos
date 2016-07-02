@@ -322,8 +322,7 @@ message FrameworkInfo {
  * Specifying more than one strategy is an error.
  */
 message HealthCheck {
-  // Describes an HTTP health check. This is not fully implemented and not
-  // recommended for use - see MESOS-2533.
+  // Describes a HTTP health check.
   message HTTP {
     // Port to send the HTTP request.
     required uint32 port = 1;
@@ -331,27 +330,20 @@ message HealthCheck {
     // HTTP request path.
     optional string path = 2 [default = "/"];
 
-    // TODO(benh): Implement:
-    // Whether or not to use HTTPS.
-    // optional bool ssl = 3 [default = false];
+    // Enable SSL or not, only support this when mesos compiled with SSL
+    // support.
+    optional bool ssl = 3 [default = false];
 
     // Expected response statuses. Not specifying any statuses implies
     // that any returned status is acceptable.
     repeated uint32 statuses = 4;
 
+    // Domain to send the HTTP request.
+    optional string domain = 5 [default = "localhost"];
+
     // TODO(benh): Include an 'optional bytes data' field for checking
     // for specific data in the response.
   }
-
-  // HTTP health check - not yet recommended for use, see MESOS-2533.
-  optional HTTP http = 1;
-
-  // TODO(benh): Consider adding a URL health check strategy which
-  // allows doing something similar to the HTTP strategy but
-  // encapsulates all the details in a single string field.
-
-  // TODO(benh): Other possible health check strategies could include
-  // one for TCP/UDP.
 
   // Amount of time to wait until starting the health checks.
   optional double delay_seconds = 2 [default = 15.0];
@@ -370,6 +362,9 @@ message HealthCheck {
 
   // TODO(alexr): Add an optional `KillPolicy` that should be used
   // if the task is killed because of a health check failure.
+
+  // HTTP health check.
+  optional HTTP http = 1;
 
   // Command health check.
   optional CommandInfo command = 7;

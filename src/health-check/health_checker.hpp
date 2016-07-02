@@ -31,7 +31,9 @@
 
 #include <process/delay.hpp>
 #include <process/future.hpp>
+#include <process/http.hpp>
 #include <process/id.hpp>
+#include <process/io.hpp>
 #include <process/pid.hpp>
 #include <process/process.hpp>
 #include <process/protobuf.hpp>
@@ -164,18 +166,8 @@ private:
     reschedule();
   }
 
-  void _healthCheck()
+  void _commandHealthCheck()
   {
-    if (check.has_http()) {
-      promise.fail("HTTP health check is not supported");
-      return;
-    }
-
-    if (!check.has_command()) {
-      promise.fail("No check found in health check");
-      return;
-    }
-
     const CommandInfo& command = check.command();
 
     map<string, string> environment = os::environment();
@@ -273,10 +265,72 @@ private:
     }
   }
 
+  void _httpHealthCheck()
+  {
+    const HealthCheck_HTTP& http = check.http();
+
+    // Return fail when not specifying any statuses
+    if (http.statuses().size() == 0) {
+      promise.fail("HTTP check requires at least one expected status");
+      return;
+    }
+
+    string scheme = http.ssl() ? "https" : "http";
+    process::http::URL url(scheme, http.domain(), http.port(), http.path());
+
+    VLOG(2) << "Launching health HTTP check '" << url << "'";
+
+    process::Future<process::http::Response> query = process::http::get(url);
+    query.await(Seconds(check.timeout_seconds()));
+
+    if (!query.isReady()) {
+      string msg = "HTTP check failed with reason: ";
+      if (query.isFailed()) {
+        msg += query.failure();
+      } else if (query.isDiscarded()) {
+        msg += "query future discarded";
+      } else {
+        msg += "query still pending after timeout " +
+               stringify(Seconds(check.timeout_seconds()));
+      }
+
+      failure(msg);
+      return;
+    }
+
+    uint32_t code = query.get().code;
+    foreach (uint32_t tmpStatus, http.statuses()) {
+      if (tmpStatus == code) {
+        success();
+        return;
+      }
+    }
+    failure("HTTP health check returned unexpected status: " + stringify(code));
+  }
+
+  void _healthCheck()
+  {
+    if (check.has_http() && check.has_command()) {
+      promise.fail("Using both HTTP health check and command health check "
+                   "is not supported");
+      return;
+    }
+
+    if (check.has_command()) {
+      _commandHealthCheck();
+      return;
+    } else if (check.has_http()) {
+      _httpHealthCheck();
+      return;
+    }
+
+    promise.fail("No check found in health check");
+  }
+
   void reschedule()
   {
     VLOG(1) << "Rescheduling health check in "
-      << Seconds(check.interval_seconds());
+            << Seconds(check.interval_seconds());
 
     delay(Seconds(check.interval_seconds()), self(), &Self::_healthCheck);
   }
