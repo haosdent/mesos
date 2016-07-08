@@ -56,7 +56,7 @@ public:
       const std::string& _name,
       const std::string& _hierarchy);
 
-  virtual ~Subsystem();
+  virtual ~Subsystem() {}
 
   /**
    * The cgroups subsystem name of this `Subsystem` object.
