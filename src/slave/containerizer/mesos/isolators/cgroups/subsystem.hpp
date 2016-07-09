@@ -17,7 +17,10 @@
 #ifndef __CGROUPS_ISOLATOR_SUBSYSTEM_HPP__
 #define __CGROUPS_ISOLATOR_SUBSYSTEM_HPP__
 
+#include <list>
 #include <string>
+#include <tuple>
+#include <vector>
 
 #include <mesos/resources.hpp>
 
@@ -29,6 +32,8 @@
 #include <stout/lambda.hpp>
 #include <stout/option.hpp>
 #include <stout/try.hpp>
+
+#include "linux/cgroups.hpp"
 
 #include "slave/flags.hpp"
 
@@ -66,6 +71,17 @@ public:
    * @return The cgroups subsystem name.
    */
   virtual std::string name() const = 0;
+
+  /**
+   * Initialize necessary variables.
+   *
+   * @param _notifyCallback A callback the `Subsystem` uses to notify the
+   *     container is impacted by current `Subsystem` resource limitation.
+   */
+  void init(
+      const lambda::function<
+          void(const ContainerID&,
+               const mesos::slave::ContainerLimitation&)>& _notifyCallback);
 
   /**
    * Recover the cgroups subsystem for the associated container.
@@ -153,6 +169,14 @@ protected:
   const Flags flags;
 
   /**
+   * The callback that is uses to notify the isolator the container is impacted
+   * by a resource limitation.
+   */
+  lambda::function<
+      void(const ContainerID&,
+           const mesos::slave::ContainerLimitation&)> notifyCallback;
+
+  /**
    * The hierarchy path of cgroups subsystem.
    */
   const std::string hierarchy;
@@ -203,6 +227,81 @@ public:
 
   virtual process::Future<ResourceStatistics> usage(
       const ContainerID& containerId);
+};
+
+
+/**
+ * Represent cgroups memory subsystem.
+ */
+class MemorySubsystem : public Subsystem
+{
+public:
+  MemorySubsystem(const Flags& _flags, const std::string& _hierarchy);
+
+  virtual ~MemorySubsystem() {}
+
+  virtual std::string name() const
+  {
+    return CGROUP_SUBSYSTEM_MEMORY_NAME;
+  }
+
+  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> recover(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> update(
+      const ContainerID& containerId,
+      const Resources& resources);
+
+  virtual process::Future<ResourceStatistics> usage(
+      const ContainerID& containerId);
+
+  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
+
+protected:
+  virtual Try<Nothing> load();
+
+private:
+  struct Info {
+    // Used to cancel the OOM listening.
+    process::Future<Nothing> oomNotifier;
+
+    // If already set the hard limit before.
+    bool updatedLimit;
+
+    hashmap<
+        cgroups::memory::pressure::Level,
+        process::Owned<cgroups::memory::pressure::Counter>> pressureCounters;
+  };
+
+  inline const std::vector<cgroups::memory::pressure::Level> levels() {
+    return {
+      cgroups::memory::pressure::Level::LOW,
+      cgroups::memory::pressure::Level::MEDIUM,
+      cgroups::memory::pressure::Level::CRITICAL
+    };
+  }
+
+  process::Future<ResourceStatistics> _usage(
+      const ContainerID& containerId,
+      ResourceStatistics result,
+      const std::list<cgroups::memory::pressure::Level>& levels,
+      const std::list<process::Future<uint64_t>>& values);
+
+  void oomListen(const ContainerID& containerId);
+
+  void oomWaited(
+      const process::Future<Nothing>& future,
+      const ContainerID& containerId);
+
+  void oom(const ContainerID& containerId);
+
+  void pressureListen(const ContainerID& containerId);
+
+  /**
+   * Store cgroups associated information for container.
+   */
+  hashmap<ContainerID, process::Owned<Info>> infos;
 };
 
 } // namespace slave {

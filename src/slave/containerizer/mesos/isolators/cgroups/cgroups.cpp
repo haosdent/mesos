@@ -76,6 +76,7 @@ Try<Isolator*> CgroupsIsolatorProcess::create(const Flags& flags)
   multihashmap<string, string> isolatorMap = {
     {"cpu", CGROUP_SUBSYSTEM_CPU_NAME},
     {"cpu", CGROUP_SUBSYSTEM_CPUACCT_NAME},
+    {"mem", CGROUP_SUBSYSTEM_MEMORY_NAME},
   };
 
   foreach (string isolator, strings::tokenize(flags.isolation, ",")) {
@@ -131,6 +132,11 @@ Try<Isolator*> CgroupsIsolatorProcess::create(const Flags& flags)
 void CgroupsIsolatorProcess::initialize()
 {
   foreachvalue (const Owned<Subsystem>& subsystem, subsystems) {
+    subsystem->init(defer(
+        PID<CgroupsIsolatorProcess>(this),
+        &CgroupsIsolatorProcess::notify,
+        lambda::_1,
+        lambda::_2));
     spawn(subsystem.get());
   }
 }
@@ -448,6 +454,18 @@ Future<ContainerLimitation> CgroupsIsolatorProcess::watch(
   }
 
   return infos[containerId]->limitation.future();
+}
+
+
+void CgroupsIsolatorProcess::notify(
+    const ContainerID& containerId,
+    const ContainerLimitation& limitation)
+{
+  if (!infos.contains(containerId)) {
+    return;
+  }
+
+  infos[containerId]->limitation.set(limitation);
 }
 
 

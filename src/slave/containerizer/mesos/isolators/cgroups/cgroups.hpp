@@ -18,6 +18,7 @@
 #define __CGROUPS_ISOLATOR_HPP__
 
 #include <string>
+#include <vector>
 
 #include <mesos/resources.hpp>
 
@@ -64,6 +65,11 @@ public:
 
   virtual process::Future<mesos::slave::ContainerLimitation> watch(
       const ContainerID& containerId);
+
+  // Trigger limitation.
+  void notify(
+      const ContainerID& containerId,
+      const mesos::slave::ContainerLimitation& limitation);
 
   virtual process::Future<Nothing> update(
       const ContainerID& containerId,
