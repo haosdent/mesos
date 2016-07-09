@@ -32,6 +32,8 @@
 
 #include "slave/flags.hpp"
 
+#include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
+
 namespace mesos {
 namespace internal {
 namespace slave {
@@ -138,6 +140,14 @@ protected:
   Subsystem(const Flags& _flags, const std::string& _hierarchy);
 
   /**
+   * Load cgroups subsystem. This method checks and prepares the environment for
+   * cgroups subsystem.
+   *
+   * @return Nothing or an error if `load` fails.
+   */
+  virtual Try<Nothing> load();
+
+  /**
    * `Flags` used to launch the agent.
    */
   const Flags flags;
@@ -146,6 +156,33 @@ protected:
    * The hierarchy path of cgroups subsystem.
    */
   const std::string hierarchy;
+};
+
+
+/**
+ * Represent cgroups cpu subsystem.
+ */
+class CpuSubsystem : public Subsystem
+{
+public:
+  CpuSubsystem(const Flags& _flags, const std::string& _hierarchy);
+
+  virtual ~CpuSubsystem() {}
+
+  virtual std::string name() const
+  {
+    return CGROUP_SUBSYSTEM_CPU_NAME;
+  };
+
+  virtual process::Future<Nothing> update(
+      const ContainerID& containerId,
+      const Resources& resources);
+
+  virtual process::Future<ResourceStatistics> usage(
+      const ContainerID& containerId);
+
+protected:
+  virtual Try<Nothing> load();
 };
 
 } // namespace slave {
