@@ -38,6 +38,7 @@
 #include "slave/flags.hpp"
 
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
+#include "slave/containerizer/mesos/isolators/cgroups/net_cls.hpp"
 
 namespace mesos {
 namespace internal {
@@ -297,6 +298,60 @@ private:
   void oom(const ContainerID& containerId);
 
   void pressureListen(const ContainerID& containerId);
+
+  /**
+   * Store cgroups associated information for container.
+   */
+  hashmap<ContainerID, process::Owned<Info>> infos;
+};
+
+
+/**
+ * Represent cgroups net_cls subsystem.
+ */
+class NetClsSubsystem : public Subsystem
+{
+public:
+  NetClsSubsystem(const Flags& _flags, const std::string& _hierarchy);
+
+  virtual ~NetClsSubsystem() {}
+
+  virtual std::string name() const
+  {
+    return CGROUP_SUBSYSTEM_NET_CLS_NAME;
+  }
+
+  virtual process::Future<Nothing> recover(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> isolate(
+      const ContainerID& containerId, pid_t pid);
+
+  virtual process::Future<ContainerStatus> status(
+      const ContainerID& containerId);
+
+  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
+
+protected:
+  virtual Try<Nothing> load();
+
+private:
+  struct Info
+  {
+    Info() {}
+
+    Info(const NetClsHandle &_handle)
+      : handle(_handle) {}
+
+    const Option<NetClsHandle> handle;
+  };
+
+  Result<NetClsHandle> recoverHandle(
+      const std::string& hierarchy,
+      const std::string& cgroup);
+
+  Option<NetClsHandleManager> handleManager;
 
   /**
    * Store cgroups associated information for container.

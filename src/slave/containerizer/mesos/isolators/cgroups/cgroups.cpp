@@ -77,6 +77,7 @@ Try<Isolator*> CgroupsIsolatorProcess::create(const Flags& flags)
     {"cpu", CGROUP_SUBSYSTEM_CPU_NAME},
     {"cpu", CGROUP_SUBSYSTEM_CPUACCT_NAME},
     {"mem", CGROUP_SUBSYSTEM_MEMORY_NAME},
+    {"net_cls", CGROUP_SUBSYSTEM_NET_CLS_NAME},
   };
 
   foreach (string isolator, strings::tokenize(flags.isolation, ",")) {

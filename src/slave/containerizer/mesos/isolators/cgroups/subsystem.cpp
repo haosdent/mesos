@@ -21,6 +21,7 @@
 #include <process/defer.hpp>
 
 #include <stout/error.hpp>
+#include <stout/interval.hpp>
 #include <stout/nothing.hpp>
 #include <stout/try.hpp>
 
@@ -63,6 +64,8 @@ Try<Owned<Subsystem>> Subsystem::create(
     subsystem = Owned<Subsystem>(new CpuacctSubsystem(_flags, _hierarchy));
   } else if (_name == CGROUP_SUBSYSTEM_MEMORY_NAME) {
     subsystem = Owned<Subsystem>(new MemorySubsystem(_flags, _hierarchy));
+  } else if (_name == CGROUP_SUBSYSTEM_NET_CLS_NAME) {
+    subsystem = Owned<Subsystem>(new NetClsSubsystem(_flags, _hierarchy));
   } else {
     return Error("Unknown subsystem '" + _name + "'");
   }
@@ -821,6 +824,243 @@ void MemorySubsystem::pressureListen(const ContainerID& containerId)
                 << "events for container " << containerId;
     }
   }
+}
+
+
+NetClsSubsystem::NetClsSubsystem(
+    const Flags& _flags,
+    const string& _hierarchy)
+  : ProcessBase(process::ID::generate("cgroups-net-cls-subsystem")),
+    Subsystem(_flags, _hierarchy) {}
+
+
+Try<Nothing> NetClsSubsystem::load()
+{
+  IntervalSet<uint32_t> primaries;
+  IntervalSet<uint32_t> secondaries;
+
+  // Primary handle.
+  if (flags.cgroups_net_cls_primary_handle.isSome()) {
+    Try<uint16_t> primary = numify<uint16_t>(
+        flags.cgroups_net_cls_primary_handle.get());
+
+    if (primary.isError()) {
+      return Error(
+          "Failed to parse the primary handle '" +
+          flags.cgroups_net_cls_primary_handle.get() +
+          "' set in flag --cgroups_net_cls_primary_handle");
+    }
+
+    primaries +=
+      (Bound<uint32_t>::closed(primary.get()),
+       Bound<uint32_t>::closed(primary.get()));
+
+    // Range of valid secondary handles.
+    if (flags.cgroups_net_cls_secondary_handles.isSome()) {
+      vector<string> range =
+        strings::tokenize(flags.cgroups_net_cls_secondary_handles.get(), ",");
+
+      if (range.size() != 2) {
+        return Error(
+            "Failed to parse the range of secondary handles '" +
+            flags.cgroups_net_cls_secondary_handles.get() +
+            "' set in flag --cgroups_net_cls_secondary_handles");
+      }
+
+      Try<uint16_t> lower = numify<uint16_t>(range[0]);
+      if (lower.isError()) {
+        return Error(
+            "Failed to parse the lower bound of range of secondary handles '" +
+            flags.cgroups_net_cls_secondary_handles.get() +
+            "' set in flag --cgroups_net_cls_secondary_handles");
+      }
+
+      if (lower.get() == 0) {
+        return Error("The secondary handle has to be a non-zero value.");
+      }
+
+      Try<uint16_t> upper =  numify<uint16_t>(range[1]);
+      if (upper.isError()) {
+        return Error(
+            "Failed to parse the upper bound of range of secondary handles '" +
+            flags.cgroups_net_cls_secondary_handles.get() +
+            "' set in flag --cgroups_net_cls_secondary_handles");
+      }
+
+      secondaries +=
+        (Bound<uint32_t>::closed(lower.get()),
+         Bound<uint32_t>::closed(upper.get()));
+
+      if (secondaries.empty()) {
+        return Error(
+            "Secondary handle range specified '" +
+            flags.cgroups_net_cls_secondary_handles.get() +
+            "', in flag --cgroups_net_cls_secondary_handles, is an empty set");
+      }
+    }
+  }
+
+  if (!primaries.empty()) {
+    handleManager = NetClsHandleManager(primaries, secondaries);
+  }
+
+  return Nothing();
+}
+
+
+Future<Nothing> NetClsSubsystem::recover(const ContainerID& containerId)
+{
+  if (infos.contains(containerId)) {
+    return Failure(
+        "The subsystem '" + name() + "' of container " +
+        stringify(containerId) + " has already been recovered");
+  }
+
+  // Read the net_cls handle.
+  Result<NetClsHandle> handle = recoverHandle(
+      hierarchy,
+      path::join(flags.cgroups_root, containerId.value()));
+
+  if (handle.isError()) {
+    return Failure(
+        "Failed to recover the net_cls handle for container " +
+        stringify(containerId) + ": " + handle.error());
+  }
+
+  if (handle.isSome()) {
+    infos.put(containerId, Owned<Info>(new Info(handle.get())));
+  } else {
+    infos.put(containerId, Owned<Info>(new Info));
+  }
+
+  return Nothing();
+}
+
+
+Future<Nothing> NetClsSubsystem::prepare(const ContainerID& containerId)
+{
+  if (infos.contains(containerId)) {
+    return Failure(
+        "The subsystem '" + name() + "' of container " +
+        stringify(containerId) + " has already been prepared");
+  }
+
+  if (handleManager.isSome()) {
+    Try<NetClsHandle> handle = handleManager->alloc();
+    if (handle.isError()) {
+      return Failure(
+          "Failed to allocate a net_cls handle: " + handle.error());
+    }
+
+    LOG(INFO) << "Allocated a net_cls handle: " << handle.get()
+              << " to container " << containerId;
+
+    infos.put(containerId, Owned<Info>(new Info(handle.get())));
+  } else {
+    infos.put(containerId, Owned<Info>(new Info));
+  }
+
+  return Nothing();
+}
+
+
+Future<Nothing> NetClsSubsystem::isolate(
+    const ContainerID& containerId, pid_t pid)
+{
+  if (!infos.contains(containerId)) {
+    return Failure(
+        "Failed to isolate subsystem '" + name() + "': Unknown container");
+  }
+
+  // If handle is not specified, the assumption is that the operator is
+  // responsible for assigning the net_cls handles.
+  if (infos[containerId]->handle.isSome()) {
+    Try<Nothing> write = cgroups::net_cls::classid(
+        hierarchy,
+        path::join(flags.cgroups_root, containerId.value()),
+        infos[containerId]->handle->get());
+
+    if (write.isError()) {
+      return Failure(
+          "Failed to assign a net_cls handle to the cgroup: " + write.error());
+    }
+  }
+
+  return Nothing();
+}
+
+
+Future<ContainerStatus> NetClsSubsystem::status(const ContainerID& containerId)
+{
+  if (!infos.contains(containerId)) {
+    return Failure(
+        "Failed to status subsystem '" + name() + "': Unknown container");
+  }
+
+  ContainerStatus result;
+
+  if (infos[containerId]->handle.isSome()) {
+    VLOG(1) << "Updating container status with net_cls classid: "
+            << infos[containerId]->handle.get();
+
+    CgroupInfo* cgroupInfo = result.mutable_cgroup_info();
+    CgroupInfo::NetCls* netCls = cgroupInfo->mutable_net_cls();
+
+    netCls->set_classid(infos[containerId]->handle->get());
+  }
+
+  return result;
+}
+
+
+Future<Nothing> NetClsSubsystem::cleanup(const ContainerID& containerId)
+{
+  // Multiple calls may occur during test clean up.
+  if (!infos.contains(containerId)) {
+    VLOG(1) << "Ignoring cleanup subsystem '" << name()
+            << "' request for unknown container: " << containerId;
+    return Nothing();
+  }
+
+  if (infos[containerId]->handle.isSome() && handleManager.isSome()) {
+    Try<Nothing> free = handleManager->free(infos[containerId]->handle.get());
+    if (free.isError()) {
+      LOG(ERROR) << "Failed to free the net_cls handle when cleanup subsystem '"
+                 << name() << "': " << free.error();
+      return Failure("Could not free the net_cls handle: " + free.error());
+    }
+  }
+
+  infos.erase(containerId);
+
+  return Nothing();
+}
+
+
+Result<NetClsHandle> NetClsSubsystem::recoverHandle(
+    const std::string& hierarchy,
+    const std::string& cgroup)
+{
+  Try<uint32_t> classid = cgroups::net_cls::classid(hierarchy, cgroup);
+  if (classid.isError()) {
+    return Error("Failed to read 'net_cls.classid': " + classid.error());
+  }
+
+  if (classid.get() == 0) {
+    return None();
+  }
+
+  NetClsHandle handle(classid.get());
+
+  // Mark the handle as used in handle manager.
+  if (handleManager.isSome()) {
+    Try<Nothing> reserve = handleManager->reserve(handle);
+    if (reserve.isError()) {
+      return Error("Failed to reserve the handle: " + reserve.error());
+    }
+  }
+
+  return handle;
 }
 
 } // namespace slave {
