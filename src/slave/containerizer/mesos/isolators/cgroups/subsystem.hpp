@@ -185,6 +185,26 @@ protected:
   virtual Try<Nothing> load();
 };
 
+
+/**
+ * Represent cgroups cpuacct subsystem.
+ */
+class CpuacctSubsystem : public Subsystem
+{
+public:
+  CpuacctSubsystem(const Flags& _flags, const std::string& _hierarchy);
+
+  virtual ~CpuacctSubsystem() {}
+
+  virtual std::string name() const
+  {
+    return CGROUP_SUBSYSTEM_CPUACCT_NAME;
+  }
+
+  virtual process::Future<ResourceStatistics> usage(
+      const ContainerID& containerId);
+};
+
 } // namespace slave {
 } // namespace internal {
 } // namespace mesos {
