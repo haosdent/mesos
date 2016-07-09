@@ -38,6 +38,7 @@
 #include "slave/flags.hpp"
 
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
+#include "slave/containerizer/mesos/isolators/cgroups/perf_event.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/net_cls.hpp"
 
 namespace mesos {
@@ -352,6 +353,58 @@ private:
       const std::string& cgroup);
 
   Option<NetClsHandleManager> handleManager;
+
+  /**
+   * Store cgroups associated information for container.
+   */
+  hashmap<ContainerID, process::Owned<Info>> infos;
+};
+
+
+/**
+ * Represent cgroups perf_event subsystem.
+ */
+class PerfEventSubsystem: public Subsystem
+{
+public:
+  PerfEventSubsystem(const Flags& _flags, const std::string& _hierarchy);
+
+  virtual ~PerfEventSubsystem();
+
+  virtual std::string name() const
+  {
+    return CGROUP_SUBSYSTEM_PERF_EVENT_NAME;
+  }
+
+  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> recover(const ContainerID& containerId);
+
+  virtual process::Future<ResourceStatistics> usage(
+      const ContainerID& containerId);
+
+  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
+
+protected:
+  virtual Try<Nothing> load();
+
+private:
+  struct Info
+  {
+    Info()
+    {
+      // Ensure the initial statistics include the required fields.
+      // Note the duration is set to zero to indicate no sampling has
+      // taken place. This empty sample will be returned from usage()
+      // until the first true sample is obtained.
+      statistics.set_timestamp(process::Clock::now().secs());
+      statistics.set_duration(Seconds(0).secs());
+    }
+
+    PerfStatistics statistics;
+  };
+
+  process::Owned<PerfEventHandleManager> handleManager;
 
   /**
    * Store cgroups associated information for container.

@@ -27,6 +27,8 @@
 
 #include "common/protobuf_utils.hpp"
 
+#include "linux/perf.hpp"
+
 #include "slave/containerizer/mesos/isolators/cgroups/subsystem.hpp"
 
 using cgroups::memory::pressure::Counter;
@@ -66,6 +68,8 @@ Try<Owned<Subsystem>> Subsystem::create(
     subsystem = Owned<Subsystem>(new MemorySubsystem(_flags, _hierarchy));
   } else if (_name == CGROUP_SUBSYSTEM_NET_CLS_NAME) {
     subsystem = Owned<Subsystem>(new NetClsSubsystem(_flags, _hierarchy));
+  } else if (_name == CGROUP_SUBSYSTEM_PERF_EVENT_NAME) {
+    subsystem = Owned<Subsystem>(new PerfEventSubsystem(_flags, _hierarchy));
   } else {
     return Error("Unknown subsystem '" + _name + "'");
   }
@@ -1061,6 +1065,137 @@ Result<NetClsHandle> NetClsSubsystem::recoverHandle(
   }
 
   return handle;
+}
+
+
+PerfEventSubsystem::PerfEventSubsystem(
+    const Flags& _flags,
+    const string& _hierarchy)
+  : ProcessBase(process::ID::generate("cgroups-perf-event-subsystem")),
+    Subsystem(_flags, _hierarchy) {}
+
+
+PerfEventSubsystem::~PerfEventSubsystem()
+{
+  terminate(handleManager.get());
+  wait(handleManager.get());
+}
+
+
+Try<Nothing> PerfEventSubsystem::load()
+{
+  if (!perf::supported()) {
+    return Error("Perf is not supported");
+  }
+
+  if (flags.perf_duration > flags.perf_interval) {
+    return Error("Sampling perf for duration (" +
+                 stringify(flags.perf_duration) +
+                 ") > interval (" +
+                 stringify(flags.perf_interval) +
+                 ") is not supported.");
+  }
+
+  // Check perf_events.
+  if (!flags.perf_events.isSome()) {
+    return Error("No perf events specified");
+  }
+
+  set<string> events;
+  foreach (const string& event,
+           strings::tokenize(flags.perf_events.get(), ",")) {
+    events.insert(event);
+  }
+
+  if (!perf::valid(events)) {
+    return Error("Invalid perf events: " + stringify(events));
+  }
+
+  LOG(INFO) << "PerfEventSubsystem will profile for '" << flags.perf_duration
+            << "' every '" << flags.perf_interval
+            << "' for events: " << stringify(events);
+
+  handleManager = Owned<PerfEventHandleManager>(
+      new PerfEventHandleManager(flags, events));
+
+  spawn(handleManager.get());
+
+  return Nothing();
+}
+
+
+Future<Nothing> PerfEventSubsystem::recover(const ContainerID& containerId)
+{
+  if (infos.contains(containerId)) {
+    return Failure(
+        "The subsystem '" + name() + "' of container " +
+        stringify(containerId) + " has already been recovered");
+  }
+
+  infos.put(containerId, Owned<Info>(new Info));
+  handleManager->addCgroup(path::join(flags.cgroups_root, containerId.value()));
+
+  return Nothing();
+}
+
+
+Future<Nothing> PerfEventSubsystem::prepare(const ContainerID& containerId)
+{
+  if (infos.contains(containerId)) {
+    return Failure(
+        "The subsystem '" + name() + "' of container " +
+        stringify(containerId) + " has already been prepared");
+  }
+
+  infos.put(containerId, Owned<Info>(new Info));
+  handleManager->addCgroup(path::join(flags.cgroups_root, containerId.value()));
+
+  return Nothing();
+}
+
+
+Future<ResourceStatistics> PerfEventSubsystem::usage(
+    const ContainerID& containerId)
+{
+  if (!infos.contains(containerId)) {
+    return Failure(
+        "Failed to usage subsystem '" + name() + "': Unknown container");
+  }
+
+  Option<PerfStatistics> perfStatistics = handleManager->getStatistics(
+      path::join(flags.cgroups_root, containerId.value()));
+
+  if (perfStatistics.isSome()) {
+    infos[containerId]->statistics = perfStatistics.get();
+  } else {
+    LOG(WARNING) << "Couldn't find the PerfStatistics of cgroup '"
+                 << path::join(flags.cgroups_root, containerId.value())
+                 << "' in PerfEventHandleManager for container '"
+                 << containerId << "'";
+  }
+
+  ResourceStatistics statistics;
+  statistics.mutable_perf()->CopyFrom(infos[containerId]->statistics);
+
+  return statistics;
+}
+
+
+Future<Nothing> PerfEventSubsystem::cleanup(const ContainerID& containerId)
+{
+  // Multiple calls may occur during test clean up.
+  if (!infos.contains(containerId)) {
+    VLOG(1) << "Ignoring cleanup subsystem '" << name()
+            << "' request for unknown container: " << containerId;
+    return Nothing();
+  }
+
+  handleManager->removeCgroup(
+      path::join(flags.cgroups_root, containerId.value()));
+
+  infos.erase(containerId);
+
+  return Nothing();
 }
 
 } // namespace slave {
