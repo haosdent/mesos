@@ -412,6 +412,40 @@ private:
   hashmap<ContainerID, process::Owned<Info>> infos;
 };
 
+
+/**
+ * Represent cgroups devices subsystem.
+ */
+class DevicesSubsystem: public Subsystem
+{
+public:
+  DevicesSubsystem(const Flags& _flags, const std::string& _hierarchy);
+
+  virtual ~DevicesSubsystem() {}
+
+  virtual std::string name() const
+  {
+    return CGROUP_SUBSYSTEM_DEVICES_NAME;
+  }
+
+  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> recover(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
+
+private:
+  struct Info
+  {
+    Info() {}
+  };
+
+  /**
+   * Store cgroups associated information for container.
+   */
+  hashmap<ContainerID, process::Owned<Info>> infos;
+};
+
 } // namespace slave {
 } // namespace internal {
 } // namespace mesos {
