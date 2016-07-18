@@ -50,9 +50,9 @@ protected:
     // Return to previous working directory and cleanup the sandbox.
     ASSERT_SOME(os::chdir(cwd));
 
-    if (sandbox.isSome()) {
-      ASSERT_SOME(os::rmdir(sandbox.get()));
-    }
+    // if (sandbox.isSome()) {
+    //   ASSERT_SOME(os::rmdir(sandbox.get()));
+    // }
   }
 
   // A temporary directory for test purposes.

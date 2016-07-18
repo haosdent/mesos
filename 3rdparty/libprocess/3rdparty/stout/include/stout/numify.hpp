@@ -53,6 +53,13 @@ Try<T> numify(const std::string& s)
       }
     }
 
+    std::string s_ = strings::lower(s);
+    if (s_ == "true") {
+      return 1;
+    } else if (s_ == "false") {
+      return 0;
+    }
+
     return Error("Failed to convert '" + s + "' to number");
   }
 }
