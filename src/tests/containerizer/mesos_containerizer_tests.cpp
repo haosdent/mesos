@@ -1094,7 +1094,7 @@ TEST_F(HyperContainerizerTest, TestHyper)
   task.mutable_resources()->CopyFrom(offer.resources());
 
   CommandInfo command;
-  command.set_value("sleep 10");
+  command.set_value("sleep 1000");
 
   ContainerInfo containerInfo;
   containerInfo.set_type(ContainerInfo::CUSTOM);
@@ -1104,7 +1104,7 @@ TEST_F(HyperContainerizerTest, TestHyper)
   customInfo.set_name("hyper");
   Parameter* parameter = customInfo.add_parameters();
   parameter->set_key("image");
-  parameter->set_value("alpine");
+  parameter->set_value("ubuntu");
   containerInfo.mutable_custom()->CopyFrom(customInfo);
 
   task.mutable_command()->CopyFrom(command);
@@ -1117,7 +1117,7 @@ TEST_F(HyperContainerizerTest, TestHyper)
 
   driver.launchTasks(offers.get()[0].id(), {task});
 
-  AWAIT_READY_FOR(statusRunning, Seconds(60));
+  AWAIT_READY_FOR(statusRunning, Seconds(3600));
   EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
 
   // Now verify that the TaskStatus contains the container IP address.
@@ -1126,7 +1126,7 @@ TEST_F(HyperContainerizerTest, TestHyper)
   EXPECT_TRUE(
       statusRunning.get().container_status().network_infos(0).has_ip_address());
 
-  os::sleep(Seconds(30));
+  os::sleep(Seconds(3600));
 
   driver.stop();
   driver.join();
