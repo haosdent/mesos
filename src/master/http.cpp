@@ -2035,7 +2035,8 @@ Future<Response> Master::Http::redirect(const Request& request) const
     // base url of leading master to avoid infinite redirect loop.
     return TemporaryRedirect(basePath);
   } else {
-    return TemporaryRedirect(basePath + request.url.path);
+    CHECK(!request.url.isAbsolute());
+    return TemporaryRedirect(basePath + stringify(request.url));
   }
 }
 
