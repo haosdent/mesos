@@ -162,6 +162,11 @@ struct URL
   std::string path;
   hashmap<std::string, std::string> query;
   Option<std::string> fragment;
+
+  /**
+   * Returns whether the URL is absolute.
+   */
+  bool isAbsolute() const;
 };
 
 
