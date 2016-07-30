@@ -102,6 +102,10 @@ private:
       const hashmap<std::string, std::string>& _hierarchies,
       const multihashmap<std::string, process::Owned<Subsystem>>& _subsystems);
 
+  process::Future<Nothing> _recover(
+      const ContainerID& containerId,
+      const std::list<process::Future<Nothing>>& futures);
+
   process::Future<Option<mesos::slave::ContainerLaunchInfo>> _prepare(
       const ContainerID& containerId,
       const mesos::slave::ContainerConfig& containerConfig,

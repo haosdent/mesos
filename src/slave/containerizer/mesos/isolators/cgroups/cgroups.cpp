@@ -147,7 +147,125 @@ Future<Nothing> CgroupsIsolatorProcess::recover(
     const list<ContainerState>& states,
     const hashset<ContainerID>& orphans)
 {
-  return Failure("Not implemented.");
+  list<Future<Nothing>> allRecovers;
+  foreach (const ContainerState& state, states) {
+    const ContainerID& containerId = state.container_id();
+
+    infos[containerId] = Owned<Info>(new Info(
+        containerId,
+        path::join(flags.cgroups_root, containerId.value())));
+
+    list<Future<Nothing>> recovers;
+    foreachpair (const string& hierarchy,
+                 const Owned<Subsystem>& subsystem,
+                 subsystems) {
+      Try<bool> exists = cgroups::exists(hierarchy, infos[containerId]->cgroup);
+      if (exists.isError()) {
+        infos.clear();
+        return Failure("Failed to check cgroup at '" +
+                       path::join(hierarchy, infos[containerId]->cgroup) + "'" +
+                       " for container " + stringify(containerId) + ": " +
+                       exists.error());
+      }
+
+      if (!exists.get()) {
+        // This may occur if the executor has exited and the isolator has
+        // destroyed the cgroup but the agent dies before noticing this. This
+        // will be detected when the containerizer tries to monitor the
+        // executor's pid.
+        LOG(WARNING) << "Couldn't find the cgroup "
+                     << "'" << infos[containerId]->cgroup << "' in "
+                     << "'" << hierarchy << "' for container " << containerId;
+      } else {
+        // Only recover subsystem exist before.
+        recovers.push_back(subsystem->recover(containerId));
+      }
+    }
+
+    allRecovers.push_back(await(recovers)
+      .then(defer(
+          PID<CgroupsIsolatorProcess>(this),
+          &CgroupsIsolatorProcess::_recover,
+          containerId,
+          lambda::_1)));
+  }
+
+  // Remove orphan cgroups.
+  foreachvalue (const string& hierarchy, hierarchies) {
+    Try<vector<string>> cgroups = cgroups::get(
+        hierarchy,
+        flags.cgroups_root);
+
+    if (cgroups.isError()) {
+      infos.clear();
+      return Failure(cgroups.error());
+    }
+
+    foreach (const string& cgroup, cgroups.get()) {
+      // Ignore the slave cgroup (see the --slave_subsystems flag).
+      // TODO(idownes): Remove this when the cgroups layout is updated, see
+      // MESOS-1185.
+      if (cgroup == path::join(flags.cgroups_root, "slave")) {
+        continue;
+      }
+
+      ContainerID containerId;
+      containerId.set_value(Path(cgroup).basename());
+
+      // Skip containerId which already have been recorded.
+      if (infos.contains(containerId)) {
+        continue;
+      }
+
+      // Known orphan cgroups will be destroyed by the containerizer using the
+      // normal cleanup path. In this case, we don't recover subsystems for
+      // them. See MESOS-2367 for details.
+      if (orphans.contains(containerId)) {
+        infos[containerId] = Owned<Info>(new Info(
+            containerId,
+            path::join(flags.cgroups_root, containerId.value())));
+
+        continue;
+      }
+
+      LOG(INFO) << "Removing unknown orphaned cgroup at "
+                << "'" << path::join(hierarchy, cgroup) << "'";
+
+      // We don't wait on the destroy as we don't want to block recovery.
+      cgroups::destroy(
+          hierarchy,
+          cgroup,
+          cgroups::DESTROY_TIMEOUT);
+    }
+  }
+
+  return collect(allRecovers).then([]() -> Future<Nothing> {
+    return Nothing();
+  });
+}
+
+
+Future<Nothing> CgroupsIsolatorProcess::_recover(
+    const ContainerID& containerId,
+    const list<Future<Nothing>>& futures)
+{
+  vector<string> errors;
+  foreach (const Future<Nothing>& future, futures) {
+    if (!future.isReady()) {
+      errors.push_back((future.isFailed()
+          ? future.failure()
+          : "discarded"));
+    }
+  }
+
+  if (errors.size() > 0) {
+    cleanup(containerId);
+    return Failure(
+        "Failed to recover subsystems: " +
+        strings::join(";", errors));
+  }
+
+  return Nothing();
 }
 
 
