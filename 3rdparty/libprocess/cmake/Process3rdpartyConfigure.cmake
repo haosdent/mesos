@@ -152,7 +152,7 @@ set(
   MESOS_FETCHER mesos-fetcher
   CACHE STRING "Target for fetcher")
 
-# Define target for health-master.
+# Define target for master.
 set(
   MESOS_MASTER mesos-master
   CACHE STRING "Target for master")
