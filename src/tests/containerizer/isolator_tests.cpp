@@ -52,6 +52,7 @@
 #include "slave/slave.hpp"
 
 #ifdef __linux__
+#include "slave/containerizer/mesos/isolators/cgroups/cgroups.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/cpushare.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/mem.hpp"
@@ -81,6 +82,7 @@ using namespace process;
 using mesos::internal::master::Master;
 #ifdef __linux__
 using mesos::internal::slave::CgroupsCpushareIsolatorProcess;
+using mesos::internal::slave::CgroupsIsolatorProcess;
 using mesos::internal::slave::CgroupsMemIsolatorProcess;
 using mesos::internal::slave::CgroupsNetClsIsolatorProcess;
 using mesos::internal::slave::CgroupsPerfEventIsolatorProcess;
@@ -1567,8 +1569,7 @@ TEST_F(NamespacesPidIsolatorTest, ROOT_PidNamespace)
 const string UNPRIVILEGED_USERNAME = "mesos.test.unprivileged.user";
 
 
-template <typename T>
-class UserCgroupIsolatorTest
+class UserCgroupsIsolatorTest
   : public ContainerizerTest<slave::MesosContainerizer>
 {
 public:
@@ -1593,28 +1594,19 @@ public:
 };
 
 
-// Test all isolators that use cgroups.
-typedef ::testing::Types<
-  CgroupsMemIsolatorProcess,
-  CgroupsCpushareIsolatorProcess,
-  CgroupsPerfEventIsolatorProcess> CgroupsIsolatorTypes;
-
-
-TYPED_TEST_CASE(UserCgroupIsolatorTest, CgroupsIsolatorTypes);
-
-
-TYPED_TEST(UserCgroupIsolatorTest, ROOT_CGROUPS_PERF_UserCgroup)
+TEST_F(UserCgroupsIsolatorTest, ROOT_CGROUPS_PERF_UserCgroup)
 {
-  slave::Flags flags = UserCgroupIsolatorTest<TypeParam>::CreateSlaveFlags();
-  flags.perf_events = "cpu-cycles"; // Needed for CgroupsPerfEventIsolator.
+  slave::Flags flags = CreateSlaveFlags();
+  flags.perf_events = "cpu-cycles"; // Needed for `PerfEventSubsystem`.
+  flags.isolation = "cgroups/perf_event,cgroups/mem,cgroups/cpu";
 
-  Try<Isolator*> _isolator = TypeParam::create(flags);
+  Try<Isolator*> _isolator = CgroupsIsolatorProcess::create(flags);
   ASSERT_SOME(_isolator);
   Owned<Isolator> isolator(_isolator.get());
 
   ExecutorInfo executorInfo;
   executorInfo.mutable_resources()->CopyFrom(
-      Resources::parse("mem:1024;cpus:1").get()); // For cpu/mem isolators.
+      Resources::parse("mem:1024;cpus:1").get()); // For cpu/mem subsystems.
 
   ContainerID containerId;
   containerId.set_value(UUID::random().toString());
