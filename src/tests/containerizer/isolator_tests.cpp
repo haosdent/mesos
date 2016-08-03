@@ -54,7 +54,6 @@
 #ifdef __linux__
 #include "slave/containerizer/mesos/isolators/cgroups/cgroups.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
-#include "slave/containerizer/mesos/isolators/cgroups/mem.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/net_cls.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/perf_event.hpp"
 #include "slave/containerizer/mesos/isolators/filesystem/shared.hpp"
@@ -81,7 +80,6 @@ using namespace process;
 using mesos::internal::master::Master;
 #ifdef __linux__
 using mesos::internal::slave::CgroupsIsolatorProcess;
-using mesos::internal::slave::CgroupsMemIsolatorProcess;
 using mesos::internal::slave::CgroupsNetClsIsolatorProcess;
 using mesos::internal::slave::CgroupsPerfEventIsolatorProcess;
 using mesos::internal::slave::CPU_SHARES_PER_CPU_REVOCABLE;
@@ -947,7 +945,7 @@ class MemIsolatorTest : public MesosTest {};
 typedef ::testing::Types<
     PosixMemIsolatorProcess,
 #ifdef __linux__
-    CgroupsMemIsolatorProcess,
+    CgroupsIsolatorProcess,
 #endif // __linux__
     tests::Module<Isolator, TestMemIsolator>> MemIsolatorTypes;
 
@@ -958,6 +956,9 @@ TYPED_TEST_CASE(MemIsolatorTest, MemIsolatorTypes);
 TYPED_TEST(MemIsolatorTest, MemUsage)
 {
   slave::Flags flags;
+
+  // Used to create `MemorySubsystem` in CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/mem";
 
   Try<Isolator*> _isolator = TypeParam::create(flags);
   ASSERT_SOME(_isolator);
