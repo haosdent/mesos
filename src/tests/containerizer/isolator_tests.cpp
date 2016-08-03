@@ -52,8 +52,8 @@
 #include "slave/slave.hpp"
 
 #ifdef __linux__
+#include "slave/containerizer/mesos/isolators/cgroups/cgroups.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
-#include "slave/containerizer/mesos/isolators/cgroups/cpushare.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/mem.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/net_cls.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/perf_event.hpp"
@@ -80,7 +80,7 @@ using namespace process;
 
 using mesos::internal::master::Master;
 #ifdef __linux__
-using mesos::internal::slave::CgroupsCpushareIsolatorProcess;
+using mesos::internal::slave::CgroupsIsolatorProcess;
 using mesos::internal::slave::CgroupsMemIsolatorProcess;
 using mesos::internal::slave::CgroupsNetClsIsolatorProcess;
 using mesos::internal::slave::CgroupsPerfEventIsolatorProcess;
@@ -198,7 +198,7 @@ class CpuIsolatorTest : public MesosTest {};
 typedef ::testing::Types<
     PosixCpuIsolatorProcess,
 #ifdef __linux__
-    CgroupsCpushareIsolatorProcess,
+    CgroupsIsolatorProcess,
 #endif // __linux__
     tests::Module<Isolator, TestCpuIsolator>> CpuIsolatorTypes;
 
@@ -209,6 +209,10 @@ TYPED_TEST_CASE(CpuIsolatorTest, CpuIsolatorTypes);
 TYPED_TEST(CpuIsolatorTest, UserCpuUsage)
 {
   slave::Flags flags;
+
+  // Used to create `CpuSubsystem` and `CpuacctSubsystem` in
+  // CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/cpu";
 
   Try<Isolator*> _isolator = TypeParam::create(flags);
   ASSERT_SOME(_isolator);
@@ -321,6 +325,10 @@ TYPED_TEST(CpuIsolatorTest, UserCpuUsage)
 TYPED_TEST(CpuIsolatorTest, SystemCpuUsage)
 {
   slave::Flags flags;
+
+  // Used to create `CpuSubsystem` and `CpuacctSubsystem` in
+  // CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/cpu";
 
   Try<Isolator*> _isolator = TypeParam::create(flags);
   ASSERT_SOME(_isolator);
@@ -517,14 +525,18 @@ TEST_F(NetClsHandleManagerTest, SecondaryHandleRange)
 
 
 #ifdef __linux__
-class RevocableCpuIsolatorTest : public MesosTest {};
+class CgroupsIsolatorTest : public MesosTest {};
 
 
-TEST_F(RevocableCpuIsolatorTest, ROOT_CGROUPS_RevocableCpu)
+TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_CpuSubsystemRevocable)
 {
   slave::Flags flags;
 
-  Try<Isolator*> _isolator = CgroupsCpushareIsolatorProcess::create(flags);
+  // Used to create `CpuSubsystem` and `CpuacctSubsystem` in
+  // CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/cpu";
+
+  Try<Isolator*> _isolator = CgroupsIsolatorProcess::create(flags);
   ASSERT_SOME(_isolator);
   Owned<Isolator> isolator(_isolator.get());
 
@@ -591,17 +603,17 @@ TEST_F(RevocableCpuIsolatorTest, ROOT_CGROUPS_RevocableCpu)
 
 
 #ifdef __linux__
-class LimitedCpuIsolatorTest : public MesosTest {};
-
-
-TEST_F(LimitedCpuIsolatorTest, ROOT_CGROUPS_CFS_Enable_Cfs)
+TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_CFS_CpuSubsystemEnableCfs)
 {
   slave::Flags flags;
 
+  // Used to create `CpuSubsystem` and `CpuacctSubsystem` in
+  // CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/cpu";
   // Enable CFS to cap CPU utilization.
   flags.cgroups_enable_cfs = true;
 
-  Try<Isolator*> _isolator = CgroupsCpushareIsolatorProcess::create(flags);
+  Try<Isolator*> _isolator = CgroupsIsolatorProcess::create(flags);
   ASSERT_SOME(_isolator);
   Owned<Isolator> isolator(_isolator.get());
 
@@ -709,14 +721,17 @@ TEST_F(LimitedCpuIsolatorTest, ROOT_CGROUPS_CFS_Enable_Cfs)
 // observed in MESOS-1049.
 // TODO(vinod): Revisit this if/when the isolator restricts the number
 // of cpus that an executor can use based on the slave cpus.
-TEST_F(LimitedCpuIsolatorTest, ROOT_CGROUPS_CFS_Big_Quota)
+TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_CFS_CpuSubsystemBigQuota)
 {
   slave::Flags flags;
 
+  // Used to create `CpuSubsystem` and `CpuacctSubsystem` in
+  // CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/cpu";
   // Enable CFS to cap CPU utilization.
   flags.cgroups_enable_cfs = true;
 
-  Try<Isolator*> _isolator = CgroupsCpushareIsolatorProcess::create(flags);
+  Try<Isolator*> _isolator = CgroupsIsolatorProcess::create(flags);
   ASSERT_SOME(_isolator);
   Owned<Isolator> isolator(_isolator.get());
 
@@ -798,12 +813,16 @@ TEST_F(LimitedCpuIsolatorTest, ROOT_CGROUPS_CFS_Big_Quota)
 
 // A test to verify the number of processes and threads in a
 // container.
-TEST_F(LimitedCpuIsolatorTest, ROOT_CGROUPS_Pids_and_Tids)
+TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_CpuacctSubsystemPidsAndTids)
 {
   slave::Flags flags;
+
+  // Used to create `CpuSubsystem` and `CpuacctSubsystem` in
+  // CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/cpu";
   flags.cgroups_cpu_enable_pids_and_tids_count = true;
 
-  Try<Isolator*> _isolator = CgroupsCpushareIsolatorProcess::create(flags);
+  Try<Isolator*> _isolator = CgroupsIsolatorProcess::create(flags);
   ASSERT_SOME(_isolator);
   Owned<Isolator> isolator(_isolator.get());
 
