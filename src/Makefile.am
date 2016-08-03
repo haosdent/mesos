@@ -1046,7 +1046,6 @@ MESOS_LINUX_FILES =							\
   slave/containerizer/mesos/linux_launcher.cpp				\
   slave/containerizer/mesos/isolators/appc/runtime.cpp			\
   slave/containerizer/mesos/isolators/cgroups/cgroups.cpp		\
-  slave/containerizer/mesos/isolators/cgroups/perf_event.cpp		\
   slave/containerizer/mesos/isolators/cgroups/subsystem.cpp		\
   slave/containerizer/mesos/isolators/docker/runtime.cpp		\
   slave/containerizer/mesos/isolators/docker/volume/isolator.cpp	\
@@ -1074,7 +1073,6 @@ MESOS_LINUX_FILES +=							\
   slave/containerizer/mesos/isolators/appc/runtime.hpp			\
   slave/containerizer/mesos/isolators/cgroups/cgroups.hpp		\
   slave/containerizer/mesos/isolators/cgroups/constants.hpp		\
-  slave/containerizer/mesos/isolators/cgroups/perf_event.hpp		\
   slave/containerizer/mesos/isolators/cgroups/subsystem.hpp		\
   slave/containerizer/mesos/isolators/docker/runtime.hpp		\
   slave/containerizer/mesos/isolators/docker/volume/isolator.hpp	\

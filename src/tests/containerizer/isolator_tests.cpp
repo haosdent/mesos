@@ -54,7 +54,6 @@
 #ifdef __linux__
 #include "slave/containerizer/mesos/isolators/cgroups/cgroups.hpp"
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
-#include "slave/containerizer/mesos/isolators/cgroups/perf_event.hpp"
 #include "slave/containerizer/mesos/isolators/filesystem/shared.hpp"
 #endif // __linux__
 #include "slave/containerizer/mesos/isolators/posix.hpp"
@@ -79,7 +78,6 @@ using namespace process;
 using mesos::internal::master::Master;
 #ifdef __linux__
 using mesos::internal::slave::CgroupsIsolatorProcess;
-using mesos::internal::slave::CgroupsPerfEventIsolatorProcess;
 using mesos::internal::slave::CPU_SHARES_PER_CPU_REVOCABLE;
 using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::LinuxLauncher;
@@ -1230,10 +1228,7 @@ TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_NetClsSubsystemContainerStatus)
 
 
 #ifdef __linux__
-class PerfEventIsolatorTest : public MesosTest {};
-
-
-TEST_F(PerfEventIsolatorTest, ROOT_CGROUPS_Sample)
+TEST_F(CgroupsIsolatorTest, ROOT_CGROUPS_PerfEventSubsystemSample)
 {
   slave::Flags flags;
 
@@ -1241,7 +1236,10 @@ TEST_F(PerfEventIsolatorTest, ROOT_CGROUPS_Sample)
   flags.perf_duration = Milliseconds(250);
   flags.perf_interval = Milliseconds(500);
 
-  Try<Isolator*> _isolator = CgroupsPerfEventIsolatorProcess::create(flags);
+  // Used to create `PerfEventSubsystem` in CgroupsIsolatorProcess.
+  flags.isolation = "cgroups/perf_event";
+
+  Try<Isolator*> _isolator = CgroupsIsolatorProcess::create(flags);
   ASSERT_SOME(_isolator);
   Owned<Isolator> isolator(_isolator.get());
 

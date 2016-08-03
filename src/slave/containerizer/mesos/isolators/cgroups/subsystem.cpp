@@ -19,6 +19,8 @@
 
 #include <process/collect.hpp>
 #include <process/defer.hpp>
+#include <process/delay.hpp>
+#include <process/reap.hpp>
 
 #include <stout/error.hpp>
 #include <stout/interval.hpp>
@@ -38,10 +40,12 @@ using cgroups::memory::pressure::Level;
 
 using mesos::slave::ContainerLimitation;
 
+using process::Clock;
 using process::Failure;
 using process::Future;
 using process::Owned;
 using process::PID;
+using process::Time;
 
 using std::list;
 using std::ostream;
@@ -1279,6 +1283,106 @@ Result<NetClsHandle> NetClsSubsystem::recoverHandle(
   }
 
   return handle;
+}
+
+
+PerfEventHandleManager::PerfEventHandleManager(
+    const Flags& _flags,
+    const set<string>& _events)
+  : flags(_flags),
+    events(_events) {}
+
+
+void PerfEventHandleManager::addCgroup(const string& cgroup)
+{
+  if (cgroups.count(cgroup) > 0) {
+    return;
+  }
+
+  cgroups.insert(cgroup);
+}
+
+
+void PerfEventHandleManager::removeCgroup(const string& cgroup)
+{
+  if (cgroups.count(cgroup) == 0) {
+    return;
+  }
+
+  cgroups.erase(cgroup);
+}
+
+
+Option<PerfStatistics> PerfEventHandleManager::getStatistics(
+    const std::string& cgroup)
+{
+  return statistics.get(cgroup);
+}
+
+
+void PerfEventHandleManager::initialize()
+{
+  // Start sampling.
+  sample();
+}
+
+
+Future<hashmap<string, PerfStatistics>> discardSample(
+    Future<hashmap<string, PerfStatistics>> future,
+    const Duration& duration,
+    const Duration& timeout)
+{
+  LOG(ERROR) << "Perf sample of " << stringify(duration)
+             << " failed to complete within " << stringify(timeout)
+             << "; sampling will be halted";
+
+  future.discard();
+
+  return future;
+}
+
+
+void PerfEventHandleManager::sample()
+{
+  // The discard timeout includes an allowance of twice the reaper interval to
+  // ensure we see the perf process exit.
+  Duration timeout = flags.perf_duration + process::MAX_REAP_INTERVAL() * 2;
+
+  perf::sample(events, cgroups, flags.perf_duration)
+    .after(timeout,
+           lambda::bind(&discardSample,
+                        lambda::_1,
+                        flags.perf_duration,
+                        timeout))
+    .onAny(defer(self(),
+                 &Self::_sample,
+                 Clock::now() + flags.perf_interval,
+                 lambda::_1));
+}
+
+
+void PerfEventHandleManager::_sample(
+    const Time& next,
+    const Future<hashmap<string, PerfStatistics>>& _statistics)
+{
+  if (!_statistics.isReady()) {
+    // In case the failure is transient or this is due to a timeout,
+    // we continue sampling. Note that since sampling is done on an
+    // interval, it should be ok if this is a non-transient failure.
+    LOG(ERROR) << "Failed to get perf sample: "
+               << (_statistics.isFailed()
+                   ? _statistics.failure()
+                   : "discarded due to timeout");
+  } else {
+    // Store the latest statistics, note that cgroups added in the
+    // interim will be picked up by the next sample.
+    statistics = _statistics.get();
+  }
+
+  // Schedule sample for the next time.
+  delay(next - Clock::now(),
+        self(),
+        &Self::sample);
 }
 
 

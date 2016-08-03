@@ -39,7 +39,6 @@
 #include "slave/flags.hpp"
 
 #include "slave/containerizer/mesos/isolators/cgroups/constants.hpp"
-#include "slave/containerizer/mesos/isolators/cgroups/perf_event.hpp"
 
 namespace mesos {
 namespace internal {
@@ -441,6 +440,40 @@ private:
    * Store cgroups associated information for container.
    */
   hashmap<ContainerID, process::Owned<Info>> infos;
+};
+
+
+class PerfEventHandleManager : public process::Process<PerfEventHandleManager>
+{
+public:
+  PerfEventHandleManager(
+      const Flags& _flags,
+      const std::set<std::string>& _events);
+
+  virtual void addCgroup(const std::string& cgroup);
+
+  virtual void removeCgroup(const std::string& cgroup);
+
+  virtual Option<PerfStatistics> getStatistics(const std::string& cgroup);
+
+protected:
+  virtual void initialize();
+
+private:
+  void sample();
+
+  void _sample(
+      const process::Time& next,
+      const process::Future<hashmap<std::string, PerfStatistics>>& _statistics);
+
+  Flags flags;
+
+  // Set of events to sample.
+  std::set<std::string> events;
+
+  std::set<std::string> cgroups;
+
+  hashmap<std::string, PerfStatistics> statistics;
 };
 
 
