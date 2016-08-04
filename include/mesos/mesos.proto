@@ -322,29 +322,49 @@ message FrameworkInfo {
  * Specifying more than one strategy is an error.
  */
 message HealthCheck {
-  // Describes an HTTP health check. This is not fully implemented and not
-  // recommended for use - see MESOS-2533.
+  enum Type {
+    UNKNOWN = 0;
+    COMMAND_CHECK = 1;
+    HTTP_CHECK = 2;
+    TCP_CHECK = 3;
+  }
+
+  // Describes an HTTP health check. Sends a GET request to
+  // scheme://<host>:port/path. Return codes between 200 and 399 are treated as
+  // success, failure otherwise. Note that <host> is not configurable and is
+  // resolved automatically, in most cases to localhost.
   message HTTP {
+    optional string scheme = 1;
+
     // Port to send the HTTP request.
-    required uint32 port = 1;
+    required uint32 port = 2;
 
     // HTTP request path.
-    optional string path = 2 [default = "/"];
+    optional string path = 3;
 
-    // TODO(benh): Implement:
-    // Whether or not to use HTTPS.
-    // optional bool ssl = 3 [default = false];
+    // TODO(alexr): Add support for HTTP method. While adding POST
+    // and PUT is simple, supporting payload is more involved.
+    // Currently, only GET is supported.
 
-    // Expected response statuses. Not specifying any statuses implies
-    // that any returned status is acceptable.
-    repeated uint32 statuses = 4;
+    // TODO(alexr): Add support for custom HTTP headers.
+
+    // TODO(alexr): Add support for success and possibly failure
+    // statuses.
+
+    // TODO(haosdent): Consider adding a flag to indicate if use insecure
+    // SSL connection when performing HTTPs health check.
 
     // TODO(benh): Include an 'optional bytes data' field for checking
     // for specific data in the response.
   }
 
-  // HTTP health check - not yet recommended for use, see MESOS-2533.
-  optional HTTP http = 1;
+  // Describes a TCP health check. Establishes a TCP connection to the specified
+  // port. The connection establishes successfully is treated as success,
+  // failure otherwise.
+  message TCP {
+    // Port expected to be open.
+    required uint32 port = 1;
+  }
 
   // TODO(benh): Consider adding a URL health check strategy which
   // allows doing something similar to the HTTP strategy but
@@ -371,8 +391,17 @@ message HealthCheck {
   // TODO(alexr): Add an optional `KillPolicy` that should be used
   // if the task is killed because of a health check failure.
 
+  // The type of health check.
+  optional Type type = 8;
+
   // Command health check.
   optional CommandInfo command = 7;
+
+  // HTTP health check.
+  optional HTTP http = 1;
+
+  // TCP health check.
+  optional TCP tcp = 9;
 }
 
 
