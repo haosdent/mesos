@@ -548,9 +548,10 @@ mesos::internal::slave::Flags::Flags()
 
   add(&Flags::docker_socket,
       "docker_socket",
-      "The UNIX socket path to be mounted into the docker executor container\n"
-      "to provide docker CLI access to the docker daemon. This must be the\n"
-      "path used by the agent's docker image.\n",
+      "The docker daemon socket to provide docker CLI access to the docker\n"
+      "daemon(e.g., tcp://0.0.0.0:2375, unix:///var/run/docker.sock, \n"
+      "/var/run/docker.sock, etc).\n"
+      "If protocol prefix not specified, use unix domain socket by default.\n",
       "/var/run/docker.sock");
 
   add(&Flags::docker_config,

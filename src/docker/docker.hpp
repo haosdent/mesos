@@ -47,7 +47,7 @@ public:
   // Create Docker abstraction and optionally validate docker.
   static Try<process::Owned<Docker>> create(
       const std::string& path,
-      const std::string& socket,
+      std::string socket,
       bool validate = true,
       const Option<JSON::Object>& config = None());
 
@@ -212,7 +212,7 @@ protected:
          const std::string& _socket,
          const Option<JSON::Object>& _config)
        : path(_path),
-         socket("unix://" + _socket),
+         socket(_socket),
          config(_config) {}
 
 private:

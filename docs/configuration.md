@@ -1301,10 +1301,10 @@ The amount of time to wait before removing docker containers
     --docker_socket=VALUE
   </td>
   <td>
-The UNIX socket path to be mounted into the docker executor container
-to provide docker CLI access to the docker daemon. This must be the
-path used by the agent's docker image.
-(default: /var/run/docker.sock)
+The docker daemon socket to provide docker CLI access to the docker
+daemon(e.g., tcp://0.0.0.0:2375, unix:///var/run/docker.sock,
+/var/run/docker.sock, etc).
+If protocol prefix not specified, use unix domain socket by default.
   </td>
 </tr>
 <tr>

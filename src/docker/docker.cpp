@@ -100,12 +100,12 @@ static Future<Nothing> checkError(const string& cmd, const Subprocess& s)
 
 Try<Owned<Docker>> Docker::create(
     const string& path,
-    const string& socket,
+    string socket,
     bool validate,
     const Option<JSON::Object>& config)
 {
-  if (!path::absolute(socket)) {
-    return Error("Invalid Docker socket path: " + socket);
+  if (path::absolute(socket)) {
+    socket = "unix://" + socket;
   }
 
   Owned<Docker> docker(new Docker(path, socket, config));

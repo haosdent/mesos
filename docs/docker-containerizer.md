@@ -145,3 +145,6 @@ With the `--docker_mesos_image` flag enabled, the Docker containerizer
 assumes the containerizer is running in a container itself and
 modifies the mechanism it recovers and launches docker containers
 accordingly.
+
+Noted that only unix domain socket is supported for `--docker_socket`
+flag when `--docker_mesos_image` flag enabled.
