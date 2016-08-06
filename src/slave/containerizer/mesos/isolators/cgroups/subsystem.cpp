@@ -131,6 +131,12 @@ Try<Nothing> Subsystem::load()
 }
 
 
+const string& Subsystem::getCgroup(const ContainerID& containerId)
+{
+  return cgroupMap[containerId];
+}
+
+
 void Subsystem::init(
     const lambda::function<
         void(const ContainerID&, const ContainerLimitation&)>& _notifyCallback)
@@ -141,17 +147,58 @@ void Subsystem::init(
 
 Future<Nothing> Subsystem::recover(const ContainerID& containerId)
 {
+  if (cgroupMap.contains(containerId)) {
+    return Failure(
+        "The subsystem '" + name() + "' of container " +
+        stringify(containerId) + " has already been recovered");
+  }
+
+  cgroupMap.put(
+      containerId, path::join(flags.cgroups_root, containerId.value()));
+
+  return _recover(containerId);
+}
+
+
+Future<Nothing> Subsystem::_recover(const ContainerID& containerId)
+{
   return Nothing();
 }
 
 
 Future<Nothing> Subsystem::prepare(const ContainerID& containerId)
 {
+  if (cgroupMap.contains(containerId)) {
+    return Failure(
+        "The subsystem '" + name() + "' of container " +
+        stringify(containerId) + " has already been prepared");
+  }
+
+  cgroupMap.put(
+      containerId, path::join(flags.cgroups_root, containerId.value()));
+
+  return _prepare(containerId);
+}
+
+
+Future<Nothing> Subsystem::_prepare(const ContainerID& containerId)
+{
   return Nothing();
 }
 
 
 Future<Nothing> Subsystem::isolate(const ContainerID& containerId, pid_t pid)
+{
+  if (!cgroupMap.contains(containerId)) {
+    return Failure(
+        "Failed to isolate subsystem '" + name() + "': Unknown container");
+  }
+
+  return _isolate(containerId, pid);
+}
+
+
+Future<Nothing> Subsystem::_isolate(const ContainerID& containerId, pid_t pid)
 {
   return Nothing();
 }
@@ -161,11 +208,35 @@ Future<Nothing> Subsystem::update(
     const ContainerID& containerId,
     const Resources& resources)
 {
+  if (!cgroupMap.contains(containerId)) {
+    return Failure(
+        "Failed to update subsystem '" + name() + "': Unknown container");
+  }
+
+  return _update(containerId, resources);
+}
+
+
+Future<Nothing> Subsystem::_update(
+    const ContainerID& containerId,
+    const Resources& resources)
+{
   return Nothing();
 }
 
 
 Future<ResourceStatistics> Subsystem::usage(const ContainerID& containerId)
+{
+  if (!cgroupMap.contains(containerId)) {
+    return Failure(
+        "Failed to usage subsystem '" + name() + "': Unknown container");
+  }
+
+  return _usage(containerId);
+}
+
+
+Future<ResourceStatistics> Subsystem::_usage(const ContainerID& containerId)
 {
   return ResourceStatistics();
 }
@@ -173,12 +244,45 @@ Future<ResourceStatistics> Subsystem::usage(const ContainerID& containerId)
 
 Future<ContainerStatus> Subsystem::status(const ContainerID& containerId)
 {
+  if (!cgroupMap.contains(containerId)) {
+    return Failure(
+        "Failed to status subsystem '" + name() + "': Unknown container");
+  }
+
+  return _status(containerId);
+}
+
+
+Future<ContainerStatus> Subsystem::_status(const ContainerID& containerId)
+{
   return ContainerStatus();
 }
 
 
 Future<Nothing> Subsystem::cleanup(const ContainerID& containerId)
 {
+  // Multiple calls may occur during test clean up.
+  if (!cgroupMap.contains(containerId)) {
+    VLOG(1) << "Ignoring cleanup subsystem '" << name()
+            << "' request for unknown container: " << containerId;
+    return Nothing();
+  }
+
+  return _cleanup(containerId).then(
+      defer(self(), &Self::__cleanup, containerId));
+}
+
+
+Future<Nothing> Subsystem::_cleanup(const ContainerID& containerId)
+{
+  return Nothing();
+}
+
+
+Future<Nothing> Subsystem::__cleanup(const ContainerID& containerId)
+{
+  cgroupMap.erase(containerId);
+
   return Nothing();
 }
 
@@ -209,7 +313,7 @@ Try<Nothing> CpuSubsystem::load()
 }
 
 
-Future<Nothing> CpuSubsystem::update(
+Future<Nothing> CpuSubsystem::_update(
     const ContainerID& containerId,
     const Resources& resources)
 {
@@ -236,7 +340,7 @@ Future<Nothing> CpuSubsystem::update(
 
   Try<Nothing> write = cgroups::cpu::shares(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()),
+      getCgroup(containerId),
       shares);
 
   if (write.isError()) {
@@ -251,7 +355,7 @@ Future<Nothing> CpuSubsystem::update(
   if (flags.cgroups_enable_cfs) {
     write = cgroups::cpu::cfs_period_us(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()),
+        getCgroup(containerId),
         CPU_CFS_PERIOD);
 
     if (write.isError()) {
@@ -262,7 +366,7 @@ Future<Nothing> CpuSubsystem::update(
 
     write = cgroups::cpu::cfs_quota_us(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()),
+        getCgroup(containerId),
         quota);
 
     if (write.isError()) {
@@ -279,7 +383,7 @@ Future<Nothing> CpuSubsystem::update(
 }
 
 
-Future<ResourceStatistics> CpuSubsystem::usage(const ContainerID& containerId)
+Future<ResourceStatistics> CpuSubsystem::_usage(const ContainerID& containerId)
 {
   ResourceStatistics result;
 
@@ -287,7 +391,7 @@ Future<ResourceStatistics> CpuSubsystem::usage(const ContainerID& containerId)
   if (flags.cgroups_enable_cfs) {
     Try<hashmap<string, uint64_t>> stat = cgroups::stat(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()),
+        getCgroup(containerId),
         "cpu.stat");
 
     if (stat.isError()) {
@@ -322,7 +426,7 @@ CpuacctSubsystem::CpuacctSubsystem(
     Subsystem(_flags, _hierarchy) {}
 
 
-Future<ResourceStatistics> CpuacctSubsystem::usage(
+Future<ResourceStatistics> CpuacctSubsystem::_usage(
     const ContainerID& containerId)
 {
   ResourceStatistics result;
@@ -340,7 +444,7 @@ Future<ResourceStatistics> CpuacctSubsystem::usage(
   if (flags.cgroups_cpu_enable_pids_and_tids_count) {
     Try<set<pid_t>> pids = cgroups::processes(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()));
+        getCgroup(containerId));
 
     if (pids.isError()) {
       return Failure("Failed to get number of processes: " + pids.error());
@@ -350,7 +454,7 @@ Future<ResourceStatistics> CpuacctSubsystem::usage(
 
     Try<set<pid_t>> tids = cgroups::threads(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()));
+        getCgroup(containerId));
 
     if (tids.isError()) {
       return Failure("Failed to get number of threads: " + tids.error());
@@ -367,7 +471,7 @@ Future<ResourceStatistics> CpuacctSubsystem::usage(
   // Add the cpuacct.stat information.
   Try<hashmap<string, uint64_t>> stat = cgroups::stat(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()),
+      getCgroup(containerId),
       "cpuacct.stat");
 
   if (stat.isError()) {
@@ -441,13 +545,9 @@ Try<Nothing> MemorySubsystem::load()
 }
 
 
-Future<Nothing> MemorySubsystem::recover(const ContainerID& containerId)
+Future<Nothing> MemorySubsystem::_recover(const ContainerID& containerId)
 {
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been recovered");
-  }
+  CHECK(!infos.contains(containerId));
 
   infos.put(containerId, Owned<Info>(new Info));
 
@@ -458,13 +558,9 @@ Future<Nothing> MemorySubsystem::recover(const ContainerID& containerId)
 }
 
 
-Future<Nothing> MemorySubsystem::prepare(const ContainerID& containerId)
+Future<Nothing> MemorySubsystem::_prepare(const ContainerID& containerId)
 {
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been prepared");
-  }
+  CHECK(!infos.contains(containerId));
 
   infos.put(containerId, Owned<Info>(new Info));
 
@@ -475,14 +571,11 @@ Future<Nothing> MemorySubsystem::prepare(const ContainerID& containerId)
 }
 
 
-Future<Nothing> MemorySubsystem::update(
+Future<Nothing> MemorySubsystem::_update(
     const ContainerID& containerId,
     const Resources& resources)
 {
-  if (!infos.contains(containerId)) {
-    return Failure(
-        "Failed to update subsystem '" + name() + "': Unknown container");
-  }
+  CHECK(infos.contains(containerId));
 
   if (resources.mem().isNone()) {
     return Failure(
@@ -497,7 +590,7 @@ Future<Nothing> MemorySubsystem::update(
   // Always set the soft limit.
   Try<Nothing> write = cgroups::memory::soft_limit_in_bytes(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()),
+      getCgroup(containerId),
       limit);
 
   if (write.isError()) {
@@ -511,7 +604,7 @@ Future<Nothing> MemorySubsystem::update(
   // Read the existing limit.
   Try<Bytes> currentLimit = cgroups::memory::limit_in_bytes(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()));
+      getCgroup(containerId));
 
   // NOTE: If `cgroups_limit_swap` is (has been) used then both limit_in_bytes
   // and memsw.limit_in_bytes will always be set to the same value.
@@ -534,7 +627,7 @@ Future<Nothing> MemorySubsystem::update(
     // memsw.limit_in_bytes if `cgroups_limit_swap` is true.
     Try<Nothing> write = cgroups::memory::limit_in_bytes(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()),
+        getCgroup(containerId),
         limit);
 
     if (write.isError()) {
@@ -548,7 +641,7 @@ Future<Nothing> MemorySubsystem::update(
     if (flags.cgroups_limit_swap) {
       Try<bool> write = cgroups::memory::memsw_limit_in_bytes(
           hierarchy,
-          path::join(flags.cgroups_root, containerId.value()),
+          getCgroup(containerId),
           limit);
 
       if (write.isError()) {
@@ -567,13 +660,10 @@ Future<Nothing> MemorySubsystem::update(
 }
 
 
-Future<ResourceStatistics> MemorySubsystem::usage(
+Future<ResourceStatistics> MemorySubsystem::_usage(
     const ContainerID& containerId)
 {
-  if (!infos.contains(containerId)) {
-    return Failure(
-        "Failed to usage subsystem '" + name() + "': Unknown container");
-  }
+  CHECK(infos.contains(containerId));
 
   const Owned<Info>& info = infos[containerId];
 
@@ -583,7 +673,7 @@ Future<ResourceStatistics> MemorySubsystem::usage(
   //   1. It does not include child cgroups.
   //   2. It does not include any file backed pages.
   Try<Bytes> usage = cgroups::memory::usage_in_bytes(
-      hierarchy, path::join(flags.cgroups_root, containerId.value()));
+      hierarchy, getCgroup(containerId));
 
   if (usage.isError()) {
     return Failure("Failed to parse 'memory.usage_in_bytes': " + usage.error());
@@ -593,7 +683,7 @@ Future<ResourceStatistics> MemorySubsystem::usage(
 
   if (flags.cgroups_limit_swap) {
     Try<Bytes> usage = cgroups::memory::memsw_usage_in_bytes(
-        hierarchy, path::join(flags.cgroups_root, containerId.value()));
+        hierarchy, getCgroup(containerId));
 
     if (usage.isError()) {
       return Failure(
@@ -607,7 +697,7 @@ Future<ResourceStatistics> MemorySubsystem::usage(
   // structure, e.g, cgroups::memory::stat.
   Try<hashmap<string, uint64_t>> stat = cgroups::stat(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()),
+      getCgroup(containerId),
       "memory.stat");
 
   if (stat.isError()) {
@@ -659,7 +749,7 @@ Future<ResourceStatistics> MemorySubsystem::usage(
 
   return await(values)
     .then(defer(PID<MemorySubsystem>(this),
-                &MemorySubsystem::_usage,
+                &MemorySubsystem::__usage,
                 containerId,
                 result,
                 levels,
@@ -667,7 +757,7 @@ Future<ResourceStatistics> MemorySubsystem::usage(
 }
 
 
-Future<ResourceStatistics> MemorySubsystem::_usage(
+Future<ResourceStatistics> MemorySubsystem::__usage(
     const ContainerID& containerId,
     ResourceStatistics result,
     const list<Level>& levels,
@@ -675,7 +765,7 @@ Future<ResourceStatistics> MemorySubsystem::_usage(
 {
   if (!infos.contains(containerId)) {
     return Failure(
-        "Failed to _usage subsystem '" + name() + "': Unknown container");
+        "Failed to __usage subsystem '" + name() + "': Unknown container");
   }
 
   list<Level>::const_iterator iterator = levels.begin();
@@ -705,14 +795,9 @@ Future<ResourceStatistics> MemorySubsystem::_usage(
 }
 
 
-Future<Nothing> MemorySubsystem::cleanup(const ContainerID& containerId)
+Future<Nothing> MemorySubsystem::_cleanup(const ContainerID& containerId)
 {
-  // Multiple calls may occur during test clean up.
-  if (!infos.contains(containerId)) {
-    VLOG(1) << "Ignoring cleanup subsystem '" << name()
-            << "' request for unknown container: " << containerId;
-    return Nothing();
-  }
+  CHECK(infos.contains(containerId));
 
   if (infos[containerId]->oomNotifier.isPending()) {
     infos[containerId]->oomNotifier.discard();
@@ -730,7 +815,7 @@ void MemorySubsystem::oomListen(const ContainerID& containerId)
 
   infos[containerId]->oomNotifier = cgroups::memory::oom::listen(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()));
+      getCgroup(containerId));
 
   // If the listening fails immediately, something very wrong happened.
   // Therefore, we report a fatal error here.
@@ -789,7 +874,7 @@ void MemorySubsystem::oom(const ContainerID& containerId)
   // and memsw.limit_in_bytes will always be set to the same value.
   Try<Bytes> limit = cgroups::memory::limit_in_bytes(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()));
+      getCgroup(containerId));
 
   if (limit.isError()) {
     LOG(ERROR) << "Failed to read 'memory.limit_in_bytes': " << limit.error();
@@ -800,7 +885,7 @@ void MemorySubsystem::oom(const ContainerID& containerId)
   // Output the maximum memory usage.
   Try<Bytes> usage = cgroups::memory::max_usage_in_bytes(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()));
+      getCgroup(containerId));
 
   if (usage.isError()) {
     LOG(ERROR) << "Failed to read 'memory.max_usage_in_bytes': "
@@ -814,7 +899,7 @@ void MemorySubsystem::oom(const ContainerID& containerId)
   // state at time of OOM.
   Try<string> read = cgroups::read(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()),
+      getCgroup(containerId),
       "memory.stat");
 
   if (read.isError()) {
@@ -849,7 +934,7 @@ void MemorySubsystem::pressureListen(const ContainerID& containerId)
   foreach (const Level& level, levels()) {
     Try<Owned<Counter>> counter = Counter::create(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()),
+        getCgroup(containerId),
         level);
 
     if (counter.isError()) {
@@ -1130,18 +1215,14 @@ Try<Nothing> NetClsSubsystem::load()
 }
 
 
-Future<Nothing> NetClsSubsystem::recover(const ContainerID& containerId)
+Future<Nothing> NetClsSubsystem::_recover(const ContainerID& containerId)
 {
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been recovered");
-  }
+  CHECK(!infos.contains(containerId));
 
   // Read the net_cls handle.
   Result<NetClsHandle> handle = recoverHandle(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()));
+      getCgroup(containerId));
 
   if (handle.isError()) {
     return Failure(
@@ -1159,13 +1240,9 @@ Future<Nothing> NetClsSubsystem::recover(const ContainerID& containerId)
 }
 
 
-Future<Nothing> NetClsSubsystem::prepare(const ContainerID& containerId)
+Future<Nothing> NetClsSubsystem::_prepare(const ContainerID& containerId)
 {
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been prepared");
-  }
+  CHECK(!infos.contains(containerId));
 
   if (handleManager.isSome()) {
     Try<NetClsHandle> handle = handleManager->alloc();
@@ -1186,20 +1263,17 @@ Future<Nothing> NetClsSubsystem::prepare(const ContainerID& containerId)
 }
 
 
-Future<Nothing> NetClsSubsystem::isolate(
+Future<Nothing> NetClsSubsystem::_isolate(
     const ContainerID& containerId, pid_t pid)
 {
-  if (!infos.contains(containerId)) {
-    return Failure(
-        "Failed to isolate subsystem '" + name() + "': Unknown container");
-  }
+  CHECK(infos.contains(containerId));
 
   // If handle is not specified, the assumption is that the operator is
   // responsible for assigning the net_cls handles.
   if (infos[containerId]->handle.isSome()) {
     Try<Nothing> write = cgroups::net_cls::classid(
         hierarchy,
-        path::join(flags.cgroups_root, containerId.value()),
+        getCgroup(containerId),
         infos[containerId]->handle->get());
 
     if (write.isError()) {
@@ -1212,12 +1286,9 @@ Future<Nothing> NetClsSubsystem::isolate(
 }
 
 
-Future<ContainerStatus> NetClsSubsystem::status(const ContainerID& containerId)
+Future<ContainerStatus> NetClsSubsystem::_status(const ContainerID& containerId)
 {
-  if (!infos.contains(containerId)) {
-    return Failure(
-        "Failed to status subsystem '" + name() + "': Unknown container");
-  }
+  CHECK(infos.contains(containerId));
 
   ContainerStatus result;
 
@@ -1235,14 +1306,9 @@ Future<ContainerStatus> NetClsSubsystem::status(const ContainerID& containerId)
 }
 
 
-Future<Nothing> NetClsSubsystem::cleanup(const ContainerID& containerId)
+Future<Nothing> NetClsSubsystem::_cleanup(const ContainerID& containerId)
 {
-  // Multiple calls may occur during test clean up.
-  if (!infos.contains(containerId)) {
-    VLOG(1) << "Ignoring cleanup subsystem '" << name()
-            << "' request for unknown container: " << containerId;
-    return Nothing();
-  }
+  CHECK(infos.contains(containerId));
 
   if (infos[containerId]->handle.isSome() && handleManager.isSome()) {
     Try<Nothing> free = handleManager->free(infos[containerId]->handle.get());
@@ -1442,52 +1508,41 @@ Try<Nothing> PerfEventSubsystem::load()
 }
 
 
-Future<Nothing> PerfEventSubsystem::recover(const ContainerID& containerId)
+Future<Nothing> PerfEventSubsystem::_recover(const ContainerID& containerId)
 {
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been recovered");
-  }
+  CHECK(!infos.contains(containerId));
 
+  handleManager->addCgroup(getCgroup(containerId));
   infos.put(containerId, Owned<Info>(new Info));
-  handleManager->addCgroup(path::join(flags.cgroups_root, containerId.value()));
 
   return Nothing();
 }
 
 
-Future<Nothing> PerfEventSubsystem::prepare(const ContainerID& containerId)
+Future<Nothing> PerfEventSubsystem::_prepare(const ContainerID& containerId)
 {
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been prepared");
-  }
+  CHECK(!infos.contains(containerId));
 
+  handleManager->addCgroup(getCgroup(containerId));
   infos.put(containerId, Owned<Info>(new Info));
-  handleManager->addCgroup(path::join(flags.cgroups_root, containerId.value()));
 
   return Nothing();
 }
 
 
-Future<ResourceStatistics> PerfEventSubsystem::usage(
+Future<ResourceStatistics> PerfEventSubsystem::_usage(
     const ContainerID& containerId)
 {
-  if (!infos.contains(containerId)) {
-    return Failure(
-        "Failed to usage subsystem '" + name() + "': Unknown container");
-  }
+  CHECK(infos.contains(containerId));
 
   Option<PerfStatistics> perfStatistics = handleManager->getStatistics(
-      path::join(flags.cgroups_root, containerId.value()));
+      getCgroup(containerId));
 
   if (perfStatistics.isSome()) {
     infos[containerId]->statistics = perfStatistics.get();
   } else {
     LOG(WARNING) << "Couldn't find the PerfStatistics of cgroup '"
-                 << path::join(flags.cgroups_root, containerId.value())
+                 << getCgroup(containerId)
                  << "' in PerfEventHandleManager for container '"
                  << containerId << "'";
   }
@@ -1499,18 +1554,11 @@ Future<ResourceStatistics> PerfEventSubsystem::usage(
 }
 
 
-Future<Nothing> PerfEventSubsystem::cleanup(const ContainerID& containerId)
+Future<Nothing> PerfEventSubsystem::_cleanup(const ContainerID& containerId)
 {
-  // Multiple calls may occur during test clean up.
-  if (!infos.contains(containerId)) {
-    VLOG(1) << "Ignoring cleanup subsystem '" << name()
-            << "' request for unknown container: " << containerId;
-    return Nothing();
-  }
+  CHECK(infos.contains(containerId));
 
-  handleManager->removeCgroup(
-      path::join(flags.cgroups_root, containerId.value()));
-
+  handleManager->removeCgroup(getCgroup(containerId));
   infos.erase(containerId);
 
   return Nothing();
@@ -1524,28 +1572,8 @@ DevicesSubsystem::DevicesSubsystem(
     Subsystem(_flags, _hierarchy) {}
 
 
-Future<Nothing> DevicesSubsystem::recover(const ContainerID& containerId)
+Future<Nothing> DevicesSubsystem::_prepare(const ContainerID& containerId)
 {
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been recovered");
-  }
-
-  infos.put(containerId, Owned<Info>(new Info));
-
-  return Nothing();
-}
-
-
-Future<Nothing> DevicesSubsystem::prepare(const ContainerID& containerId)
-{
-  if (infos.contains(containerId)) {
-    return Failure(
-        "The subsystem '" + name() + "' of container " +
-        stringify(containerId) + " has already been prepared");
-  }
-
   // When a devices cgroup is first created, its whitelist inherits
   // all devices from its parent's whitelist (i.e., "a *:* rwm" by
   // default). In theory, we should be able to add and remove devices
@@ -1571,7 +1599,7 @@ Future<Nothing> DevicesSubsystem::prepare(const ContainerID& containerId)
 
   Try<Nothing> deny = cgroups::devices::deny(
       hierarchy,
-      path::join(flags.cgroups_root, containerId.value()),
+      getCgroup(containerId),
       all);
 
   if (deny.isError()) {
@@ -1585,7 +1613,8 @@ Future<Nothing> DevicesSubsystem::prepare(const ContainerID& containerId)
     CHECK_SOME(entry);
 
     Try<Nothing> allow = cgroups::devices::allow(
-        hierarchy, path::join(flags.cgroups_root, containerId.value()),
+        hierarchy,
+        getCgroup(containerId),
         entry.get());
 
     if (allow.isError()) {
@@ -1593,23 +1622,6 @@ Future<Nothing> DevicesSubsystem::prepare(const ContainerID& containerId)
                      "'" + stringify(entry.get()) + "': " + allow.error());
     }
   }
-
-  infos.put(containerId, Owned<Info>(new Info));
-
-  return Nothing();
-}
-
-
-Future<Nothing> DevicesSubsystem::cleanup(const ContainerID& containerId)
-{
-  // Multiple calls may occur during test clean up.
-  if (!infos.contains(containerId)) {
-    VLOG(1) << "Ignoring cleanup subsystem '" << name()
-            << "' request for unknown container: " << containerId;
-    return Nothing();
-  }
-
-  infos.erase(containerId);
 
   return Nothing();
 }

@@ -90,7 +90,7 @@ public:
    * @param containerId The target containerId.
    * @return Nothing or an error if `recover` fails.
    */
-  virtual process::Future<Nothing> recover(const ContainerID& containerId);
+  process::Future<Nothing> recover(const ContainerID& containerId);
 
   /**
    * Prepare the cgroups subsystem for the associated container.
@@ -98,7 +98,7 @@ public:
    * @param containerId The target containerId.
    * @return Nothing or an error if `prepare` fails.
    */
-  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
+  process::Future<Nothing> prepare(const ContainerID& containerId);
 
   /**
    * Isolate the associated container to cgroups subsystem.
@@ -107,9 +107,7 @@ public:
    * @param pid The process id of container.
    * @return Nothing or an error if `isolate` fails.
    */
-  virtual process::Future<Nothing> isolate(
-      const ContainerID& containerId,
-      pid_t pid);
+  process::Future<Nothing> isolate(const ContainerID& containerId, pid_t pid);
 
   /**
    * Update resources allocated to the associated container in this cgroups
@@ -119,7 +117,7 @@ public:
    * @param resources The resources need to update.
    * @return Nothing or an error if `update` fails.
    */
-  virtual process::Future<Nothing> update(
+  process::Future<Nothing> update(
       const ContainerID& containerId,
       const Resources& resources);
 
@@ -131,8 +129,7 @@ public:
    * @return The resource usage statistics or an error if gather statistics
    *     fails.
    */
-  virtual process::Future<ResourceStatistics> usage(
-      const ContainerID& containerId);
+  process::Future<ResourceStatistics> usage(const ContainerID& containerId);
 
   /**
    * Get the run-time status of cgroups subsystem specific properties associated
@@ -141,8 +138,7 @@ public:
    * @param containerId The target containerId.
    * @return The container status or an error if get fails.
    */
-  virtual process::Future<ContainerStatus> status(
-      const ContainerID& containerId);
+  process::Future<ContainerStatus> status(const ContainerID& containerId);
 
   /**
    * Clean up the cgroups subsystem for the associated container. It will be
@@ -151,7 +147,7 @@ public:
    * @param containerId The target containerId.
    * @return Nothing or an error if `cleanup` fails.
    */
-  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
+  process::Future<Nothing> cleanup(const ContainerID& containerId);
 
 protected:
   Subsystem(const Flags& _flags, const std::string& _hierarchy);
@@ -163,6 +159,29 @@ protected:
    * @return Nothing or an error if `load` fails.
    */
   virtual Try<Nothing> load();
+
+  const std::string& getCgroup(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _recover(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _prepare(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _isolate(
+      const ContainerID& containerId,
+      pid_t pid);
+
+  virtual process::Future<Nothing> _update(
+      const ContainerID& containerId,
+      const Resources& resources);
+
+  virtual process::Future<ResourceStatistics> _usage(
+      const ContainerID& containerId);
+
+  virtual process::Future<ContainerStatus> _status(
+      const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _cleanup(
+      const ContainerID& containerId);
 
   /**
    * `Flags` used to launch the agent.
@@ -181,6 +200,12 @@ protected:
    * The hierarchy path of cgroups subsystem.
    */
   const std::string hierarchy;
+
+private:
+  process::Future<Nothing> __cleanup(
+      const ContainerID& containerId);
+
+  hashmap<ContainerID, std::string> cgroupMap;
 };
 
 
@@ -199,11 +224,13 @@ public:
     return CGROUP_SUBSYSTEM_CPU_NAME;
   };
 
-  virtual process::Future<Nothing> update(
+
+protected:
+  virtual process::Future<Nothing> _update(
       const ContainerID& containerId,
       const Resources& resources);
 
-  virtual process::Future<ResourceStatistics> usage(
+  virtual process::Future<ResourceStatistics> _usage(
       const ContainerID& containerId);
 
 protected:
@@ -226,7 +253,8 @@ public:
     return CGROUP_SUBSYSTEM_CPUACCT_NAME;
   }
 
-  virtual process::Future<ResourceStatistics> usage(
+protected:
+  virtual process::Future<ResourceStatistics> _usage(
       const ContainerID& containerId);
 };
 
@@ -246,21 +274,21 @@ public:
     return CGROUP_SUBSYSTEM_MEMORY_NAME;
   }
 
-  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
+protected:
+  virtual Try<Nothing> load();
 
-  virtual process::Future<Nothing> recover(const ContainerID& containerId);
+  virtual process::Future<Nothing> _prepare(const ContainerID& containerId);
 
-  virtual process::Future<Nothing> update(
+  virtual process::Future<Nothing> _recover(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _update(
       const ContainerID& containerId,
       const Resources& resources);
 
-  virtual process::Future<ResourceStatistics> usage(
+  virtual process::Future<ResourceStatistics> _usage(
       const ContainerID& containerId);
 
-  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
-
-protected:
-  virtual Try<Nothing> load();
+  virtual process::Future<Nothing> _cleanup(const ContainerID& containerId);
 
 private:
   struct Info {
@@ -283,7 +311,7 @@ private:
     };
   }
 
-  process::Future<ResourceStatistics> _usage(
+  process::Future<ResourceStatistics> __usage(
       const ContainerID& containerId,
       ResourceStatistics result,
       const std::list<cgroups::memory::pressure::Level>& levels,
@@ -404,20 +432,20 @@ public:
     return CGROUP_SUBSYSTEM_NET_CLS_NAME;
   }
 
-  virtual process::Future<Nothing> recover(const ContainerID& containerId);
-
-  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
-
-  virtual process::Future<Nothing> isolate(
-      const ContainerID& containerId, pid_t pid);
-
-  virtual process::Future<ContainerStatus> status(
-      const ContainerID& containerId);
-
-  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
-
 protected:
   virtual Try<Nothing> load();
+
+  virtual process::Future<Nothing> _recover(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _prepare(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _isolate(
+      const ContainerID& containerId, pid_t pid);
+
+  virtual process::Future<ContainerStatus> _status(
+      const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _cleanup(const ContainerID& containerId);
 
 private:
   struct Info
@@ -492,17 +520,17 @@ public:
     return CGROUP_SUBSYSTEM_PERF_EVENT_NAME;
   }
 
-  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
-
-  virtual process::Future<Nothing> recover(const ContainerID& containerId);
-
-  virtual process::Future<ResourceStatistics> usage(
-      const ContainerID& containerId);
-
-  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
-
 protected:
   virtual Try<Nothing> load();
+
+  virtual process::Future<Nothing> _prepare(const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _recover(const ContainerID& containerId);
+
+  virtual process::Future<ResourceStatistics> _usage(
+      const ContainerID& containerId);
+
+  virtual process::Future<Nothing> _cleanup(const ContainerID& containerId);
 
 private:
   struct Info
@@ -544,22 +572,8 @@ public:
     return CGROUP_SUBSYSTEM_DEVICES_NAME;
   }
 
-  virtual process::Future<Nothing> prepare(const ContainerID& containerId);
-
-  virtual process::Future<Nothing> recover(const ContainerID& containerId);
-
-  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
-
-private:
-  struct Info
-  {
-    Info() {}
-  };
-
-  /**
-   * Store cgroups associated information for container.
-   */
-  hashmap<ContainerID, process::Owned<Info>> infos;
+protected:
+  virtual process::Future<Nothing> _prepare(const ContainerID& containerId);
 };
 
 } // namespace slave {
