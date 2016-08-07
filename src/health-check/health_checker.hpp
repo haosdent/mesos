@@ -166,16 +166,6 @@ private:
 
   void _healthCheck()
   {
-    if (check.has_http()) {
-      promise.fail("HTTP health check is not supported");
-      return;
-    }
-
-    if (!check.has_command()) {
-      promise.fail("No check found in health check");
-      return;
-    }
-
     const CommandInfo& command = check.command();
 
     map<string, string> environment = os::environment();

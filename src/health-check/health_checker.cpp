@@ -51,12 +51,11 @@ Try<Owned<HealthChecker>> HealthChecker::create(
     const TaskID& taskID)
 {
   // Validate the 'HealthCheck' protobuf.
-  if (check.has_http() && check.has_command()) {
-    return Error("Both 'http' and 'command' health check requested");
+  if (!check.has_type()) {
+    return Error("Missing health check type");
   }
-
-  if (!check.has_http() && !check.has_command()) {
-    return Error("Expecting one of 'http' or 'command' health check");
+  if (check.type() != HealthCheck::COMMAND_CHECK) {
+    return Error("Only support 'command' health check");
   }
 
   Owned<HealthCheckerProcess> process(new HealthCheckerProcess(
