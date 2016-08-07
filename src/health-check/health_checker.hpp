@@ -395,12 +395,47 @@ private:
     failure(msg);
   }
 
+  void _tcpHealthCheck()
+  {
+    const HealthCheck_TCP& tcp = check.tcp();
+
+    VLOG(2) << "Launching TCP health check at port '" << tcp.port() << "'";
+
+    process::network::Address address;
+    address.port = tcp.port();
+
+    Try<process::network::Socket> socket = process::network::Socket::create(
+        process::network::Socket::POLL);
+
+    process::Future<Nothing> connect = socket->connect(address);
+    connect.await(Seconds(check.timeout_seconds()));
+
+    if (!connect.isReady()) {
+      string msg = "TCP health check failed with reason: ";
+      if (connect.isFailed()) {
+        msg += connect.failure();
+      } else if (connect.isDiscarded()) {
+        msg += "connect future discarded";
+      } else {
+        msg += "connect still pending after timeout " +
+               stringify(Seconds(check.timeout_seconds()));
+      }
+
+      failure(msg);
+      return;
+    }
+
+    success();
+  }
+
   void _healthCheck()
   {
     if (check.type() == HealthCheck::COMMAND_CHECK) {
       _commandHealthCheck();
     } else if (check.type() == HealthCheck::HTTP_CHECK) {
       _httpHealthCheck();
+    } else if (check.type() == HealthCheck::TCP_CHECK) {
+      _tcpHealthCheck();
     }
   }
 

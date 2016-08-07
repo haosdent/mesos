@@ -54,10 +54,6 @@ Try<Owned<HealthChecker>> HealthChecker::create(
   if (!check.has_type()) {
     return Error("Missing health check type");
   }
-  if (check.type() != HealthCheck::COMMAND_CHECK &&
-      check.type() != HealthCheck::HTTP_CHECK) {
-    return Error("Only support 'command' health check or 'http' health check");
-  }
 
   Owned<HealthCheckerProcess> process(new HealthCheckerProcess(
       check,
