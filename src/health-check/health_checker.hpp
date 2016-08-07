@@ -26,12 +26,16 @@
 
 #include <iostream>
 #include <string>
+#include <tuple>
 
 #include <mesos/mesos.hpp>
 
+#include <process/collect.hpp>
 #include <process/delay.hpp>
 #include <process/future.hpp>
+#include <process/http.hpp>
 #include <process/id.hpp>
+#include <process/io.hpp>
 #include <process/pid.hpp>
 #include <process/process.hpp>
 #include <process/protobuf.hpp>
@@ -56,6 +60,7 @@ using std::cerr;
 using std::endl;
 using std::map;
 using std::string;
+using std::tuple;
 
 using process::UPID;
 
@@ -164,7 +169,7 @@ private:
     reschedule();
   }
 
-  void _healthCheck()
+  void _commandHealthCheck()
   {
     const CommandInfo& command = check.command();
 
@@ -263,10 +268,146 @@ private:
     }
   }
 
+  void _httpHealthCheck()
+  {
+    const HealthCheck_HTTP& http = check.http();
+
+    string scheme = http.has_scheme() ? http.scheme() : "http";
+    if (scheme != "https" && scheme != "http") {
+      promise.fail("Unsupported HTTP health check scheme: '" + scheme + "'");
+    }
+
+    string path = http.has_path() ? http.path() : "/";
+
+    string url = scheme + "://localhost:" + stringify(http.port()) + path;
+
+    VLOG(2) << "Launching HTTP health check '" << url << "'";
+
+    const vector<string> argv = {
+      "curl",
+      "-s",                 // Don't show progress meter or error messages.
+      "-S",                 // Makes curl show an error message if it fails.
+      "-L",                 // Follow HTTP 3xx redirects.
+      "-w", "%{http_code}", // Display HTTP response code on stdout.
+      "-o", "/dev/null",    // Ignores output.
+      url
+    };
+
+    Try<process::Subprocess> s = process::subprocess(
+        "curl",
+        argv,
+        process::Subprocess::PATH("/dev/null"),
+        process::Subprocess::PIPE(),
+        process::Subprocess::PIPE());
+
+    if (s.isError()) {
+      failure("HTTP health check failed with reason: "
+              "Failed to exec the curl subprocess: " + s.error());
+    }
+
+    Duration timeout = Seconds(check.timeout_seconds());
+
+    await(
+        s.get().status(),
+        process::io::read(s.get().out().get()),
+        process::io::read(s.get().err().get()))
+      .after(timeout,
+             defer(self(), &Self::__httpHealthCheck, timeout, lambda::_1))
+      .then(defer(self(), &Self::___httpHealthCheck, lambda::_1))
+      .onAny(defer(self(), &Self::____httpHealthCheck, lambda::_1));
+  }
+
+  process::Future<tuple<
+      process::Future<Option<int>>,
+      process::Future<string>,
+      process::Future<string>>> __httpHealthCheck(
+          const Duration& timeout,
+          process::Future<tuple<
+              process::Future<Option<int>>,
+              process::Future<string>,
+              process::Future<string>>> future)
+  {
+    future.discard();
+    return process::Failure(
+        "Query still pending after timeout " + stringify(timeout));
+  }
+
+  process::Future<Nothing> ___httpHealthCheck(
+      const tuple<
+          process::Future<Option<int>>,
+          process::Future<string>,
+          process::Future<string>>& t)
+  {
+    process::Future<Option<int>> status = std::get<0>(t);
+    if (!status.isReady()) {
+      return process::Failure(
+          "Failed to get the exit status of the curl subprocess: " +
+          (status.isFailed() ? status.failure() : "discarded"));
+    }
+
+    if (status->isNone()) {
+      return process::Failure("Failed to reap the curl subprocess");
+    }
+
+    if (status->get() != 0) {
+      process::Future<string> error = std::get<2>(t);
+      if (!error.isReady()) {
+        return process::Failure(
+            "Failed to perform 'curl': Reading stderr failed: " +
+            (error.isFailed() ? error.failure() : "discarded"));
+      }
+
+      return process::Failure("Failed to perform 'curl': " + error.get());
+    }
+
+    process::Future<string> output = std::get<1>(t);
+    if (!output.isReady()) {
+      return process::Failure(
+          "Failed to read stdout from 'curl': " +
+          (output.isFailed() ? output.failure() : "discarded"));
+    }
+
+    // Parse the output and get the HTTP response code.
+    Try<int> code = numify<int>(output.get());
+    if (code.isError()) {
+      return process::Failure("Unexpected output from 'curl': " + output.get());
+    }
+
+    if (code.get() >= process::http::Status::BAD_REQUEST ||
+        code.get() < process::http::Status::OK) {
+      return process::Failure(
+          "Unexpected HTTP response code: " +
+          process::http::Status::string(code.get()));
+    }
+
+    return Nothing();
+  }
+
+  void ____httpHealthCheck(const process::Future<Nothing>& future)
+  {
+    if (future.isReady()) {
+      success();
+    }
+
+    string msg = "HTTP health check failed with reason: " +
+                 (future.isFailed() ? future.failure() : "discarded");
+
+    failure(msg);
+  }
+
+  void _healthCheck()
+  {
+    if (check.type() == HealthCheck::COMMAND_CHECK) {
+      _commandHealthCheck();
+    } else if (check.type() == HealthCheck::HTTP_CHECK) {
+      _httpHealthCheck();
+    }
+  }
+
   void reschedule()
   {
     VLOG(1) << "Rescheduling health check in "
-      << Seconds(check.interval_seconds());
+            << Seconds(check.interval_seconds());
 
     delay(Seconds(check.interval_seconds()), self(), &Self::_healthCheck);
   }
