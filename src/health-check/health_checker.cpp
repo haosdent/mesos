@@ -66,12 +66,9 @@ Try<Owned<HealthChecker>> HealthChecker::create(
     const TaskID& taskID)
 {
   // Validate the 'HealthCheck' protobuf.
-  if (check.has_http() && check.has_command()) {
-    return Error("Both 'http' and 'command' health check requested");
-  }
-
-  if (!check.has_http() && !check.has_command()) {
-    return Error("Expecting one of 'http' or 'command' health check");
+  Option<Error> error = validation::healthCheck(check);
+  if (error.isSome()) {
+    return error.get();
   }
 
   Owned<HealthCheckerProcess> process(new HealthCheckerProcess(
@@ -184,13 +181,8 @@ void HealthCheckerProcess::success()
 
 void HealthCheckerProcess::_healthCheck()
 {
-  if (check.has_http()) {
-    promise.fail("HTTP health check is not supported");
-    return;
-  }
-
-  if (!check.has_command()) {
-    promise.fail("No check found in health check");
+  if (check.type() != HealthCheck::COMMAND) {
+    promise.fail("Only command health check is supported now");
     return;
   }
 
@@ -208,11 +200,6 @@ void HealthCheckerProcess::_healthCheck()
 
   if (command.shell()) {
     // Use the shell variant.
-    if (!command.has_value()) {
-      promise.fail("Shell command is not specified");
-      return;
-    }
-
     VLOG(2) << "Launching health command '" << command.value() << "'";
 
     external = subprocess(
@@ -224,11 +211,6 @@ void HealthCheckerProcess::_healthCheck()
         environment);
   } else {
     // Use the exec variant.
-    if (!command.has_value()) {
-      promise.fail("Executable path is not specified");
-      return;
-    }
-
     vector<string> argv;
     foreach (const string& arg, command.arguments()) {
       argv.push_back(arg);
@@ -299,6 +281,60 @@ void HealthCheckerProcess::reschedule()
 
   delay(Seconds(check.interval_seconds()), self(), &Self::_healthCheck);
 }
+
+
+namespace validation {
+
+Option<Error> healthCheck(const HealthCheck& check)
+{
+  if (!check.has_type()) {
+    return Error("Missing health check 'type'");
+  }
+
+  if (check.type() == HealthCheck::COMMAND) {
+    if (!check.has_command()) {
+      return Error("Missing 'command' in command health check");
+    }
+
+    const CommandInfo& command = check.command();
+
+    if (!command.has_value()) {
+      string valueType =
+        (command.shell() ? "Shell command" : "Executable path");
+
+      return Error(valueType + " is not specified in command health check");
+    }
+  } else if (check.type() == HealthCheck::HTTP) {
+    if (!check.has_http()) {
+      return Error("Missing 'http' in HTTP health check");
+    }
+
+    const HealthCheck::HTTPCheckInfo& http = check.http();
+
+    if (http.has_scheme() &&
+        http.scheme() != "https" &&
+        http.scheme() != "http") {
+      return Error("Unsupported HTTP health check scheme: '" + http.scheme() +
+                   "'");
+    }
+
+    if (http.has_path() && strings::startsWith(http.path(), '/')) {
+      return Error("The path '" + http.path() + "' of HTTP health check does "
+                   "not start with '/'");
+    }
+  } else if (check.type() == HealthCheck::TCP) {
+    if (!check.has_tcp()) {
+      return Error("Missing 'tcp' in TCP health check");
+    }
+  } else {
+    return Error("Unsupported health check type: '" +
+                 HealthCheck::Type_Name(check.type()) + "'");
+  }
+
+  return None();
+}
+
+} // namespace validation {
 
 } // namespace internal {
 } // namespace mesos {
