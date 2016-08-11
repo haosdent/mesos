@@ -76,6 +76,12 @@ private:
 
   void _healthCheck();
 
+  void _commandHealthCheck();
+
+  void _httpHealthCheck();
+
+  void _tcpHealthCheck();
+
   void reschedule();
 
   process::Promise<Nothing> promise;
