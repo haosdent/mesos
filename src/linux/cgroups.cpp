@@ -872,7 +872,10 @@ Try<bool> exists(const string& hierarchy, const string& cgroup)
 }
 
 
-Try<vector<string>> get(const string& hierarchy, const string& cgroup)
+Try<vector<string>> get(
+    const string& hierarchy,
+    const string& cgroup,
+    bool recursive)
 {
   Option<Error> error = verify(hierarchy, cgroup);
   if (error.isSome()) {
@@ -909,14 +912,18 @@ Try<vector<string>> get(const string& hierarchy, const string& cgroup)
 
   FTSENT* node;
   while ((node = fts_read(tree)) != nullptr) {
-    // Use post-order walk here. fts_level is the depth of the traversal,
-    // numbered from -1 to N, where the file/dir was found. The traversal root
-    // itself is numbered 0. fts_info includes flags for the current node.
+    // Use post-order walk here. fts_info includes flags for the current node.
     // FTS_DP indicates a directory being visited in postorder.
-    if (node->fts_level > 0 && node->fts_info & FTS_DP) {
+    if (node->fts_info & FTS_DP) {
       string path =
         strings::trim(node->fts_path + hierarchyAbsPath.get().length(), "/");
-      cgroups.push_back(path);
+
+      // fts_level is the depth of the traversal, numbered from -1 to N, where
+      // the file/dir was found. The traversal root itself is numbered 0.
+      if ((recursive && node->fts_level > 0) &&
+          (!recursive && node->fts_level == 1)) {
+        cgroups.push_back(path);
+      }
     }
   }
 

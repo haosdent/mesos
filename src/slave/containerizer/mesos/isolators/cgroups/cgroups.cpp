@@ -185,10 +185,10 @@ Future<Nothing> CgroupsIsolatorProcess::_recover(
   hashset<ContainerID> unknownOrphans;
 
   foreach (const string& hierarchy, subsystems.keys()) {
-    // TODO(jieyu): Use non-recursive version of `cgroups::get`.
     Try<vector<string>> cgroups = cgroups::get(
         hierarchy,
-        flags.cgroups_root);
+        flags.cgroups_root,
+        false);
 
     if (cgroups.isError()) {
       return Failure(

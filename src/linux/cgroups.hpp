@@ -219,7 +219,8 @@ Try<bool> exists(const std::string& hierarchy, const std::string& cgroup);
 // @return  A vector of cgroup names.
 Try<std::vector<std::string>> get(
     const std::string& hierarchy,
-    const std::string& cgroup = "/");
+    const std::string& cgroup = "/",
+    bool recursive = true);
 
 
 // Send the specified signal to all process in a cgroup.
