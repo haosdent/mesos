@@ -65,6 +65,7 @@ using mesos::v1::Credential;
 using mesos::v1::Environment;
 using mesos::v1::FrameworkID;
 using mesos::v1::FrameworkInfo;
+using mesos::v1::HealthCheck;
 using mesos::v1::Image;
 using mesos::v1::Label;
 using mesos::v1::Labels;
@@ -191,6 +192,28 @@ public:
         "secret",
         "The secret to use for framework authentication.");
 
+    add(&health_check,
+        "health_check",
+        "The value could be a JSON-formatted string of volumes or a\n"
+        "file path containing the JSON-formatted volumes. Path must\n"
+        "be of the form `file:///path/to/file` or `/path/to/file`.\n"
+        "\n"
+        "See the `HealthCheck` message in `mesos.proto` for the expected "
+        "format.\n"
+        "\n"
+        "Example:\n"
+        "{\n"
+        "  \"delay_seconds\": 0.0,\n"
+        "  \"interval_seconds\": 0.0,\n"
+        "  \"timeout_seconds\": 20.0,\n"
+        "  \"consecutive_failures\": 3,\n"
+        "  \"grace_period_seconds\": 10.0,\n"
+        "  \"type\": \"TCP\",\n"
+        "  \"tcp\": {\n"
+        "    \"port\": 8001\n"
+        "  }\n"
+        "}");
+
     add(&volumes,
         "volumes",
         "The value could be a JSON-formatted string of volumes or a\n"
@@ -245,6 +268,7 @@ public:
   Option<string> networks;
   Option<string> principal;
   Option<string> secret;
+  Option<JSON::Object> health_check;
 };
 
 
@@ -266,7 +290,8 @@ public:
       const string& _containerizer,
       const Option<Duration>& _killAfter,
       const Option<string>& _networks,
-      const Option<Credential> _credential)
+      const Option<Credential>& _credential,
+      const Option<HealthCheck>& _healthCheck)
     : state(DISCONNECTED),
       frameworkInfo(_frameworkInfo),
       master(_master),
@@ -283,6 +308,7 @@ public:
       killAfter(_killAfter),
       networks(_networks),
       credential(_credential),
+      healthCheck(_healthCheck),
       launched(false) {}
 
   virtual ~CommandScheduler() {}
@@ -372,6 +398,9 @@ protected:
         task.set_name(name);
         task.mutable_task_id()->set_value(name);
         task.mutable_agent_id()->MergeFrom(offer.agent_id());
+        if (healthCheck.isSome()) {
+          task.mutable_health_check()->CopyFrom(healthCheck.get());
+        }
 
         // Takes resources first from the specified role, then from '*'.
         Option<Resources> resources =
@@ -666,6 +695,7 @@ private:
   const Option<Duration> killAfter;
   const Option<string> networks;
   const Option<Credential> credential;
+  const Option<HealthCheck> healthCheck;
   bool launched;
   Owned<Mesos> mesos;
 };
@@ -848,6 +878,20 @@ int main(int argc, char** argv)
     }
   }
 
+  Option<HealthCheck> healthCheck;
+  if (flags.health_check.isSome()) {
+    Try<HealthCheck> _healthCheck =
+      protobuf::parse<HealthCheck>(flags.health_check.get());
+
+    if (_healthCheck.isError()) {
+      cerr << "Failed to convert '--health_check' to protobuf: "
+           << _healthCheck.error() << endl;
+      return EXIT_FAILURE;
+    }
+
+    healthCheck = _healthCheck.get();
+  }
+
   FrameworkInfo frameworkInfo;
   frameworkInfo.set_user(user.get());
   frameworkInfo.set_name("mesos-execute instance");
@@ -886,7 +930,8 @@ int main(int argc, char** argv)
         flags.containerizer,
         flags.kill_after,
         flags.networks,
-        credential));
+        credential,
+        healthCheck));
 
   process::spawn(scheduler.get());
   process::wait(scheduler.get());
