@@ -1488,10 +1488,18 @@ public:
 class MockDocker : public Docker
 {
 public:
-  MockDocker(
+  // Create MockDocker abstraction.
+  static Try<MockDocker*> create(
       const std::string& path,
       const std::string& socket,
       const Option<JSON::Object>& config = None());
+
+  MockDocker(
+      const std::string& path,
+      const std::string& socket,
+      const Version& version,
+      const Option<JSON::Object>& config);
+
   virtual ~MockDocker();
 
   MOCK_CONST_METHOD10(

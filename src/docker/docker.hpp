@@ -157,9 +157,6 @@ public:
         process::Subprocess::FD(STDERR_FILENO))
     const;
 
-  // Returns the current docker version.
-  virtual process::Future<Version> version() const;
-
   // Performs 'docker stop -t TIMEOUT CONTAINER'. If remove is true then a rm -f
   // will be called when stop failed, otherwise a failure is returned. The
   // timeout parameter will be passed through to docker and is the amount of
@@ -206,21 +203,33 @@ public:
     return path;
   }
 
+  virtual Version getVersion() const
+  {
+    return version;
+  }
+
 protected:
   // Uses the specified path to the Docker CLI tool.
   Docker(const std::string& _path,
          const std::string& _socket,
+         const Version& _version,
          const Option<JSON::Object>& _config)
-       : path(_path),
-         socket("unix://" + _socket),
-         config(_config) {}
+      : path(_path),
+        socket("unix://" + _socket),
+        version(_version),
+        config(_config) {}
+
+  // Fetch the docker version.
+  static process::Future<Version> _version(
+      const std::string& path,
+      const std::string& socket);
 
 private:
-  static process::Future<Version> _version(
+  static process::Future<Version> __version(
       const std::string& cmd,
       const process::Subprocess& s);
 
-  static process::Future<Version> __version(
+  static process::Future<Version> ___version(
       const process::Future<std::string>& output);
 
   static process::Future<Nothing> _stop(
@@ -306,6 +315,7 @@ private:
 
   const std::string path;
   const std::string socket;
+  const Version version;
   const Option<JSON::Object> config;
 };
 

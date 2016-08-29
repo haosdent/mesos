@@ -644,11 +644,38 @@ MockContainerLogger::MockContainerLogger()
 MockContainerLogger::~MockContainerLogger() {}
 
 
-MockDocker::MockDocker(
+Try<MockDocker*> MockDocker::create(
     const string& path,
     const string& socket,
     const Option<JSON::Object>& config)
-  : Docker(path, socket, config)
+{
+  if (!path::absolute(socket)) {
+    return Error("Invalid Docker socket path: " + socket);
+  }
+
+  // Get the docker version.
+  Future<Version> version = Docker::_version(path, socket);
+
+  if (!version.await(slave::DOCKER_VERSION_WAIT_TIMEOUT)) {
+    version.discard();
+    return Error("Timeout when getting docker version");
+  }
+
+  if (!version.isReady()) {
+    return Error("Failed to get docker version: " +
+                 (version.isFailed() ? version.failure() : "discarded"));
+  }
+
+  return new MockDocker(path, socket, version.get(), config);
+}
+
+
+MockDocker::MockDocker(
+    const string& path,
+    const string& socket,
+    const Version& version,
+    const Option<JSON::Object>& config)
+  : Docker(path, socket, version, config)
 {
   EXPECT_CALL(*this, ps(_, _))
     .WillRepeatedly(Invoke(this, &MockDocker::_ps));

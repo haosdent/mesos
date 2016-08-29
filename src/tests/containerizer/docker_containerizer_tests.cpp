@@ -174,10 +174,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch_Executor)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -301,10 +302,11 @@ TEST_F(DockerContainerizerTest, DISABLED_ROOT_DOCKER_Launch_Executor_Bridged)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -420,10 +422,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Launch)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -570,10 +573,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Kill)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -688,10 +692,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_TaskKillingCapability)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -819,10 +824,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Usage)
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = Option<string>("cpus:2;mem:1024");
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   Fetcher fetcher;
 
@@ -962,10 +968,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Update)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -1126,10 +1133,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Update)
 
 TEST_F(DockerContainerizerTest, ROOT_DOCKER_Recover)
 {
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -1249,10 +1257,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Recover)
 // agent instance are properly cleaned up.
 TEST_F(DockerContainerizerTest, ROOT_DOCKER_KillOrphanContainers)
 {
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -1381,10 +1390,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_KillOrphanContainers)
 // that were started by another containerizer (e.g: mesos).
 TEST_F(DockerContainerizerTest, ROOT_DOCKER_SkipRecoverNonDocker)
 {
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -1446,10 +1456,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_LaunchWithPersistentVolumes)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpu:2;mem:2048;disk(role1):2048";
@@ -1599,10 +1610,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverPersistentVolumes)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpu:2;mem:2048;disk(role1):2048";
@@ -1763,10 +1775,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_RecoverOrphanedPersistentVolumes)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpu:2;mem:2048;disk(role1):2048";
@@ -1931,10 +1944,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Logs)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -1954,7 +1968,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Logs)
   // We skip stopping the docker container because stopping a container
   // even when it terminated might not flush the logs and we end up
   // not getting stdout/stderr in our tests.
-  EXPECT_CALL(*mockDocker, stop(_, _, _))
+  EXPECT_CALL(*mockDocker.get(), stop(_, _, _))
     .WillRepeatedly(Return(Nothing()));
 
   Owned<MasterDetector> detector = master.get()->createDetector();
@@ -2069,10 +2083,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -2092,7 +2107,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD)
   // We skip stopping the docker container because stopping a container
   // even when it terminated might not flush the logs and we end up
   // not getting stdout/stderr in our tests.
-  EXPECT_CALL(*mockDocker, stop(_, _, _))
+  EXPECT_CALL(*mockDocker.get(), stop(_, _, _))
     .WillRepeatedly(Return(Nothing()));
 
   Owned<MasterDetector> detector = master.get()->createDetector();
@@ -2202,10 +2217,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Override)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -2225,7 +2241,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Override)
   // We skip stopping the docker container because stopping  a container
   // even when it terminated might not flush the logs and we end up
   // not getting stdout/stderr in our tests.
-  EXPECT_CALL(*mockDocker, stop(_, _, _))
+  EXPECT_CALL(*mockDocker.get(), stop(_, _, _))
     .WillRepeatedly(Return(Nothing()));
 
   Owned<MasterDetector> detector = master.get()->createDetector();
@@ -2338,10 +2354,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Args)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -2361,7 +2378,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_Default_CMD_Args)
   // We skip stopping the docker container because stopping a container
   // even when it terminated might not flush the logs and we end up
   // not getting stdout/stderr in our tests.
-  EXPECT_CALL(*mockDocker, stop(_, _, _))
+  EXPECT_CALL(*mockDocker.get(), stop(_, _, _))
     .WillRepeatedly(Return(Nothing()));
 
   Owned<MasterDetector> detector = master.get()->createDetector();
@@ -2476,10 +2493,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_SlaveRecoveryTaskContainer)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -2639,10 +2657,11 @@ TEST_F(DockerContainerizerTest,
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -2813,10 +2832,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_NC_PortMapping)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
   flags.resources = "cpus:1;mem:1024;ports:[10000-10000]";
@@ -2837,7 +2857,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_NC_PortMapping)
   // We skip stopping the docker container because stopping a container
   // even when it terminated might not flush the logs and we end up
   // not getting stdout/stderr in our tests.
-  EXPECT_CALL(*mockDocker, stop(_, _, _))
+  EXPECT_CALL(*mockDocker.get(), stop(_, _, _))
     .WillRepeatedly(Return(Nothing()));
 
   Owned<MasterDetector> detector = master.get()->createDetector();
@@ -2967,10 +2987,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_LaunchSandboxWithColon)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -3071,10 +3092,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhileFetching)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -3188,10 +3210,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DestroyWhilePulling)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -3312,10 +3335,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_ExecutorCleanupWhenLaunchFailed)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -3420,10 +3444,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_FetchFailure)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -3531,10 +3556,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerPullFailure)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -3614,7 +3640,7 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerPullFailure)
                     Invoke(&dockerContainerizer,
                            &MockDockerContainerizer::_launch)));
 
-  EXPECT_CALL(*mockDocker, pull(_, _, _))
+  EXPECT_CALL(*mockDocker.get(), pull(_, _, _))
     .WillOnce(Return(Failure("some error from docker pull")));
 
   driver.launchTasks(offers.get()[0].id(), {task});
@@ -3642,10 +3668,11 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerInspectDiscard)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -3669,12 +3696,12 @@ TEST_F(DockerContainerizerTest, ROOT_DOCKER_DockerInspectDiscard)
       (Owned<DockerContainerizerProcess>(process)));
 
   Future<Docker::Container> inspect;
-  EXPECT_CALL(*mockDocker, inspect(_, _))
+  EXPECT_CALL(*mockDocker.get(), inspect(_, _))
     .WillOnce(FutureResult(&inspect,
                            Invoke((MockDocker*) docker.get(),
                                   &MockDocker::_inspect)));
 
-  EXPECT_CALL(*mockDocker, run(_, _, _, _, _, _, _, _, _, _))
+  EXPECT_CALL(*mockDocker.get(), run(_, _, _, _, _, _, _, _, _, _))
     .WillOnce(Return(Failure("Run failed")));
 
   Owned<MasterDetector> detector = master.get()->createDetector();
