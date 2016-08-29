@@ -185,10 +185,11 @@ TEST_F(ContainerLoggerTest, MesosContainerizerRecover)
 TEST_F(ContainerLoggerTest, ROOT_DOCKER_ContainerizerRecover)
 {
   // Prepare a MockDockerContainerizer with a mocked container logger.
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -269,7 +270,7 @@ TEST_F(ContainerLoggerTest, ROOT_DOCKER_ContainerizerRecover)
 
   // Intercept the `Docker::ps` call made inside `DockerContainerizer::Recover`.
   // We will return a response, pretending that the test container exists.
-  EXPECT_CALL(*mockDocker, ps(_, _))
+  EXPECT_CALL(*mockDocker.get(), ps(_, _))
     .WillOnce(Return(containers));
 
   Future<Nothing> recover = containerizer.recover(slaveState);

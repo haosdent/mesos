@@ -318,7 +318,7 @@ TEST_F(DockerTest, ROOT_DOCKER_Version)
       false);
   ASSERT_SOME(docker);
 
-  AWAIT_EXPECT_EQ(Version(1, 7, 1), docker.get()->version());
+  EXPECT_EQ(Version(1, 7, 1), docker.get()->getVersion());
 
   docker = Docker::create(
       "echo Docker version 1.7.1.fc22, build",
@@ -326,7 +326,7 @@ TEST_F(DockerTest, ROOT_DOCKER_Version)
       false);
   ASSERT_SOME(docker);
 
-  AWAIT_EXPECT_EQ(Version(1, 7, 1), docker.get()->version());
+  EXPECT_EQ(Version(1, 7, 1), docker.get()->getVersion());
 
   docker = Docker::create(
       "echo Docker version 1.7.1-fc22, build",
@@ -334,7 +334,7 @@ TEST_F(DockerTest, ROOT_DOCKER_Version)
       false);
   ASSERT_SOME(docker);
 
-  AWAIT_EXPECT_EQ(Version(1, 7, 1), docker.get()->version());
+  EXPECT_EQ(Version(1, 7, 1), docker.get()->getVersion());
 }
 
 

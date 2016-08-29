@@ -634,10 +634,11 @@ TEST_F(HookTest, ROOT_DOCKER_VerifySlavePreLaunchDockerEnvironmentDecorator)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -739,10 +740,11 @@ TEST_F(HookTest, ROOT_DOCKER_VerifySlavePreLaunchDockerValidator)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 
@@ -833,10 +835,11 @@ TEST_F(HookTest, ROOT_DOCKER_VerifySlavePreLaunchDockerHook)
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
 
-  MockDocker* mockDocker =
-    new MockDocker(tests::flags.docker, tests::flags.docker_socket);
+  Try<MockDocker*> mockDocker =
+    MockDocker::create(tests::flags.docker, tests::flags.docker_socket);
 
-  Shared<Docker> docker(mockDocker);
+  ASSERT_SOME(mockDocker);
+  Shared<Docker> docker(mockDocker.get());
 
   slave::Flags flags = CreateSlaveFlags();
 

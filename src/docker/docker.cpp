@@ -108,7 +108,20 @@ Try<Owned<Docker>> Docker::create(
     socket = "unix://" + socket;
   }
 
-  Owned<Docker> docker(new Docker(path, socket, config));
+  // Get the docker version.
+  Future<Version> version = Docker::_version(path, socket);
+
+  if (!version.await(DOCKER_VERSION_WAIT_TIMEOUT)) {
+    version.discard();
+    return Error("Timeout when getting docker version");
+  }
+
+  if (!version.isReady()) {
+    return Error("Failed to get docker version: " +
+                 (version.isFailed() ? version.failure() : "discarded"));
+  }
+
+  Owned<Docker> docker(new Docker(path, socket, version.get(), config));
   if (!validate) {
     return docker;
   }
@@ -125,6 +138,7 @@ Try<Owned<Docker>> Docker::create(
   }
 #endif // __linux__
 
+  // Validate the version (and that we can use Docker at all).
   Try<Nothing> validateVersion = docker->validateVersion(Version(1, 0, 0));
   if (validateVersion.isError()) {
     return Error(validateVersion.error());
@@ -141,7 +155,7 @@ void commandDiscarded(const Subprocess& s, const string& cmd)
 }
 
 
-Future<Version> Docker::version() const
+Future<Version> Docker::_version(const string& path, const string& socket)
 {
   string cmd = path + " -H " + socket + " --version";
 
@@ -156,11 +170,11 @@ Future<Version> Docker::version() const
   }
 
   return s.get().status()
-    .then(lambda::bind(&Docker::_version, cmd, s.get()));
+    .then(lambda::bind(&Docker::__version, cmd, s.get()));
 }
 
 
-Future<Version> Docker::_version(const string& cmd, const Subprocess& s)
+Future<Version> Docker::__version(const string& cmd, const Subprocess& s)
 {
   const Option<int>& status = s.status().get();
   if (status.isNone() || status.get() != 0) {
@@ -176,11 +190,11 @@ Future<Version> Docker::_version(const string& cmd, const Subprocess& s)
   CHECK_SOME(s.out());
 
   return io::read(s.out().get())
-    .then(lambda::bind(&Docker::__version, lambda::_1));
+    .then(lambda::bind(&Docker::___version, lambda::_1));
 }
 
 
-Future<Version> Docker::__version(const Future<string>& output)
+Future<Version> Docker::___version(const Future<string>& output)
 {
   vector<string> parts = strings::split(output.get(), ",");
 
@@ -216,21 +230,10 @@ Future<Version> Docker::__version(const Future<string>& output)
 
 Try<Nothing> Docker::validateVersion(const Version& minVersion) const
 {
-  // Validate the version (and that we can use Docker at all).
-  Future<Version> version = this->version();
-
-  if (!version.await(DOCKER_VERSION_WAIT_TIMEOUT)) {
-    return Error("Timed out getting docker version");
-  }
-
-  if (version.isFailed()) {
-    return Error("Failed to get docker version: " + version.failure());
-  }
-
-  if (version.get() < minVersion) {
-    string msg = "Insufficient version '" + stringify(version.get()) +
-                 "' of Docker. Please upgrade to >=' " +
-                 stringify(minVersion) + "'";
+  if (version < minVersion) {
+    string msg = "Insufficient version '" + stringify(version) + "'"
+                 " of Docker. Please upgrade to >= "
+                 "'" + stringify(minVersion) + "'";
     return Error(msg);
   }
 
