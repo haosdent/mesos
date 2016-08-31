@@ -513,7 +513,7 @@ private:
     }
 
     vector<string> namespaces;
-    if (healthCheck.type() == HealthCheck::HTTP ||
+    if (healthCheck.type() == HealthCheck::HTTP_NEW ||
         healthCheck.type() == HealthCheck::TCP) {
       // Make sure HTTP and TCP health checks are run
       // from the container's network namespace.

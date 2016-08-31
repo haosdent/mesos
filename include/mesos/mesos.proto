@@ -343,8 +343,28 @@ message HealthCheck {
   enum Type {
     UNKNOWN = 0;
     COMMAND = 1;
-    HTTP = 2;
+    HTTP_NEW = 2;
     TCP = 3;
+  }
+
+  // Describes an HTTP health check. This is deprecated, see MESOS-6110.
+  message HTTP {
+    // Port to send the HTTP request.
+    required uint32 port = 1;
+
+    // HTTP request path.
+    optional string path = 2 [default = "/"];
+
+    // TODO(benh): Implement:
+    // Whether or not to use HTTPS.
+    // optional bool ssl = 3 [default = false];
+
+    // Expected response statuses. Not specifying any statuses implies
+    // that any returned status is acceptable.
+    repeated uint32 statuses = 4;
+
+    // TODO(benh): Include an 'optional bytes data' field for checking
+    // for specific data in the response.
   }
 
   // Describes an HTTP health check. Sends a GET request to
@@ -352,14 +372,14 @@ message HealthCheck {
   // as success, failure otherwise. Note that <host> is not configurable
   // and is resolved automatically, in most cases to localhost.
   message HTTPCheckInfo {
-    // Currently "http" and "https" are supported.
-    optional string scheme = 1;
-
     // Port to send the HTTP request.
-    required uint32 port = 2;
+    required uint32 port = 1;
 
     // HTTP request path.
-    optional string path = 3;
+    optional string path = 2;
+
+    // Currently "http" and "https" are supported.
+    optional string scheme = 3;
 
     // TODO(alexr): Add support for HTTP method. While adding POST
     // and PUT is simple, supporting payload is more involved.
@@ -368,6 +388,7 @@ message HealthCheck {
 
     // TODO(alexr): Add support for success and possibly failure
     // statuses.
+    repeated uint32 statuses = 4;
 
     // TODO(haosdent): Consider adding a flag to enable task's certificate
     // validation for HTTPS health checks, see MESOS-5997.
@@ -405,6 +426,9 @@ message HealthCheck {
   // TODO(alexr): Add an optional `KillPolicy` that should be used
   // if the task is killed because of a health check failure.
 
+  // HTTP health check - this is deprecated, see MESOS-6110.
+  optional HTTP http = 1;
+
   // The type of health check.
   optional Type type = 8;
 
@@ -412,7 +436,7 @@ message HealthCheck {
   optional CommandInfo command = 7;
 
   // HTTP health check.
-  optional HTTPCheckInfo http = 10;
+  optional HTTPCheckInfo http_new = 10;
 
   // TCP health check.
   optional TCPCheckInfo tcp = 9;

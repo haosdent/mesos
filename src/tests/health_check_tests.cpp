@@ -187,7 +187,7 @@ TEST_F(HealthCheckTest, HealthCheckProtobufValidation)
     Option<Error> validate = validation::healthCheck(healthCheckProto);
     EXPECT_SOME(validate);
 
-    healthCheckProto.set_type(HealthCheck::HTTP);
+    healthCheckProto.set_type(HealthCheck::HTTP_NEW);
     validate = validation::healthCheck(healthCheckProto);
     EXPECT_SOME(validate);
 
@@ -206,22 +206,42 @@ TEST_F(HealthCheckTest, HealthCheckProtobufValidation)
     EXPECT_SOME(validate);
   }
 
+  // Command health check without type specified could pass validation.
+  {
+    HealthCheck healthCheckProto;
+
+    CommandInfo command;
+    command.set_value("sleep 200");
+    healthCheckProto.mutable_command()->CopyFrom(command);
+    Option<Error> validate = validation::healthCheck(healthCheckProto);
+    EXPECT_NONE(validate);
+  }
+
+  // Old HTTP health check could pass validation.
+  {
+    HealthCheck healthCheckProto;
+
+    healthCheckProto.mutable_http()->set_port(8080);
+    Option<Error> validate = validation::healthCheck(healthCheckProto);
+    EXPECT_NONE(validate);
+  }
+
   // HTTP health check may specify a known scheme and a path starting with '/'.
   {
     HealthCheck healthCheckProto;
 
-    healthCheckProto.set_type(HealthCheck::HTTP);
-    healthCheckProto.mutable_http()->set_port(8080);
+    healthCheckProto.set_type(HealthCheck::HTTP_NEW);
+    healthCheckProto.mutable_http_new()->set_port(8080);
 
     Option<Error> validate = validation::healthCheck(healthCheckProto);
     EXPECT_NONE(validate);
 
-    healthCheckProto.mutable_http()->set_scheme("ftp");
+    healthCheckProto.mutable_http_new()->set_scheme("ftp");
     validate = validation::healthCheck(healthCheckProto);
     EXPECT_SOME(validate);
 
-    healthCheckProto.mutable_http()->set_scheme("https");
-    healthCheckProto.mutable_http()->set_path("healthz");
+    healthCheckProto.mutable_http_new()->set_scheme("https");
+    healthCheckProto.mutable_http_new()->set_path("healthz");
     validate = validation::healthCheck(healthCheckProto);
     EXPECT_SOME(validate);
   }

@@ -175,6 +175,15 @@ HealthCheckerProcess::HealthCheckerProcess(
 
 Future<Nothing> HealthCheckerProcess::healthCheck()
 {
+  // TODO(haosdent): Remove this after the 1.4 release.
+  // For backwards compatibility, set the type for command health check
+  // to `COMMAND` if it is not specified.
+  if (!check.has_type() && check.has_command()) {
+    check.set_type(HealthCheck::COMMAND);
+    LOG(WARNING) << "The type of command health check didn't set, this "
+                 << "would be forbidden after the 1.4 release.";
+  }
+
   VLOG(1) << "Health check starting in "
           << Seconds(check.delay_seconds()) << ", grace period "
           << Seconds(check.grace_period_seconds());
@@ -250,7 +259,7 @@ void HealthCheckerProcess::_healthCheck()
       break;
     }
 
-    case HealthCheck::HTTP: {
+    case HealthCheck::HTTP_NEW: {
       checkResult = _httpHealthCheck();
       break;
     }
@@ -374,10 +383,10 @@ Future<Nothing> HealthCheckerProcess::_commandHealthCheck()
 
 Future<Nothing> HealthCheckerProcess::_httpHealthCheck()
 {
-  CHECK_EQ(HealthCheck::HTTP, check.type());
-  CHECK(check.has_http());
+  CHECK_EQ(HealthCheck::HTTP_NEW, check.type());
+  CHECK(check.has_http_new());
 
-  const HealthCheck::HTTPCheckInfo& http = check.http();
+  const HealthCheck::HTTPCheckInfo& http = check.http_new();
 
   const string scheme = http.has_scheme() ? http.scheme() : DEFAULT_HTTP_SCHEME;
   const string path = http.has_path() ? http.path() : "";
@@ -598,11 +607,25 @@ namespace validation {
 
 Option<Error> healthCheck(const HealthCheck& check)
 {
-  if (!check.has_type()) {
-    return Error("HealthCheck must specify 'type'");
+  // Skip validation if use deprecated HTTP health check.
+  if (check.has_http()) {
+    return None();
   }
 
-  if (check.type() == HealthCheck::COMMAND) {
+  HealthCheck::Type checkType = HealthCheck::UNKNOWN;
+
+  if (check.has_type()) {
+    checkType = check.type();
+  } else {
+    // TODO(haosdent): Remove this after the 1.4 release.
+    // For backwards compatibility, when the type of the health check
+    // is not specified, determine its type by the `command` fields.
+    if (check.has_command()) {
+      checkType = HealthCheck::COMMAND;
+    }
+  }
+
+  if (checkType == HealthCheck::COMMAND) {
     if (!check.has_command()) {
       return Error("Expecting 'command' to be set for command health check");
     }
@@ -615,12 +638,12 @@ Option<Error> healthCheck(const HealthCheck& check)
 
       return Error("Command health check must contain " + commandType);
     }
-  } else if (check.type() == HealthCheck::HTTP) {
-    if (!check.has_http()) {
-      return Error("Expecting 'http' to be set for HTTP health check");
+  } else if (checkType == HealthCheck::HTTP_NEW) {
+    if (!check.has_http_new()) {
+      return Error("Expecting 'http_new' to be set for HTTP health check");
     }
 
-    const HealthCheck::HTTPCheckInfo& http = check.http();
+    const HealthCheck::HTTPCheckInfo& http = check.http_new();
 
     if (http.has_scheme() &&
         http.scheme() != "http" &&
@@ -633,7 +656,7 @@ Option<Error> healthCheck(const HealthCheck& check)
       return Error("The path '" + http.path() + "' of HTTP health check must "
                    "start with '/'");
     }
-  } else if (check.type() == HealthCheck::TCP) {
+  } else if (checkType == HealthCheck::TCP) {
     if (!check.has_tcp()) {
       return Error("Expecting 'tcp' to be set for TCP health check");
     }

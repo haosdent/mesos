@@ -43,6 +43,24 @@ We categorize the changes as follows:
   </thead>
 <tr>
   <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Version-->
+  1.1.x
+  </td>
+  <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Mesos Core-->
+    <ul style="padding-left:10px;">
+      <li>D <a href="#1-1-x-health-check">Health check</a></li>
+    </ul>
+  </td>
+  <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Flags-->
+  </td>
+  <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Framework API-->
+  </td>
+  <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Module API-->
+  </td>
+  <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Endpoints-->
+  </td>
+</tr>
+<tr>
+  <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Version-->
   1.0.x
   </td>
   <td style="word-wrap: break-word; overflow-wrap: break-word;"><!--Mesos Core-->
@@ -177,6 +195,12 @@ We categorize the changes as follows:
 </tr>
 </table>
 
+
+## Upgrading from 1.0.x to 1.1.x ##
+
+<a name="1-1-x-health-check"></a>
+
+* Using health checks without setting the type is deprecated.
 
 ## Upgrading from 0.28.x to 1.0.x ##
 
