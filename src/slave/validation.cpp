@@ -99,6 +99,9 @@ Option<Error> validate(
 
     case mesos::agent::Call::GET_TASKS:
       return None();
+
+    case mesos::agent::Call::GET_AGENT:
+      return None();
   }
 
   UNREACHABLE();

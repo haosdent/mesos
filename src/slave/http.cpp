@@ -399,6 +399,9 @@ Future<Response> Slave::Http::api(
 
     case agent::Call::GET_TASKS:
       return getTasks(call, principal, acceptType);
+
+    case agent::Call::GET_AGENT:
+      return getAgent(call, principal, acceptType);
   }
 
   UNREACHABLE();
@@ -1526,6 +1529,23 @@ string Slave::Http::STATISTICS_HELP()
       AUTHORIZATION(
           "The request principal should be authorized to query this endpoint.",
           "See the authorization documentation for details."));
+}
+
+
+Future<Response> Slave::Http::getAgent(
+    const agent::Call& call,
+    const Option<string>& principal,
+    ContentType contentType) const
+{
+  CHECK_EQ(agent::Call::GET_AGENT, call.type());
+
+  agent::Response response;
+  response.set_type(agent::Response::GET_AGENT);
+
+  response.mutable_get_agent()->mutable_slave_info()->CopyFrom(slave->info);
+
+  return OK(serialize(contentType, evolve(response)),
+            stringify(contentType));
 }
 
 
