@@ -1690,35 +1690,6 @@ Future<Response> Slave::Http::containers(
 }
 
 
-Future<Response> Slave::Http::getContainers(
-    const agent::Call& call,
-    const Option<string>& printcipal,
-    ContentType contentType) const
-{
-  CHECK_EQ(agent::Call::GET_CONTAINERS, call.type());
-
-  return __containers()
-      .then([contentType](const Future<JSON::Array>& result)
-          -> Future<Response> {
-        if (!result.isReady()) {
-          LOG(WARNING) << "Could not collect container status and statistics: "
-                       << (result.isFailed()
-                            ? result.failure()
-                            : "Discarded");
-          return result.isFailed()
-            ? InternalServerError(result.failure())
-            : InternalServerError();
-        }
-
-        return OK(
-            serialize(
-                contentType,
-                evolve<v1::agent::Response::GET_CONTAINERS>(result.get())),
-            stringify(contentType));
-      });
-}
-
-
 Future<Response> Slave::Http::_containers(const Request& request) const
 {
   return __containers()
@@ -1823,6 +1794,163 @@ Future<JSON::Array> Slave::Http::__containers() const
         }
 
         return result;
+      });
+}
+
+
+Future<Response> Slave::Http::getContainers(
+    const agent::Call& call,
+    const Option<string>& principal,
+    ContentType contentType) const
+{
+  CHECK_EQ(agent::Call::GET_CONTAINERS, call.type());
+
+  // Retrieve `ObjectApprover`s for authorizing frameworks and executors.
+  Future<Owned<ObjectApprover>> frameworksApprover;
+  Future<Owned<ObjectApprover>> executorsApprover;
+  if (slave->authorizer.isSome()) {
+    authorization::Subject subject;
+    if (principal.isSome()) {
+      subject.set_value(principal.get());
+    }
+
+    frameworksApprover = slave->authorizer.get()->getObjectApprover(
+        subject, authorization::VIEW_FRAMEWORK);
+
+    executorsApprover = slave->authorizer.get()->getObjectApprover(
+        subject, authorization::VIEW_EXECUTOR);
+  } else {
+    frameworksApprover = Owned<ObjectApprover>(new AcceptingObjectApprover());
+    executorsApprover = Owned<ObjectApprover>(new AcceptingObjectApprover());
+  }
+
+  return collect(frameworksApprover, executorsApprover)
+    .then(defer(slave->self(),
+        [this](const tuple<Owned<ObjectApprover>,
+                           Owned<ObjectApprover>>& approvers) {
+      // Get approver from tuple.
+      Owned<ObjectApprover> frameworksApprover;
+      Owned<ObjectApprover> executorsApprover;
+      tie(frameworksApprover, executorsApprover) = approvers;
+
+      return _getContainers(frameworksApprover, executorsApprover);
+    }))
+    .then([contentType](const Future<agent::Response::GetContainers>& result)
+        -> Future<Response> {
+      if (!result.isReady()) {
+        LOG(WARNING) << "Could not collect container status and statistics: "
+                     << (result.isFailed()
+                          ? result.failure()
+                          : "Discarded");
+        return result.isFailed()
+          ? InternalServerError(result.failure())
+          : InternalServerError();
+      }
+
+      agent::Response response;
+      response.set_type(agent::Response::GET_CONTAINERS);
+      response.mutable_get_containers()->CopyFrom(result.get());
+
+      return OK(serialize(contentType, evolve(response)),
+                stringify(contentType));
+    });
+}
+
+
+Future<agent::Response::GetContainers> Slave::Http::_getContainers(
+    const Owned<ObjectApprover>& frameworksApprover,
+    const Owned<ObjectApprover>& executorsApprover) const
+{
+  agent::Response::GetContainers getContainers;
+
+  list<Future<ContainerStatus>> statusFutures;
+  list<Future<ResourceStatistics>> statsFutures;
+
+  foreachvalue (const Framework* framework, slave->frameworks) {
+    // Skip unauthorized frameworks.
+    if (!approveViewFrameworkInfo(frameworksApprover, framework->info)) {
+      continue;
+    }
+
+    foreachvalue (const Executor* executor, framework->executors) {
+      // Skip unauthorized executors.
+      if (!approveViewExecutorInfo(executorsApprover,
+                                   executor->info,
+                                   framework->info)) {
+        continue;
+      }
+
+      // No need to get statistics and status if we know that the
+      // executor has already terminated.
+      if (executor->state == Executor::TERMINATED) {
+        continue;
+      }
+
+      const ExecutorInfo& info = executor->info;
+      const ContainerID& containerId = executor->containerId;
+
+      agent::Response::GetContainers::Container* container =
+        getContainers.add_containers();
+
+      container->mutable_framework_id()->CopyFrom(info.framework_id());
+      container->mutable_executor_id()->CopyFrom(info.executor_id());
+      container->set_executor_name(info.name());
+      container->mutable_container_id()->CopyFrom(containerId);
+
+      statusFutures.push_back(slave->containerizer->status(containerId));
+      statsFutures.push_back(slave->containerizer->usage(containerId));
+    }
+  }
+
+  return await(await(statusFutures), await(statsFutures)).then(
+      [getContainers](const tuple<
+          Future<list<Future<ContainerStatus>>>,
+          Future<list<Future<ResourceStatistics>>>>& t) mutable
+          -> Future<agent::Response::GetContainers> {
+        const list<Future<ContainerStatus>>& status = std::get<0>(t).get();
+        const list<Future<ResourceStatistics>>& stats = std::get<1>(t).get();
+        CHECK_EQ(status.size(), stats.size());
+        CHECK_EQ(status.size(), (size_t) getContainers.containers_size());
+
+        auto statusIter = status.begin();
+        auto statsIter = stats.begin();
+        auto containerIter = getContainers.mutable_containers()->begin();
+
+        while (statusIter != status.end() &&
+               statsIter != stats.end() &&
+               containerIter != getContainers.mutable_containers()->end()) {
+          agent::Response::GetContainers::Container& container = *containerIter;
+
+          if (statusIter->isReady()) {
+            container.mutable_container_status()->CopyFrom(statusIter->get());
+          } else {
+            LOG(WARNING) << "Failed to get container status for executor '"
+                         << container.executor_id() << "'"
+                         << " of framework "
+                         << container.framework_id() << ": "
+                         << (statusIter->isFailed()
+                              ? statusIter->failure()
+                              : "discarded");
+          }
+
+          if (statsIter->isReady()) {
+            container.mutable_resource_statistics()->CopyFrom(statsIter->get());
+          } else {
+            LOG(WARNING) << "Failed to get resource statistics for executor '"
+                         << container.executor_id() << "'"
+                         << " of framework "
+                         << container.framework_id() << ": "
+                         << (statsIter->isFailed()
+                              ? statsIter->failure()
+                              : "discarded");
+          }
+
+          statusIter++;
+          statsIter++;
+          containerIter++;
+        }
+
+        return getContainers;
       });
 }
 

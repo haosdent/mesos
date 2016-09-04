@@ -566,6 +566,10 @@ private:
         const Option<std::string>& principal,
         ContentType contentType) const;
 
+    process::Future<mesos::agent::Response::GetContainers> _getContainers(
+        const process::Owned<ObjectApprover>& frameworksApprover,
+        const process::Owned<ObjectApprover>& executorsApprover) const;
+
     process::Future<process::http::Response> readFile(
         const mesos::agent::Call& call,
         const Option<std::string>& principal,
