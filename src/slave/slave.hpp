@@ -607,7 +607,7 @@ private:
         const Option<std::string>& principal,
         ContentType contentType) const;
 
-    mesos::agent::Response::GetState _getState(
+    process::Future<mesos::agent::Response::GetState> _getState(
         const process::Owned<ObjectApprover>& frameworksApprover,
         const process::Owned<ObjectApprover>& taskApprover,
         const process::Owned<ObjectApprover>& executorsApprover) const;

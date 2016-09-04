@@ -3118,6 +3118,7 @@ TEST_P(AgentAPITest, GetState)
     ASSERT_EQ(0u, getState.get_frameworks().frameworks_size());
     ASSERT_EQ(0u, getState.get_tasks().launched_tasks_size());
     ASSERT_EQ(0u, getState.get_executors().executors_size());
+    ASSERT_EQ(0u, getState.get_containers().containers_size());
   }
 
   driver.launchTasks(offer.id(), {task});
@@ -3145,6 +3146,7 @@ TEST_P(AgentAPITest, GetState)
     ASSERT_EQ(0u, getState.get_tasks().completed_tasks_size());
     ASSERT_EQ(1u, getState.get_executors().executors_size());
     ASSERT_EQ(0u, getState.get_executors().completed_executors_size());
+    ASSERT_EQ(1u, getState.get_containers().containers_size());
   }
 
   Clock::pause();
@@ -3200,6 +3202,7 @@ TEST_P(AgentAPITest, GetState)
     ASSERT_EQ(1u, getState.get_tasks().completed_tasks_size());
     ASSERT_EQ(0u, getState.get_executors().executors_size());
     ASSERT_EQ(1u, getState.get_executors().completed_executors_size());
+    ASSERT_EQ(0u, getState.get_containers().containers_size());
   }
 }
 

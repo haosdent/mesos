@@ -177,6 +177,7 @@ message Response {
     optional GetTasks get_tasks = 1;
     optional GetExecutors get_executors = 2;
     optional GetFrameworks get_frameworks = 3;
+    optional GetContainers get_containers = 4;
   }
 
   // Information about containers running on this agent. It contains

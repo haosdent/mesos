@@ -1450,44 +1450,49 @@ Future<Response> Slave::Http::getState(
     .then(defer(slave->self(),
       [=](const tuple<Owned<ObjectApprover>,
                       Owned<ObjectApprover>,
-                      Owned<ObjectApprover>>& approvers)
-        -> Future<Response> {
+                      Owned<ObjectApprover>>& approvers) {
       // Get approver from tuple.
       Owned<ObjectApprover> frameworksApprover;
       Owned<ObjectApprover> tasksApprover;
       Owned<ObjectApprover> executorsApprover;
       tie(frameworksApprover, tasksApprover, executorsApprover) = approvers;
 
+      return _getState(frameworksApprover, tasksApprover, executorsApprover);
+    }))
+    .then([contentType](const agent::Response::GetState& getState)
+        -> Future<Response> {
       agent::Response response;
       response.set_type(agent::Response::GET_STATE);
-      response.mutable_get_state()->CopyFrom(
-          _getState(frameworksApprover,
-                    tasksApprover,
-                    executorsApprover));
+      response.mutable_get_state()->CopyFrom(getState);
 
       return OK(serialize(contentType, evolve(response)),
                 stringify(contentType));
-    }));
+    });
 }
 
 
-agent::Response::GetState Slave::Http::_getState(
+Future<agent::Response::GetState> Slave::Http::_getState(
     const Owned<ObjectApprover>& frameworksApprover,
     const Owned<ObjectApprover>& tasksApprover,
     const Owned<ObjectApprover>& executorsApprover) const
 {
-  agent::Response::GetState getState;
+  return _getContainers(frameworksApprover, executorsApprover)
+    .then([=](const agent::Response::GetContainers& getContainers) {
+      agent::Response::GetState getState;
 
-  getState.mutable_get_tasks()->CopyFrom(
-    _getTasks(frameworksApprover, tasksApprover, executorsApprover));
+      getState.mutable_get_tasks()->CopyFrom(
+        _getTasks(frameworksApprover, tasksApprover, executorsApprover));
 
-  getState.mutable_get_executors()->CopyFrom(
-    _getExecutors(frameworksApprover, executorsApprover));
+      getState.mutable_get_executors()->CopyFrom(
+        _getExecutors(frameworksApprover, executorsApprover));
 
-  getState.mutable_get_frameworks()->CopyFrom(
-    _getFrameworks(frameworksApprover));
+      getState.mutable_get_frameworks()->CopyFrom(
+        _getFrameworks(frameworksApprover));
 
-  return getState;
+      getState.mutable_get_containers()->CopyFrom(getContainers);
+
+      return getState;
+    });
 }
 
 
