@@ -51,23 +51,6 @@ namespace process {
 using InputFileDescriptors = Subprocess::IO::InputFileDescriptors;
 using OutputFileDescriptors = Subprocess::IO::OutputFileDescriptors;
 
-
-inline pid_t defaultClone(const lambda::function<int()>& func)
-{
-  pid_t pid = ::fork();
-  if (pid == -1) {
-    return -1;
-  } else if (pid == 0) {
-    // Child.
-    ::exit(func());
-    UNREACHABLE();
-  } else {
-    // Parent.
-    return pid;
-  }
-}
-
-
 namespace internal {
 
 // This function will invoke `os::close` on all specified file
@@ -114,6 +97,22 @@ inline Try<Nothing> cloexec(
   }
 
   return Nothing();
+}
+
+
+inline pid_t defaultClone(const lambda::function<int()>& func)
+{
+  pid_t pid = ::fork();
+  if (pid == -1) {
+    return -1;
+  } else if (pid == 0) {
+    // Child.
+    ::exit(func());
+    UNREACHABLE();
+  } else {
+    // Parent.
+    return pid;
+  }
 }
 
 

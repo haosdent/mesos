@@ -83,7 +83,14 @@ pid_t cloneWithSetns(
     Option<pid_t> taskPid,
     const vector<string>& namespaces)
 {
-  return process::defaultClone([=]() -> int {
+  pid_t pid = ::fork();
+
+  if (pid == -1) {
+    return -1;
+  } else if (pid == 0) {
+    // Child.
+
+    // TODO(haosdent): Change to use `ChildHooks` once MESOS-5070 is resolved.
     if (taskPid.isSome()) {
       foreach (const string& ns, namespaces) {
         Try<Nothing> setns = ns::setns(taskPid.get(), ns);
@@ -99,8 +106,12 @@ pid_t cloneWithSetns(
       }
     }
 
-    return func();
-  });
+    ::exit(func());
+    UNREACHABLE();
+  } else {
+    // Parent.
+    return pid;
+  }
 }
 #endif
 
