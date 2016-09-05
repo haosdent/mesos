@@ -95,6 +95,10 @@ private:
     // This promise will complete if a container is impacted by a resource
     // limitation and should be terminated.
     process::Promise<mesos::slave::ContainerLimitation> limitation;
+
+    // This `hashset` stores the name of subsystems which are recovered
+    // or prepared for the container.
+    hashset<std::string> subsystems;
   };
 
   CgroupsIsolatorProcess(
