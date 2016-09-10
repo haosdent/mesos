@@ -79,6 +79,12 @@ using namespace process;
 using mesos::internal::master::Master;
 #ifdef __linux__
 using mesos::internal::slave::CgroupsIsolatorProcess;
+using mesos::internal::slave::CGROUP_SUBSYSTEM_CPU_NAME;
+using mesos::internal::slave::CGROUP_SUBSYSTEM_CPUACCT_NAME;
+using mesos::internal::slave::CGROUP_SUBSYSTEM_DEVICES_NAME;
+using mesos::internal::slave::CGROUP_SUBSYSTEM_MEMORY_NAME;
+using mesos::internal::slave::CGROUP_SUBSYSTEM_NET_CLS_NAME;
+using mesos::internal::slave::CGROUP_SUBSYSTEM_PERF_EVENT_NAME;
 using mesos::internal::slave::CPU_SHARES_PER_CPU_REVOCABLE;
 using mesos::internal::slave::Fetcher;
 using mesos::internal::slave::LinuxLauncher;
@@ -1606,91 +1612,94 @@ public:
 };
 
 
-TEST_F(UserCgroupsIsolatorTest, ROOT_CGROUPS_PERF_UserCgroup)
+TEST_F(UserCgroupsIsolatorTest, ROOT_CGROUPS_PERF_NET_CLS_UserCgroup)
 {
+  Try<Owned<cluster::Master>> master = StartMaster();
+  ASSERT_SOME(master);
+
   slave::Flags flags = CreateSlaveFlags();
   flags.perf_events = "cpu-cycles"; // Needed for `PerfEventSubsystem`.
-  flags.isolation = "cgroups/perf_event,cgroups/mem,cgroups/cpu";
+  flags.isolation = "cgroups/cpu,cgroups/devices,cgroups/mem,cgroups/net_cls,"
+                    "cgroups/perf_event";
 
-  Try<Isolator*> _isolator = CgroupsIsolatorProcess::create(flags);
-  ASSERT_SOME(_isolator);
-  Owned<Isolator> isolator(_isolator.get());
+  Fetcher fetcher;
 
-  ExecutorInfo executorInfo;
-  executorInfo.mutable_resources()->CopyFrom(
-      Resources::parse("mem:1024;cpus:1").get()); // For cpu/mem subsystems.
+  Try<MesosContainerizer*> _containerizer =
+    MesosContainerizer::create(flags, true, &fetcher);
 
-  ContainerID containerId;
-  containerId.set_value(UUID::random().toString());
+  CHECK_SOME(_containerizer);
+  Owned<MesosContainerizer> containerizer(_containerizer.get());
 
-  ContainerConfig containerConfig;
-  containerConfig.mutable_executor_info()->CopyFrom(executorInfo);
-  containerConfig.set_directory(os::getcwd());
-  containerConfig.set_user(UNPRIVILEGED_USERNAME);
+  Owned<MasterDetector> detector = master.get()->createDetector();
 
-  AWAIT_READY(isolator->prepare(
-      containerId,
-      containerConfig));
+  Try<Owned<cluster::Slave>> slave =
+    StartSlave(detector.get(), containerizer.get());
+  ASSERT_SOME(slave);
 
-  // Isolators don't provide a way to determine the cgroups they use
-  // so we'll inspect the cgroups for an isolated dummy process.
-  pid_t pid = fork();
-  if (pid == 0) {
-    // Child just sleeps.
-    ::sleep(100);
+  MockScheduler sched;
+  MesosSchedulerDriver driver(
+      &sched, DEFAULT_FRAMEWORK_INFO, master.get()->pid, DEFAULT_CREDENTIAL);
 
-    ABORT("Child process should not reach here");
-  }
-  ASSERT_GT(pid, 0);
+  EXPECT_CALL(sched, registered(&driver, _, _))
+    .Times(1);
 
-  AWAIT_READY(isolator->isolate(containerId, pid));
+  Future<vector<Offer>> offers;
+  EXPECT_CALL(sched, resourceOffers(&driver, _))
+    .WillOnce(FutureArg<1>(&offers))
+    .WillRepeatedly(Return()); // Ignore subsequent offers.
 
-  // Get the container's cgroups from /proc/$PID/cgroup. We're only
-  // interested in the cgroups that this isolator has created which we
-  // can do explicitly by selecting those that have the path that
-  // corresponds to the 'cgroups_root' slave flag. For example:
-  //
-  //   $ cat /proc/pid/cgroup
-  //   6:blkio:/
-  //   5:perf_event:/
-  //   4:memory:/mesos/b7410ed8-c85b-445e-b50e-3a1698d0e18c
-  //   3:freezer:/
-  //   2:cpuacct:/
-  //   1:cpu:/
-  //
-  // Our 'grep' will only select the 'memory' line and then 'awk' will
-  // output 'memory/mesos/b7410ed8-c85b-445e-b50e-3a1698d0e18c'.
-  Try<string> grepOut = os::shell(
-      "grep '" + path::join("/", flags.cgroups_root) + "' /proc/" +
-       stringify(pid) + "/cgroup | awk -F ':' '{print $2$3}'");
+  driver.start();
 
-  ASSERT_SOME(grepOut);
+  AWAIT_READY(offers);
+  EXPECT_NE(0u, offers.get().size());
 
-  // Kill the dummy child process.
-  ::kill(pid, SIGKILL);
-  int exitStatus;
-  EXPECT_NE(-1, ::waitpid(pid, &exitStatus, 0));
+  // Launch a task with the command executor.
+  TaskInfo task;
+  task.set_name("");
+  task.mutable_task_id()->set_value("1");
+  task.mutable_slave_id()->MergeFrom(offers.get()[0].slave_id());
+  task.mutable_resources()->MergeFrom(offers.get()[0].resources());
 
-  vector<string> cgroups = strings::tokenize(grepOut.get(), "\n");
-  ASSERT_FALSE(cgroups.empty());
+  // Command executor will run as user running test.
+  CommandInfo command;
+  command.set_shell(true);
+  command.set_value("sleep 120");
+  command.set_user(UNPRIVILEGED_USERNAME);
 
-  foreach (string cgroup, cgroups) {
-    if (!os::exists(path::join(flags.cgroups_hierarchy, cgroup)) &&
-        strings::startsWith(cgroup, "cpuacct,cpu")) {
-      // An existing bug in CentOS 7.x causes 'cpuacct,cpu' cgroup to
-      // be under 'cpu,cpuacct'. Actively detect this here to
-      // work around this problem.
-      vector<string> parts = strings::split(cgroup, "/");
-      parts[0] = "cpu,cpuacct";
-      cgroup = strings::join("/", parts);
-    }
+  task.mutable_command()->MergeFrom(command);
+
+  Future<TaskStatus> statusRunning;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&statusRunning));
+
+  driver.launchTasks(offers.get()[0].id(), {task});
+
+  AWAIT_READY(statusRunning);
+  EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
+
+  set<string> subsystems = {
+    CGROUP_SUBSYSTEM_CPU_NAME,
+    CGROUP_SUBSYSTEM_CPUACCT_NAME,
+    CGROUP_SUBSYSTEM_DEVICES_NAME,
+    CGROUP_SUBSYSTEM_MEMORY_NAME,
+    CGROUP_SUBSYSTEM_NET_CLS_NAME,
+    CGROUP_SUBSYSTEM_PERF_EVENT_NAME,
+  };
+
+  foreach (string subsystem, subsystems) {
+    string hierarchy = path::join(flags.cgroups_hierarchy, subsystem);
+
+    Try<vector<string>> results = cgroups::get(hierarchy, flags.cgroups_root);
+    ASSERT_SOME(results);
+    ASSERT_EQ(results.get().size(), 1);
+    string cgroup = results.get()[0];
 
     // Check the user cannot manipulate the container's cgroup control
     // files.
     EXPECT_NE(0, os::system(
           "su - " + UNPRIVILEGED_USERNAME +
           " -c 'echo $$ >" +
-          path::join(flags.cgroups_hierarchy, cgroup, "cgroup.procs") +
+          path::join(hierarchy, cgroup, "cgroup.procs") +
           "'"));
 
     // Check the user can create a cgroup under the container's
@@ -1701,7 +1710,7 @@ TEST_F(UserCgroupsIsolatorTest, ROOT_CGROUPS_PERF_UserCgroup)
           "su - " +
           UNPRIVILEGED_USERNAME +
           " -c 'mkdir " +
-          path::join(flags.cgroups_hierarchy, userCgroup) +
+          path::join(hierarchy, userCgroup) +
           "'"));
 
     // Check the user can manipulate control files in the created
@@ -1710,12 +1719,15 @@ TEST_F(UserCgroupsIsolatorTest, ROOT_CGROUPS_PERF_UserCgroup)
           "su - " +
           UNPRIVILEGED_USERNAME +
           " -c 'echo $$ >" +
-          path::join(flags.cgroups_hierarchy, userCgroup, "cgroup.procs") +
+          path::join(hierarchy, userCgroup, "cgroup.procs") +
           "'"));
+
+    // Clear up the folder.
+    AWAIT_READY(cgroups::destroy(hierarchy, userCgroup));
   }
 
-  // Clean up the container. This will also remove the nested cgroups.
-  AWAIT_READY(isolator->cleanup(containerId));
+  driver.stop();
+  driver.join();
 }
 #endif // __linux__
 
