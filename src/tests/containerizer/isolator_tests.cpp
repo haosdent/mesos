@@ -1005,7 +1005,7 @@ class NetClsIsolatorTest : public MesosTest {};
 // been added to the right net_cls cgroup. Finally, the test kills the task and
 // makes sure that the 'CgroupNetClsIsolatorProcess' cleans up the net_cls
 // cgroup created for the container.
-TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_NetClsIsolate)
+TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_NET_CLS_Isolate)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
@@ -1127,7 +1127,7 @@ TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_NetClsIsolate)
 
 // This test verifies that we are able to retrieve the `net_cls` handle
 // from `/state`.
-TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_ContainerStatus)
+TEST_F(NetClsIsolatorTest, ROOT_CGROUPS_NET_CLS_ContainerStatus)
 {
   Try<Owned<cluster::Master>> master = StartMaster();
   ASSERT_SOME(master);
