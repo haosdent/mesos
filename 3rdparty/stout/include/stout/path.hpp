@@ -13,9 +13,12 @@
 #ifndef __STOUT_PATH_HPP__
 #define __STOUT_PATH_HPP__
 
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <glog/logging.h>
 
 #include <stout/stringify.hpp>
 #include <stout/strings.hpp>
@@ -24,6 +27,65 @@
 
 
 namespace path {
+namespace internal {
+
+/**
+ * A helper structure to check whether paths are overlapping.
+ */
+class CheckOverlapTree
+{
+public:
+  CheckOverlapTree()
+    : CheckOverlapTree('\0') {}
+
+  /**
+   * Add path to current tree.
+   *
+   * @param path The path need to check.
+   * @return Whether the path passed in overlap with paths exist in tree.
+   */
+  bool add(const std::string& path)
+  {
+    if (path.back() != '/') {
+      // Append separator to tail so that we could check it more easily.
+      return add(path + '/', 0);
+    } else {
+      return add(path, 0);
+    }
+  }
+
+private:
+  CheckOverlapTree(char _data)
+    : data(_data), count(1) {}
+
+  bool add(const std::string& s, size_t pos)
+  {
+    if (pos >= s.size()) {
+      return count > 1;
+    }
+
+    if (data == '/' && count > 1 && children.size() == 0) {
+      return true;
+    }
+
+    char c = s[pos];
+    if (children.count(c) > 0) {
+      children[c].count += 1;
+    } else {
+      CheckOverlapTree child(c);
+      children[c] = child;
+    }
+
+    return children[c].add(s, pos + 1);
+  }
+
+  char data;
+  int count;
+  std::map<char, CheckOverlapTree> children;
+};
+
+} // namespace internal {
+
 
 // Base case.
 inline std::string join(
@@ -65,6 +127,28 @@ inline std::string join(const std::vector<std::string>& paths)
 inline bool absolute(const std::string& path)
 {
   return strings::startsWith(path, os::PATH_SEPARATOR);
+}
+
+// Check whether the given paths list overlapping. If there is a
+// dependency between any two paths in the list, the paths list is
+// overlapping. For example, ["/tmp", "/usr", "/usr/lib"] is
+// overlapping because "/usr/lib" under "/usr". In this function, it
+// supposes all paths passed in are absolute and flat.
+inline bool overlapping(const std::vector<std::string>& paths)
+{
+  internal::CheckOverlapTree tree;
+
+  foreach (const std::string& path, paths) {
+    CHECK(absolute(path))
+      << "Fail to check paths list overlapping: '" << path
+      << "' is not an absolute path";
+
+    if (tree.add(path)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 } // namespace path {

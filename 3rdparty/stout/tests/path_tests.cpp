@@ -167,6 +167,32 @@ TEST(PathTest, Absolute)
 }
 
 
+TEST(PathTest, Overlapping)
+{
+  // Check empty paths list.
+  EXPECT_FALSE(path::overlapping({}));
+
+  // Check single path.
+  EXPECT_FALSE(path::overlapping({"/usr"}));
+  EXPECT_FALSE(path::overlapping({"/"}));
+
+  // Check paths list contains "/".
+  EXPECT_TRUE(path::overlapping({"/usr", "/", "/tmp"}));
+  EXPECT_TRUE(path::overlapping({"/", "/usr", "/tmp"}));
+
+  // Check same folder.
+  EXPECT_TRUE(path::overlapping({"/usr", "/usr"}));
+
+  // Check paths have same prefix.
+  EXPECT_FALSE(path::overlapping({"/usr", "/lib", "/tmp"}));
+  EXPECT_FALSE(path::overlapping({"/usr", "/usr1"}));
+  EXPECT_FALSE(path::overlapping({"/usr-/xxx", "/usr/baz"}));
+  EXPECT_FALSE(path::overlapping({"/usr/lib", "/usr/lib64"}));
+  EXPECT_TRUE(path::overlapping({"/abc", "/abc/efg", "/efg"}));
+  EXPECT_TRUE(path::overlapping({"/usr", "/usr/lib", "/usr/lib64"}));
+}
+
+
 TEST(PathTest, Comparison)
 {
   EXPECT_TRUE(Path("a") == Path("a"));
