@@ -413,6 +413,8 @@ void Slave::initialize()
       << "Failed to determine agent resources: " << resources.error();
   }
 
+  vector<string> mountRoots;
+
   // Ensure disk `source`s are accessible.
   foreach (
       const Resource& resource,
@@ -436,8 +438,9 @@ void Slave::initialize()
       CHECK(source.has_mount());
 
       // For `MOUNT` sources we fail if they don't exist.
-      // On Linux we test the mount table for existence.
-#ifdef __linux__
+      // Get the `realpath` of the `root` to verify the path exists
+      // and doesn't overlap with others. In Linux, we use this to
+      // verify it against the mount table entries as well.
       // Get the `realpath` of the `root` to verify it against the
       // mount table entries.
       // TODO(jmlvanre): Consider enforcing allowing only real paths
@@ -454,6 +457,10 @@ void Slave::initialize()
           << (realpath.isError() ? realpath.error() : "no such path");
       }
 
+      mountRoots.push_back(realpath.get());
+
+      // On Linux we test the mount table for existence.
+#ifdef __linux__
       // TODO(jmlvanre): Consider moving this out of the for loop.
       Try<fs::MountTable> mountTable = fs::MountTable::read("/proc/mounts");
       if (mountTable.isError()) {
@@ -474,17 +481,15 @@ void Slave::initialize()
         EXIT(EXIT_FAILURE)
           << "Failed to found mount '" << realpath.get() << "' in /proc/mounts";
       }
-#else // __linux__
-      // On other platforms we test whether that provided `root` exists.
-      if (!os::exists(source.mount().root())) {
-        EXIT(EXIT_FAILURE)
-          << "Failed to find mount point '" << source.mount().root() << "'";
-      }
 #endif // __linux__
     } else {
       EXIT(EXIT_FAILURE)
         << "Unsupported 'DiskInfo.Source.Type' in '" << resource << "'";
     }
+  }
+
+  if (path::overlapping(mountRoots)) {
+    EXIT(EXIT_FAILURE) << "Overlapping mount roots are not allowed";
   }
 
   Attributes attributes;
