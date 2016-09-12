@@ -206,6 +206,30 @@ TEST_F(HealthCheckTest, HealthCheckProtobufValidation)
     EXPECT_SOME(validate);
   }
 
+  // Command health check without `type` should not be rejected.
+  // NOTE: Absence of `type` is supported for compatibility reasons and
+  // will be deprecated in Mesos 2.0.
+  {
+    HealthCheck healthCheckProto;
+
+    CommandInfo command;
+    command.set_value("sleep 200");
+    healthCheckProto.mutable_command()->CopyFrom(command);
+    Option<Error> validate = validation::healthCheck(healthCheckProto);
+    EXPECT_NONE(validate);
+  }
+
+  // HTTP health check without type should not be rejected.
+  // NOTE: Absence of type is supported for compatibility reasons and
+  // will be deprecated in Mesos 2.0.
+  {
+    HealthCheck healthCheckProto;
+
+    healthCheckProto.mutable_http()->set_port(8080);
+    Option<Error> validate = validation::healthCheck(healthCheckProto);
+    EXPECT_NONE(validate);
+  }
+
   // HTTP health check may specify a known scheme and a path starting with '/'.
   {
     HealthCheck healthCheckProto;

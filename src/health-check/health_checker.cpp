@@ -175,6 +175,20 @@ HealthCheckerProcess::HealthCheckerProcess(
 
 Future<Nothing> HealthCheckerProcess::healthCheck()
 {
+  // TODO(haosdent): Remove this after the Mesos 2.0 release.
+  if (!check.has_type()) {
+    // For backwards compatibility, determine and set its type from the
+    // `http` and `command` fields.
+    if (check.has_command()) {
+      check.set_type(HealthCheck::COMMAND);
+    } else if (check.has_http()) {
+      check.set_type(HealthCheck::HTTP);
+    }
+
+    LOG(WARNING) << "The type of health check didn't set, this would be "
+                 << "forbidden after the Mesos 2.0 release.";
+  }
+
   VLOG(1) << "Health check starting in "
           << Seconds(check.delay_seconds()) << ", grace period "
           << Seconds(check.grace_period_seconds());
@@ -598,11 +612,23 @@ namespace validation {
 
 Option<Error> healthCheck(const HealthCheck& check)
 {
-  if (!check.has_type()) {
-    return Error("HealthCheck must specify 'type'");
+  HealthCheck::Type checkType = HealthCheck::UNKNOWN;
+
+  if (check.has_type()) {
+    checkType = check.type();
+  } else {
+    // TODO(haosdent): Remove this after the Mesos 2.0 release.
+    // For backwards compatibility, when the type of the health check
+    // is not specified, determine its type from the `http` and
+    // `command` fields.
+    if (check.has_command()) {
+      checkType = HealthCheck::COMMAND;
+    } else if (check.has_http()) {
+      checkType = HealthCheck::HTTP;
+    }
   }
 
-  if (check.type() == HealthCheck::COMMAND) {
+  if (checkType == HealthCheck::COMMAND) {
     if (!check.has_command()) {
       return Error("Expecting 'command' to be set for command health check");
     }
@@ -615,7 +641,7 @@ Option<Error> healthCheck(const HealthCheck& check)
 
       return Error("Command health check must contain " + commandType);
     }
-  } else if (check.type() == HealthCheck::HTTP) {
+  } else if (checkType == HealthCheck::HTTP) {
     if (!check.has_http()) {
       return Error("Expecting 'http' to be set for HTTP health check");
     }
@@ -633,7 +659,7 @@ Option<Error> healthCheck(const HealthCheck& check)
       return Error("The path '" + http.path() + "' of HTTP health check must "
                    "start with '/'");
     }
-  } else if (check.type() == HealthCheck::TCP) {
+  } else if (checkType == HealthCheck::TCP) {
     if (!check.has_tcp()) {
       return Error("Expecting 'tcp' to be set for TCP health check");
     }
