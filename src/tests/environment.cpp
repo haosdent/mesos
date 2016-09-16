@@ -851,6 +851,18 @@ void tests::Environment::TemporaryDirectoryEventListener::OnTestEnd(
         LOG(ERROR) << "Failed to umount for directory '" << directory
                    << "': " << umount.error();
       }
+
+      // Use `tac` command to get the mount entries in reversed order.
+      umount = os::shell(
+          "tac /proc/self/mountinfo | "
+          "grep '/run/mesos/pidns' | "
+          "cut -d' ' -f5 | "
+          "xargs --no-run-if-empty umount -l");
+
+      if (umount.isError()) {
+        LOG(ERROR) << "Failed to umount the bind mount root directory "
+                   << "of namespaces/pid isolator: " << umount.error();
+      }
     }
 #endif
 
