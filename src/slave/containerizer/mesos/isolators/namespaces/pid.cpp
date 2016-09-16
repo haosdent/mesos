@@ -20,6 +20,7 @@
 #include <set>
 #include <string>
 
+#include <stout/adaptor.hpp>
 #include <stout/os.hpp>
 
 #include <stout/os/exists.hpp>
@@ -129,17 +130,36 @@ Future<Nothing> NamespacesPidIsolatorProcess::recover(
     recovered.insert(state.container_id());
   }
 
+  Try<fs::MountInfoTable> table = fs::MountInfoTable::read();
+  if (table.isError()) {
+    return Failure("Failed to get mount table: " + table.error());
+  }
+
+  Result<string> pidMountRoot = os::realpath(PID_NS_BIND_MOUNT_ROOT);
+  if (!pidMountRoot.isSome()) {
+    // We have created `PID_NS_BIND_MOUNT_ROOT` in `create` method, so
+    // we should return `Failure` if it is not found here.
+    return Failure(
+        "Failed to get the realpath of the bind mount root directory: " +
+        (pidMountRoot.isError() ? pidMountRoot.error() : "Not found"));
+  }
+
   // Clean up any unknown orphaned bind mounts and empty files. Known
   // orphan bind mounts and empty files will be destroyed by the
   // containerizer using the normal cleanup path. See MESOS-2367 for
   // details.
-  Try<list<string>> entries = os::ls(PID_NS_BIND_MOUNT_ROOT);
-  if (entries.isError()) {
-    return Failure("Failed to list existing containers in '" +
-                   string(PID_NS_BIND_MOUNT_ROOT) + "': " + entries.error());
+  list<string> entries;
+  foreach (const fs::MountInfoTable::Entry& entry,
+           adaptor::reverse(table->entries)) {
+    if (strings::startsWith(entry.target, pidMountRoot.get())) {
+      entries.push_back(strings::remove(
+          entry.target,
+          pidMountRoot.get() + "/",
+          strings::PREFIX));
+    }
   }
 
-  foreach (const string& entry, entries.get()) {
+  foreach (const string& entry, entries) {
     ContainerID containerId;
     containerId.set_value(entry);
 
@@ -221,11 +241,24 @@ Future<Nothing> NamespacesPidIsolatorProcess::cleanup(
 {
   const string target = nsExtraReference(containerId);
 
+  Try<Nothing> unmount = fs::unmount(PID_NS_BIND_MOUNT_ROOT);
+  if (unmount.isError()) {
+    LOG(ERROR) << "Failed to unmount the bind mount root directory at "
+               << PID_NS_BIND_MOUNT_ROOT << ": " << unmount.error();
+  }
+
   if (os::exists(target)) {
-    // We don't expect anyone to have a reference to target but do a
-    // lazy umount in case. We do not want to force the umount; it
-    // will not cause an issue if this umount is delayed.
-    Try<Nothing> unmount = fs::unmount(target, MNT_DETACH);
+    unmount = fs::unmount(target);
+    if (unmount.isError()) {
+      // We don't expect anyone to have a reference to target but do a
+      // lazy umount in case. We do not want to force the umount; it
+      // will not cause an issue if this umount is delayed.
+      LOG(WARNING) << "Lazy unmount pid namespace handle at " << target
+                   << " because failed to unmount it immediately: "
+                   << unmount.error();
+
+      fs::unmount(target, MNT_DETACH);
+    }
 
     // This will fail if the unmount hasn't completed yet but this
     // only leaks a uniquely named empty file that will cleaned up as
