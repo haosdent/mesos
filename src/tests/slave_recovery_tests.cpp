@@ -4156,10 +4156,6 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceBackward)
 
   MockScheduler sched;
 
-  // Scheduler expectations.
-  EXPECT_CALL(sched, statusUpdate(_, _))
-    .WillRepeatedly(Return());
-
   // Enable checkpointing for the framework.
   FrameworkInfo frameworkInfo = DEFAULT_FRAMEWORK_INFO;
   frameworkInfo.set_checkpoint(true);
@@ -4188,9 +4184,17 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceBackward)
   Future<Message> registerExecutorMessage =
     FUTURE_MESSAGE(Eq(RegisterExecutorMessage().GetTypeName()), _, _);
 
+  // Scheduler expectations.
+  Future<TaskStatus> statusRunning;
+  EXPECT_CALL(sched, statusUpdate(&driver, _))
+    .WillOnce(FutureArg<1>(&statusRunning));
+
   driver.launchTasks(offers1.get()[0].id(), {task1});
 
   AWAIT_READY(registerExecutorMessage);
+
+  AWAIT_READY(statusRunning);
+  EXPECT_EQ(TASK_RUNNING, statusRunning.get().state());
 
   Future<hashset<ContainerID>> containers = containerizer->containers();
   AWAIT_READY(containers);
