@@ -4046,9 +4046,14 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceForward)
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
+  Future<SlaveRegisteredMessage> slaveRegisteredMessage =
+    FUTURE_PROTOBUF(SlaveRegisteredMessage(), master.get()->pid, _);
+
   Try<Owned<cluster::Slave>> slave =
     this->StartSlave(detector.get(), containerizer.get(), flags);
   ASSERT_SOME(slave);
+
+  AWAIT_READY(slaveRegisteredMessage);
 
   MockScheduler sched;
 
@@ -4109,8 +4114,13 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceForward)
     .WillOnce(FutureArg<1>(&offers2))
     .WillRepeatedly(Return());        // Ignore subsequent offers.
 
+  Future<SlaveReregisteredMessage> slaveReregisteredMessage =
+    FUTURE_PROTOBUF(SlaveReregisteredMessage(), master.get()->pid, _);
+
   slave = this->StartSlave(detector.get(), containerizer.get(), flags);
   ASSERT_SOME(slave);
+
+  AWAIT_READY(slaveReregisteredMessage);
 
   AWAIT_READY(offers2);
   EXPECT_NE(0u, offers2.get().size());
@@ -4150,9 +4160,14 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceBackward)
 
   Owned<MasterDetector> detector = master.get()->createDetector();
 
+  Future<SlaveRegisteredMessage> slaveRegisteredMessage =
+    FUTURE_PROTOBUF(SlaveRegisteredMessage(), master.get()->pid, _);
+
   Try<Owned<cluster::Slave>> slave =
     this->StartSlave(detector.get(), containerizer.get(), flags);
   ASSERT_SOME(slave);
+
+  AWAIT_READY(slaveRegisteredMessage);
 
   MockScheduler sched;
 
@@ -4214,8 +4229,13 @@ TEST_F(MesosContainerizerSlaveRecoveryTest, CGROUPS_ROOT_PidNamespaceBackward)
     .WillOnce(FutureArg<1>(&offers2))
     .WillRepeatedly(Return());        // Ignore subsequent offers.
 
+  Future<SlaveReregisteredMessage> slaveReregisteredMessage =
+    FUTURE_PROTOBUF(SlaveReregisteredMessage(), master.get()->pid, _);
+
   slave = this->StartSlave(detector.get(), containerizer.get(), flags);
   ASSERT_SOME(slave);
+
+  AWAIT_READY(slaveReregisteredMessage);
 
   AWAIT_READY(offers2);
   EXPECT_NE(0u, offers2.get().size());
