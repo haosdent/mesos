@@ -1680,74 +1680,148 @@ Future<Response> Slave::Http::containers(
       principal)
     .then(defer(
         slave->self(),
-        [this, request](bool authorized) -> Future<Response> {
+        [this, request, principal](bool authorized) -> Future<Response> {
           if (!authorized) {
             return Forbidden();
           }
 
-          return _containers(request);
+          return _containers(request, principal);
         }));
 }
 
 
 Future<Response> Slave::Http::getContainers(
     const agent::Call& call,
-    const Option<string>& printcipal,
+    const Option<string>& principal,
     ContentType contentType) const
 {
   CHECK_EQ(agent::Call::GET_CONTAINERS, call.type());
 
-  return __containers()
-      .then([contentType](const Future<JSON::Array>& result)
-          -> Future<Response> {
-        if (!result.isReady()) {
-          LOG(WARNING) << "Could not collect container status and statistics: "
-                       << (result.isFailed()
-                            ? result.failure()
-                            : "Discarded");
-          return result.isFailed()
-            ? InternalServerError(result.failure())
-            : InternalServerError();
-        }
+  // Retrieve `ObjectApprover`s for authorizing frameworks and executors.
+  Future<Owned<ObjectApprover>> frameworksApprover;
+  Future<Owned<ObjectApprover>> executorsApprover;
+  if (slave->authorizer.isSome()) {
+    authorization::Subject subject;
+    if (principal.isSome()) {
+      subject.set_value(principal.get());
+    }
 
-        return OK(
-            serialize(
-                contentType,
-                evolve<v1::agent::Response::GET_CONTAINERS>(result.get())),
-            stringify(contentType));
-      });
+    frameworksApprover = slave->authorizer.get()->getObjectApprover(
+        subject, authorization::VIEW_FRAMEWORK);
+
+    executorsApprover = slave->authorizer.get()->getObjectApprover(
+        subject, authorization::VIEW_EXECUTOR);
+  } else {
+    frameworksApprover = Owned<ObjectApprover>(new AcceptingObjectApprover());
+    executorsApprover = Owned<ObjectApprover>(new AcceptingObjectApprover());
+  }
+
+  return collect(frameworksApprover, executorsApprover)
+    .then(defer(slave->self(),
+        [this](const tuple<Owned<ObjectApprover>,
+                           Owned<ObjectApprover>>& approvers) {
+      // Get approver from tuple.
+      Owned<ObjectApprover> frameworksApprover;
+      Owned<ObjectApprover> executorsApprover;
+      tie(frameworksApprover, executorsApprover) = approvers;
+
+      return __containers(frameworksApprover, executorsApprover);
+    }))
+    .then([contentType](const Future<JSON::Array>& result)
+        -> Future<Response> {
+      if (!result.isReady()) {
+        LOG(WARNING) << "Could not collect container status and statistics: "
+                     << (result.isFailed()
+                          ? result.failure()
+                          : "Discarded");
+        return result.isFailed()
+          ? InternalServerError(result.failure())
+          : InternalServerError();
+      }
+
+      return OK(
+          serialize(
+              contentType,
+              evolve<v1::agent::Response::GET_CONTAINERS>(result.get())),
+          stringify(contentType));
+    });
 }
 
 
-Future<Response> Slave::Http::_containers(const Request& request) const
+Future<Response> Slave::Http::_containers(
+    const Request& request,
+    const Option<string>& principal) const
 {
-  return __containers()
-      .then([request](const Future<JSON::Array>& result) -> Future<Response> {
-        if (!result.isReady()) {
-          LOG(WARNING) << "Could not collect container status and statistics: "
-                       << (result.isFailed()
-                            ? result.failure()
-                            : "Discarded");
+  // Retrieve `ObjectApprover`s for authorizing frameworks and executors.
+  Future<Owned<ObjectApprover>> frameworksApprover;
+  Future<Owned<ObjectApprover>> executorsApprover;
+  if (slave->authorizer.isSome()) {
+    authorization::Subject subject;
+    if (principal.isSome()) {
+      subject.set_value(principal.get());
+    }
 
-          return result.isFailed()
-            ? InternalServerError(result.failure())
-            : InternalServerError();
-        }
+    frameworksApprover = slave->authorizer.get()->getObjectApprover(
+        subject, authorization::VIEW_FRAMEWORK);
 
-        return process::http::OK(
-            result.get(), request.url.query.get("jsonp"));
-      });
+    executorsApprover = slave->authorizer.get()->getObjectApprover(
+        subject, authorization::VIEW_EXECUTOR);
+  } else {
+    frameworksApprover = Owned<ObjectApprover>(new AcceptingObjectApprover());
+    executorsApprover = Owned<ObjectApprover>(new AcceptingObjectApprover());
+  }
+
+  return collect(frameworksApprover, executorsApprover)
+    .then(defer(slave->self(),
+        [this](const tuple<Owned<ObjectApprover>,
+                           Owned<ObjectApprover>>& approvers) {
+      // Get approver from tuple.
+      Owned<ObjectApprover> frameworksApprover;
+      Owned<ObjectApprover> executorsApprover;
+      tie(frameworksApprover, executorsApprover) = approvers;
+
+      return __containers(frameworksApprover, executorsApprover);
+    }))
+    .then([request](const Future<JSON::Array>& result) -> Future<Response> {
+      if (!result.isReady()) {
+        LOG(WARNING) << "Could not collect container status and statistics: "
+                     << (result.isFailed()
+                          ? result.failure()
+                          : "Discarded");
+
+        return result.isFailed()
+          ? InternalServerError(result.failure())
+          : InternalServerError();
+      }
+
+      return process::http::OK(
+          result.get(), request.url.query.get("jsonp"));
+    });
 }
 
 
-Future<JSON::Array> Slave::Http::__containers() const
+Future<JSON::Array> Slave::Http::__containers(
+    const Owned<ObjectApprover>& frameworksApprover,
+    const Owned<ObjectApprover>& executorsApprover) const
 {
   Owned<list<JSON::Object>> metadata(new list<JSON::Object>());
   list<Future<ContainerStatus>> statusFutures;
   list<Future<ResourceStatistics>> statsFutures;
 
   foreachvalue (const Framework* framework, slave->frameworks) {
+    // Skip unauthorized frameworks.
+    if (!approveViewFrameworkInfo(frameworksApprover, framework->info)) {
+      continue;
+    }
+
     foreachvalue (const Executor* executor, framework->executors) {
+      // Skip unauthorized executors.
+      if (!approveViewExecutorInfo(executorsApprover,
+                                   executor->info,
+                                   framework->info)) {
+        continue;
+      }
+
       // No need to get statistics and status if we know that the
       // executor has already terminated.
       if (executor->state == Executor::TERMINATED) {

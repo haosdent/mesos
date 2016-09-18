@@ -516,10 +516,13 @@ private:
 
     // Continuation for `/containers` endpoint
     process::Future<process::http::Response> _containers(
-        const process::http::Request& request) const;
+        const process::http::Request& request,
+        const Option<std::string>& principal) const;
 
     // Helper function to collect containers status and resource statistics.
-    process::Future<JSON::Array> __containers() const;
+    process::Future<JSON::Array> __containers(
+        const process::Owned<ObjectApprover>& frameworksApprover,
+        const process::Owned<ObjectApprover>& executorsApprover) const;
 
     // Helper routines for endpoint authorization.
     Try<std::string> extractEndpoint(const process::http::URL& url) const;
